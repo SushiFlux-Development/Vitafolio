@@ -1,0 +1,1144 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "discard": "Verwerfen",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "copyFailed": "Nicht möglich",
+    "loading": "Wird geladen …",
+    "on": "Ein",
+    "off": "Aus",
+    "language": "Sprache"
+  },
+  "brand": {
+    "panelLabel": "Was {{product}} kann",
+    "tagline": "Bewerbungen, die gut aussehen.",
+    "subline": "Lebenslauf, Anschreiben und Bewerbungs-Tracker in einer App – kostenlos und Open Source.",
+    "features": {
+      "cv": {
+        "title": "Lebenslauf aus Bausteinen",
+        "text": "Einmal im Stammprofil pflegen, pro Bewerbung auswählen."
+      },
+      "letter": {
+        "title": "Anschreiben und Deckblatt",
+        "text": "Angelehnt an DIN 5008, mit passendem Deckblatt."
+      },
+      "designs": {
+        "title": "Designs von klassisch bis modern",
+        "text": "Ein Klick wechselt das Design, ohne etwas neu zu tippen."
+      },
+      "export": {
+        "title": "PDF- und Word-Export",
+        "text": "Die ganze Mappe als PDF, Lebenslauf und Anschreiben als Word."
+      },
+      "tracker": {
+        "title": "Bewerbungs-Tracker",
+        "text": "Status, Gespräche und die genau so verschickte Fassung im Blick."
+      }
+    },
+    "ai": "KI-Hilfe ist freiwillig: mit eigenem Schlüssel, lokalem Modell oder per Kopieren und Einfügen.",
+    "copyright": "© {{year}} SushiFlux Develop"
+  },
+  "fields": {
+    "username": "Benutzername",
+    "displayName": "Anzeigename",
+    "password": "Passwort",
+    "passwordHint": "Mindestens {{min}} Zeichen.",
+    "repeat": "Passwort wiederholen",
+    "code": "Code",
+    "setupToken": "Einrichtungscode"
+  },
+  "rules": {
+    "userName": {
+      "required": "Bitte einen Benutzernamen eingeben.",
+      "characters": "Der Benutzername enthält nicht erlaubte Zeichen.",
+      "tooShort": "Zu kurz: {{length}} von mindestens {{min}} Zeichen.",
+      "tooLong": "Zu lang: {{length}} von höchstens {{max}} Zeichen."
+    },
+    "displayName": {
+      "required": "Bitte einen Anzeigenamen eingeben.",
+      "tooShort": "Zu kurz: {{length}} von mindestens {{min}} Zeichen.",
+      "tooLong": "Zu lang: {{length}} von höchstens {{max}} Zeichen."
+    },
+    "password": {
+      "required": "Bitte ein Passwort eingeben.",
+      "tooShort": "Zu kurz: {{length}} von mindestens {{min}} Zeichen.",
+      "tooLong": "Zu lang: {{length}} von höchstens {{max}} Zeichen.",
+      "repeatRequired": "Bitte das Passwort noch einmal eingeben.",
+      "mismatch": "Die beiden Passwörter sind nicht gleich."
+    },
+    "totp": {
+      "required": "Bitte den Code aus der Authenticator-App eingeben.",
+      "digitsOnly": "Der Code besteht nur aus Ziffern.",
+      "length": "Zu lang: Der Code hat genau {{count}} Ziffern."
+    },
+    "code": {
+      "required": "Bitte den Code aus der Authenticator-App oder einen Wiederherstellungscode eingeben."
+    },
+    "setupToken": {
+      "required": "Bitte den Einrichtungscode eingeben.",
+      "characters": "Der Einrichtungscode besteht nur aus Buchstaben und Ziffern, ohne die leicht verwechselbaren 0, 1, I, L und O.",
+      "tooLong": "Zu lang: Der Einrichtungscode hat genau {{count}} Zeichen.",
+      "incomplete": "Noch nicht vollständig: Der Einrichtungscode hat genau {{count}} Zeichen."
+    }
+  },
+  "setup": {
+    "title": "Willkommen bei {{product}}",
+    "intro": "Legen Sie das erste Konto an, um zu beginnen.",
+    "adminHint": "Dieses erste Konto wird automatisch Administrator. Weitere Konten legen Sie später selbst an.",
+    "submit": "Konto anlegen",
+    "tokenHint": "Steht beim ersten Start im Protokoll des Servers – auf Unraid unter Docker → Vitafolio → Logs."
+  },
+  "login": {
+    "title": "Anmelden",
+    "intro": "Melden Sie sich mit Ihrem Konto an.",
+    "submit": "Anmelden",
+    "noAccount": "Noch kein Konto?",
+    "codeTitle": "Zweiter Schritt",
+    "codeIntro": "Geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein.",
+    "codeHint": "Ohne App: ein Wiederherstellungscode funktioniert auch (einmalig).",
+    "codeSubmit": "Bestätigen",
+    "back": "Zurück zur Anmeldung",
+    "emergencyResetLink": "Passwort vergessen? (Administrator-Notfallzugang)"
+  },
+  "register": {
+    "title": "Registrieren",
+    "intro": "Legen Sie Ihr Konto an.",
+    "submit": "Konto anlegen",
+    "haveAccount": "Schon ein Konto?"
+  },
+  "emergencyReset": {
+    "title": "Notfall-Zugang für Administratoren",
+    "intro": "Wenn Sie der einzige Administrator sind und Ihr Passwort oder den Zugriff auf Ihre Authenticator-App verloren haben, können Sie hier Ihr Passwort und die Zwei-Faktor-Authentifizierung zurücksetzen.",
+    "adminOnlyNotice": "Dieser Notfall-Weg steht nur zur Verfügung, wenn es keinen anderen aktiven Administrator gibt.",
+    "step1Title": "1. Notfall-Code anfordern",
+    "step1Hint": "Klicken Sie auf den Knopf, um einen Notfall-Code im Server-Protokoll zu erzeugen (auf Unraid unter Docker → Vitafolio → Logs oder in der Datei emergency-token im Datenordner).",
+    "requestCode": "Notfall-Code im Server-Log erzeugen",
+    "codeGeneratedNotice": "Der Notfall-Code wurde erzeugt! Schauen Sie in die Server-Logs oder in die Datei 'emergency-token' im Datenordner.",
+    "step2Title": "2. Code und neues Passwort eingeben",
+    "codeLabel": "Notfall-Code aus den Logs",
+    "codeHint": "Format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (28 Zeichen).",
+    "submit": "Passwort zurücksetzen und 2FA deaktivieren",
+    "successTitle": "Passwort erfolgreich zurückgesetzt!",
+    "successText": "Das Passwort für '{{username}}' wurde neu gesetzt und die Zwei-Faktor-Anmeldung wurde deaktiviert. Alle bestehenden Sitzungen wurden beendet.",
+    "toLogin": "Zur Anmeldung",
+    "backToLogin": "Zurück zur Anmeldung"
+  },
+  "forced2fa": {
+    "title": "Zwei-Faktor-Anmeldung einrichten",
+    "intro": "Der Administrator verlangt für alle Konten einen zweiten Faktor.",
+    "hint": "Sobald die Einrichtung abgeschlossen ist, geht es weiter. Vorher ist nichts anderes möglich."
+  },
+  "nav": {
+    "label": "Hauptnavigation",
+    "overview": "Übersicht",
+    "profile": "Stammprofil",
+    "coverLetters": "Anschreiben",
+    "applications": "Bewerbungen",
+    "aiSettings": "KI-Einstellungen",
+    "admin": "App-Administration",
+    "settings": "Einstellungen",
+    "signOut": "Abmelden"
+  },
+  "shell": {
+    "theme": "Darstellung wechseln",
+    "localAccount": "Lokales Konto",
+    "signOutFailed": "Abmelden hat nicht geklappt."
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "Benutzer"
+  },
+  "overview": {
+    "welcomeLabel": "Willkommen",
+    "welcome": "Willkommen, {{name}}",
+    "account": {
+      "title": "Ihr Konto"
+    },
+    "twoFactor": {
+      "title": "Zwei-Faktor-Anmeldung",
+      "on": "Aktiv",
+      "off": "Nicht aktiv",
+      "onText": "Beim Anmelden wird zusätzlich ein Code aus Ihrer Authenticator-App verlangt.",
+      "offText": "Ein zweiter Faktor schützt Ihr Konto, falls das Passwort in falsche Hände gerät.",
+      "manage": "In den Einstellungen verwalten"
+    },
+    "mode": {
+      "title": "Betrieb",
+      "server": "Server-Version: Anmeldung mit Konto, erreichbar im Browser.",
+      "desktop": "Windows-Programm: Ihre Daten liegen lokal auf diesem Computer, eine Anmeldung ist nicht nötig."
+    },
+    "backup": {
+      "title": "Datensicherung",
+      "last": "Letzte Sicherung: {{when}}",
+      "none": "Noch keine Sicherung vorhanden.",
+      "manage": "Datensicherung öffnen"
+    }
+  },
+  "profile": {
+    "title": "Stammprofil",
+    "description": "Ihre vollständige Lebensakte: Pflegen Sie Ihre persönlichen Daten und Bausteine einmalig hier. Für einzelne Bewerbungen wählen Sie später flexibel aus, welche Stationen und Kenntnisse erscheinen.",
+    "tabs": {
+      "personal": "Persönliches",
+      "experiences": "Berufserfahrung",
+      "educations": "Ausbildung",
+      "skills": "Kenntnisse",
+      "languages": "Sprachen",
+      "certificates": "Zertifikate",
+      "interests": "Interessen & Aktivitäten",
+      "customSections": "Eigene Abschnitte",
+      "preview": "Vorschau & Export"
+    },
+    "personal": {
+      "title": "Persönliche Daten",
+      "subtitle": "Name, Kontaktdaten und Angaben zur Person (alles außer Vor- und Nachname ist freiwillig nach AGG).",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "academicTitle": "Akademischer Titel",
+      "professionalTitle": "Berufsbezeichnung / Untertitel",
+      "email": "E-Mail-Adresse",
+      "phone": "Telefonnummer",
+      "street": "Straße und Hausnummer",
+      "postalCode": "Postleitzahl",
+      "city": "Ort",
+      "country": "Land",
+      "dateOfBirth": "Geburtsdatum",
+      "placeOfBirth": "Geburtsort",
+      "nationality": "Staatsangehörigkeit",
+      "maritalStatus": "Familienstand",
+      "website": "Webseite / Portfolio",
+      "linkedIn": "LinkedIn-Profil",
+      "gitHub": "GitHub-Profil",
+      "xing": "Xing-Profil",
+      "bio": "Kurzprofil / Über mich",
+      "bioHint": "Einige prägnante Sätze über Ihre Schwerpunkte, Arbeitsweise oder Motivation.",
+      "photo": "Bewerbungsfoto",
+      "photoUpload": "Foto hochladen",
+      "photoChange": "Foto ändern",
+      "photoDelete": "Foto entfernen",
+      "photoHint": "JPEG, PNG oder WebP, maximal 5 MB. Ein Foto ist im Lebenslauf freiwillig.",
+      "saveSuccess": "Persönliche Daten gespeichert."
+    },
+    "experiences": {
+      "title": "Berufserfahrung",
+      "subtitle": "Berufliche Stationen, Praktika und Projekte. Das Neueste steht im Lebenslauf automatisch oben.",
+      "add": "Station hinzufügen",
+      "edit": "Station bearbeiten",
+      "delete": "Station löschen",
+      "deleteConfirm": "Möchten Sie diese Station wirklich löschen?",
+      "empty": "Noch keine Berufserfahrung eingetragen.",
+      "jobTitle": "Position / Berufsbezeichnung",
+      "employer": "Arbeitgeber / Unternehmen",
+      "employmentType": "Beschäftigungsart",
+      "employmentTypePlaceholder": "z. B. Vollzeit, Teilzeit, Freiberuflich, Praktikum",
+      "city": "Ort",
+      "country": "Land",
+      "startDate": "Beginn (Monat/Jahr)",
+      "endDate": "Ende (Monat/Jahr)",
+      "isCurrent": "Aktuelle Position (bis heute)",
+      "description": "Aufgaben, Erfolge & Schwerpunkte",
+      "moveUp": "Nach oben verschieben",
+      "moveDown": "Nach unten verschieben"
+    },
+    "educations": {
+      "title": "Ausbildung & Studium",
+      "subtitle": "Schulbildung, Berufsausbildung, akademische Grade und Abschlüsse.",
+      "add": "Ausbildung hinzufügen",
+      "edit": "Ausbildung bearbeiten",
+      "delete": "Ausbildung löschen",
+      "deleteConfirm": "Möchten Sie diesen Eintrag wirklich löschen?",
+      "empty": "Noch keine Ausbildung eingetragen.",
+      "degree": "Abschluss / Titel",
+      "degreePlaceholder": "z. B. B.Sc. Informatik, Abitur, Fachinformatiker",
+      "fieldOfStudy": "Fachrichtung / Studiengang",
+      "institution": "Einrichtung / Schule / Hochschule",
+      "city": "Ort",
+      "country": "Land",
+      "startDate": "Beginn",
+      "endDate": "Ende",
+      "isCurrent": "Laufende Ausbildung",
+      "grade": "Abschlussnote",
+      "description": "Schwerpunkte, Abschlussarbeit, Details"
+    },
+    "skills": {
+      "title": "Kenntnisse & Fähigkeiten",
+      "subtitle": "Fachkenntnisse, Softwaretools, Methodiken und Soft Skills.",
+      "add": "Kenntnis hinzufügen",
+      "edit": "Kenntnis bearbeiten",
+      "delete": "Kenntnis löschen",
+      "deleteConfirm": "Möchten Sie diese Kenntnis wirklich löschen?",
+      "empty": "Noch keine Kenntnisse eingetragen.",
+      "name": "Bezeichnung",
+      "namePlaceholder": "z. B. React, C#, Projektmanagement, Docker",
+      "category": "Kategorie",
+      "categoryPlaceholder": "z. B. Programmiersprachen, Werkzeuge, Methoden",
+      "level": "Niveau (Stufe 1–5)",
+      "noLevel": "Keine Stufenangabe",
+      "levelLabels": {
+        "0": "Ohne Stufe",
+        "1": "Grundkenntnisse (1/5)",
+        "2": "Gute Kenntnisse (2/5)",
+        "3": "Fortgeschritten (3/5)",
+        "4": "Sehr gut (4/5)",
+        "5": "Experte (5/5)"
+      }
+    },
+    "languages": {
+      "title": "Sprachkenntnisse",
+      "subtitle": "Sprachen und Einstufung nach europäischem Referenzrahmen (GER) oder als Muttersprache.",
+      "add": "Sprache hinzufügen",
+      "edit": "Sprache bearbeiten",
+      "delete": "Sprache löschen",
+      "deleteConfirm": "Möchten Sie diese Sprache wirklich löschen?",
+      "empty": "Noch keine Sprachen eingetragen.",
+      "language": "Sprache",
+      "level": "Niveau",
+      "levels": {
+        "native": "Muttersprache",
+        "A1": "A1 – Anfänger",
+        "A2": "A2 – Grundlegende Kenntnisse",
+        "B1": "B1 – Fortgeschrittene Sprachverwendung",
+        "B2": "B2 – Selbstständige Sprachverwendung",
+        "C1": "C1 – Fachkundige Sprachkenntnisse",
+        "C2": "C2 – Annähernd muttersprachliche Kenntnisse"
+      }
+    },
+    "certificates": {
+      "title": "Weiterbildung & Zertifikate",
+      "subtitle": "Erworbene Zertifizierungen, Scheine, Seminare und Fortbildungen.",
+      "add": "Zertifikat hinzufügen",
+      "edit": "Zertifikat bearbeiten",
+      "delete": "Zertifikat löschen",
+      "deleteConfirm": "Möchten Sie dieses Zertifikat wirklich löschen?",
+      "empty": "Noch keine Zertifikate eingetragen.",
+      "certTitle": "Titel / Bezeichnung",
+      "issuer": "Aussteller / Organisation",
+      "issueDate": "Ausstellungsdatum",
+      "expiryDate": "Gültig bis",
+      "credentialUrl": "Nachweis-Link / URL",
+      "credentialId": "Zertifikatsnummer / ID"
+    },
+    "interests": {
+      "title": "Interessen & Aktivitäten",
+      "subtitle": "Hobbys, ehrenamtliche Tätigkeiten, Mitgliedschaften oder Führerscheinklassen.",
+      "add": "Eintrag hinzufügen",
+      "edit": "Eintrag bearbeiten",
+      "delete": "Eintrag löschen",
+      "deleteConfirm": "Möchten Sie diesen Eintrag wirklich löschen?",
+      "empty": "Noch keine Interessen eingetragen.",
+      "name": "Bezeichnung / Aktivität",
+      "category": "Kategorie (z. B. Hobby, Ehrenamt, Führerschein)",
+      "description": "Ergänzende Beschreibung"
+    },
+    "customSections": {
+      "title": "Eigene Abschnitte",
+      "subtitle": "Erstellen Sie individuelle Sektionen für Ihren Lebenslauf (z. B. Publikationen, Patente, Auszeichnungen).",
+      "addSection": "Abschnitt anlegen",
+      "editSection": "Abschnitt bearbeiten",
+      "deleteSection": "Abschnitt löschen",
+      "sectionTitle": "Abschnittsname (z. B. Publikationen)",
+      "empty": "Noch keine eigenen Abschnitte angelegt.",
+      "addItem": "Eintrag hinzufügen",
+      "editItem": "Eintrag bearbeiten",
+      "deleteItem": "Eintrag löschen",
+      "itemTitle": "Titel",
+      "itemSubtitle": "Untertitel / Herausgeber",
+      "itemDate": "Datum / Zeitraum",
+      "itemDescription": "Beschreibung"
+    },
+    "preview": {
+      "title": "Lebenslauf-Vorschau",
+      "subtitle": "Wählen Sie Design und Optionen und laden Sie Ihren druckfertigen Lebenslauf als PDF herunter.",
+      "design": "Design-Vorlage",
+      "designs": {
+        "classic": "Klassisch",
+        "classicDesc": "Tabellarisch, einspaltig – übersichtlich und traditionell",
+        "modern": "Modern",
+        "modernDesc": "Mit Seitenleiste für Kontakt und Kenntnisse sowie Akzentfarbe",
+        "plain": "Schlicht",
+        "plainDesc": "Einspaltig, ohne Grafik – ideal für Bewerberportale (ATS)"
+      },
+      "color": "Akzentfarbe",
+      "font": "Schriftart",
+      "language": "Dokument-Sprache",
+      "languageDe": "Deutsch",
+      "languageEn": "Englisch",
+      "photo": "Bewerbungsfoto",
+      "showPhoto": "Foto im Lebenslauf anzeigen",
+      "photoShape": "Foto-Form",
+      "photoShapes": {
+        "round": "Rund",
+        "rounded": "Abgerundet",
+        "rect": "Eckig"
+      },
+      "download": "PDF herunterladen",
+      "downloading": "Wird erzeugt …",
+      "downloadDocx": "Word herunterladen (.docx)",
+      "downloadingDocx": "Word wird erzeugt …",
+      "refresh": "Vorschau aktualisieren",
+      "loading": "Vorschau wird erzeugt …",
+      "noPdf": "Die Vorschau konnte nicht geladen werden.",
+      "openNewTab": "In neuem Tab öffnen"
+    }
+  },
+  "coverLetters": {
+    "title": "Anschreiben",
+    "subtitle": "Verfassen Sie normgerechte Anschreiben nach DIN 5008 für Ihre Bewerbungen.",
+    "newLetter": "Neues Anschreiben",
+    "createTitle": "Neues Anschreiben erstellen",
+    "editTitle": "Anschreiben bearbeiten",
+    "empty": "Noch keine Anschreiben vorhanden. Erstellen Sie Ihr erstes Anschreiben!",
+    "deleteConfirm": "Möchten Sie das Anschreiben \"{{title}}\" wirklich löschen?",
+    "tabs": {
+      "editor": "Inhalt & DIN 5008",
+      "preview": "PDF-Vorschau",
+      "options": "Design & Formatierung"
+    },
+    "fields": {
+      "title": "Interner Titel (z. B. Bewerbung Softwareentwickler bei Musterfirma)",
+      "language": "Dokument-Sprache",
+      "senderSection": "Absenderangaben",
+      "senderHint": "Wird standardmäßig aus Ihrem Stammprofil übernommen. Kann hier individuell angepasst werden.",
+      "senderName": "Vor- und Nachname",
+      "senderStreet": "Straße und Hausnummer",
+      "senderPostalCode": "Postleitzahl",
+      "senderCity": "Wohnort",
+      "senderPhone": "Telefonnummer",
+      "senderEmail": "E-Mail-Adresse",
+      "recipientSection": "Empfänger (nach DIN 5008)",
+      "recipientCompany": "Unternehmensname / Organisation",
+      "recipientDepartment": "Abteilung / z. Hd.",
+      "recipientContactPerson": "Ansprechpartner (z. B. Frau Dr. Schmidt)",
+      "recipientStreet": "Straße und Hausnummer / Postfach",
+      "recipientPostalCode": "Postleitzahl",
+      "recipientCity": "Ort",
+      "recipientCountry": "Land (optional, falls Ausland)",
+      "metaSection": "Datum & Ort",
+      "place": "Ort der Unterzeichnung (z. B. Berlin)",
+      "date": "Datum (z. B. 06.11.2026 oder 6. November 2026)",
+      "contentSection": "Briefinhalt",
+      "subject": "Betreffzeile (DIN 5008: Fettgedruckt, ohne das Wort 'Betreff')",
+      "salutation": "Anrede (z. B. Sehr geehrte Damen und Herren,)",
+      "body": "Brieftext",
+      "bodyPlaceholder": "Formulieren Sie hier Ihr Anschreiben. Absätze trennen Sie einfach mit einer Leerzeile...",
+      "closing": "Grußformel (z. B. Mit freundlichen Grüßen)",
+      "signatureName": "Name unter der Unterschrift",
+      "signatureSection": "Unterschrift & Signatur",
+      "signatureHint": "Laden Sie ein transparentes PNG oder JPEG Ihrer handschriftlichen Unterschrift hoch (max. 2 MB).",
+      "uploadSignature": "Unterschrift hochladen",
+      "deleteSignature": "Unterschrift entfernen",
+      "hasSignature": "Unterschrift hinterlegt",
+      "noSignature": "Keine Unterschrift (Platzhalter für handschriftliche Signatur)",
+      "attachmentsSection": "Anlagenvermerk",
+      "attachmentsNote": "Anlagenvermerk (z. B. Lebenslauf, Zeugnisse, Zertifikate)",
+      "optionsSection": "Design & Format",
+      "font": "Schriftart",
+      "accentColor": "Akzentfarbe",
+      "foldMarks": "DIN-Falz- und Lochmarken",
+      "foldMarksHint": "Druckt unauffällige Hilfslinien am linken Rand für DIN-Lang-Fensterumschläge"
+    },
+    "actions": {
+      "save": "Anschreiben speichern",
+      "saving": "Wird gespeichert …",
+      "downloadPdf": "PDF herunterladen",
+      "downloadDocx": "Word herunterladen (.docx)",
+      "refreshPreview": "Vorschau aktualisieren",
+      "backToList": "Zurück zur Übersicht",
+      "openNewTab": "PDF im neuen Tab öffnen"
+    }
+  },
+  "applications": {
+    "title": "Bewerbungs-Tracker",
+    "subtitle": "Behalten Sie den Überblick über all Ihre laufenden Bewerbungen, Termine und Dossiers.",
+    "newApplication": "Neue Bewerbung",
+    "createTitle": "Neue Bewerbung anlegen",
+    "editTitle": "Bewerbung bearbeiten",
+    "detailsTitle": "Bewerbungsdetails",
+    "empty": "Noch keine Bewerbungen vorhanden. Legen Sie Ihre erste Bewerbung an!",
+    "noResults": "Keine Bewerbungen gefunden, die den Kriterien entsprechen.",
+    "deleteConfirm": "Möchten Sie die Bewerbung bei \"{{company}}\" als \"{{jobTitle}}\" wirklich löschen?",
+    "followUpAlert": "Bei {{count}} Bewerbung(en) ist ein Nachfassen fällig (keine Rückmeldung > 14 Tage).",
+    "views": {
+      "kanban": "Kanban-Board",
+      "list": "Listenansicht"
+    },
+    "filter": {
+      "all": "Alle Status",
+      "searchPlaceholder": "Unternehmen, Stelle oder Ort suchen..."
+    },
+    "stats": {
+      "total": "Gesamt",
+      "draft": "Entwurf",
+      "applied": "Beworben",
+      "acknowledged": "Bestätigt",
+      "interview": "Gespräch",
+      "offer": "Angebot",
+      "rejected": "Absage",
+      "withdrawn": "Zurückgezogen",
+      "followUpsDue": "Nachfassen fällig"
+    },
+    "statuses": {
+      "draft": "Entwurf",
+      "applied": "Beworben",
+      "acknowledged": "Eingangsbestätigung",
+      "interview": "Vorstellungsgespräch",
+      "offer": "Angebot erhalten",
+      "rejected": "Absage",
+      "withdrawn": "Zurückgezogen"
+    },
+    "fields": {
+      "jobTitle": "Stellenbezeichnung",
+      "company": "Unternehmen",
+      "location": "Standort / Remote",
+      "contactPerson": "Ansprechpartner",
+      "contactEmail": "E-Mail-Adresse",
+      "contactPhone": "Telefonnummer",
+      "jobPostingUrl": "Link zur Stellenausschreibung",
+      "salaryExpectation": "Gehaltsvorstellung",
+      "status": "Aktueller Status",
+      "appliedAt": "Beworben am",
+      "followUpAt": "Nachfassen geplant am",
+      "coverLetter": "Zugeordnetes Anschreiben",
+      "noCoverLetter": "Kein Anschreiben",
+      "includeCoverSheet": "Deckblatt ins Dossier einbinden",
+      "cvDesign": "Lebenslauf-Design",
+      "cvAccentColor": "Akzentfarbe",
+      "cvFont": "Schriftart",
+      "cvLanguage": "Sprache",
+      "cvShowPhoto": "Foto anzeigen",
+      "cvPhotoShape": "Fotoform",
+      "jobDescription": "Stellenbeschreibung",
+      "notes": "Persönliche Notizen & Feedback"
+    },
+    "timeline": {
+      "title": "Verlauf & Ereignisse",
+      "addEvent": "Ereignis hinzufügen",
+      "date": "Datum",
+      "eventTitle": "Titel (z. B. 1. Vorstellungsgespräch)",
+      "note": "Notiz (optional)",
+      "status": "Zugehöriger Status",
+      "noEvents": "Noch keine Ereignisse dokumentiert."
+    },
+    "dossier": {
+      "title": "Bewerbungs-Dossier",
+      "frozenBadge": "Archivierter Snapshot",
+      "liveBadge": "Live-Vorschau",
+      "frozenHint": "Dieser Stand wurde beim Einreichen der Bewerbung eingefroren.",
+      "download": "Dossier herunterladen (PDF)",
+      "preview": "Dossier ansehen",
+      "archiveNow": "Snapshot aktualisieren"
+    },
+    "actions": {
+      "changeStatus": "Status ändern",
+      "viewDetails": "Details anzeigen",
+      "downloadDossier": "Dossier",
+      "delete": "Löschen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "cancel": "Abbrechen"
+    }
+  },
+  "ai": {
+    "title": "KI-Assistent",
+    "settingsTitle": "KI-Einstellungen",
+    "provider": "KI-Anbieter",
+    "providers": {
+      "copy_paste": "Kopieren & Einfügen (Kostenlos & ohne API-Key)",
+      "openai": "OpenAI (ChatGPT)",
+      "anthropic": "Anthropic (Claude)",
+      "gemini": "Google Gemini",
+      "ollama": "Ollama (Lokal auf diesem PC / Server)",
+      "custom": "Benutzerdefinierter Endpunkt (LM Studio / vLLM)"
+    },
+    "model": "Modell",
+    "modelPlaceholder": "z. B. gpt-4o-mini, claude-3-5-haiku-20241022, gemini-2.5-flash, llama3.2",
+    "baseUrl": "Basis-URL / Server-Adresse",
+    "baseUrlPlaceholder": "http://localhost:11434 für Ollama oder http://localhost:1234/v1 für LM Studio",
+    "apiKey": "API-Schlüssel",
+    "apiKeyPlaceholder": "Neuen Schlüssel eingeben (leer lassen, um vorhandenen beizubehalten)...",
+    "apiKeyStored": "Schlüssel ist sicher verschlüsselt hinterlegt",
+    "apiKeyMissing": "Kein Schlüssel hinterlegt",
+    "pseudonymize": "Persönliche Daten durch Platzhalter schützen (Datenschutz)",
+    "pseudonymizeHint": "Ersetzt Name, Kontaktdaten und Adresse vor dem Senden durch Tokens und fügt sie erst in der App wieder ein.",
+    "testConnection": "Verbindung testen",
+    "testing": "Verbindung wird geprüft...",
+    "testSuccess": "Verbindung erfolgreich hergestellt!",
+    "save": "Einstellungen speichern",
+    "saving": "Wird gespeichert...",
+    "saved": "KI-Einstellungen erfolgreich gespeichert.",
+    "tasks": {
+      "coverLetter": "Anschreiben formulieren",
+      "analyzeJob": "Stellenanzeige analysieren",
+      "summary": "Kurzprofil formulieren",
+      "improveBullet": "Stichpunkt optimieren"
+    },
+    "assistant": {
+      "title": "KI-Assistent",
+      "jobTitle": "Zielposition",
+      "company": "Unternehmen",
+      "jobDescription": "Stellenanzeige / Anforderungen",
+      "recipient": "Ansprechpartner",
+      "tone": "Gewünschter Stil",
+      "tones": {
+        "confident": "Selbstbewusst & überzeugend",
+        "professional": "Professionell & sachlich",
+        "dynamic": "Dynamisch & innovativ",
+        "classic": "Klassisch & zurückhaltend"
+      },
+      "directMode": "Direkt generieren",
+      "copyPasteMode": "Kopieren & Einfügen",
+      "copyPrompt": "1. Prompt kopieren",
+      "promptCopied": "Prompt in die Zwischenablage kopiert! Fügen Sie ihn nun in ChatGPT, Claude oder Gemini ein.",
+      "pasteAnswer": "2. KI-Antwort hier einfügen",
+      "pastePlaceholder": "Fügen Sie die vollständige Antwort aus Ihrem KI-Chat hier ein...",
+      "parseAnswer": "3. Antwort auswerten & übernehmen",
+      "generate": "Vorschlag generieren",
+      "generating": "KI analysiert und formuliert...",
+      "apply": "Übernehmen",
+      "applyToCoverLetter": "In Anschreiben übernehmen",
+      "applySuccess": "Erfolgreich übernommen!",
+      "matchScore": "Passung zur Stelle",
+      "matchedRequirements": "Erfüllte Anforderungen",
+      "missingRequirements": "Offene Punkte & Tipps zum Ausgleich",
+      "tips": "Strategische Bewerbungstipps",
+      "keyMatches": "Hervorgehobene Stärken",
+      "openSettings": "KI-Einstellungen anpassen"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Ihre persönlichen Einstellungen.",
+    "tabs": {
+      "appearance": "Darstellung",
+      "security": "Sicherheit",
+      "backups": "Datensicherung"
+    },
+    "theme": {
+      "title": "Farbschema",
+      "text": "Hell, dunkel oder automatisch nach der Einstellung Ihres Systems.",
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "language": {
+      "title": "Sprache",
+      "text": "Die Sprache der Oberfläche."
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "text": "Geben Sie das aktuelle Passwort einmal und das neue zweimal ein.",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "repeat": "Neues Passwort wiederholen",
+      "submit": "Passwort ändern",
+      "done": "Das Passwort wurde geändert.",
+      "failed": "Passwort konnte nicht geändert werden:"
+    },
+    "totp": {
+      "title": "Zwei-Faktor-Anmeldung",
+      "textOff": "Schützen Sie Ihr Konto zusätzlich mit einer Authenticator-App.",
+      "textOn": "Ihr Konto ist mit einer Authenticator-App geschützt.",
+      "intro": "Sie brauchen eine Authenticator-App (z. B. auf dem Handy). Nach der Einrichtung bekommen Sie zehn Wiederherstellungscodes für den Notfall.",
+      "start": "Einrichtung starten",
+      "startFailed": "Die Einrichtung konnte nicht gestartet werden:",
+      "qrLabel": "QR-Code zum Einrichten der Authenticator-App",
+      "step1": "Scannen Sie den QR-Code mit Ihrer Authenticator-App oder geben Sie den Schlüssel von Hand ein.",
+      "step2": "Geben Sie danach den sechsstelligen Code aus der App ein.",
+      "manualKey": "Schlüssel zum Eintippen",
+      "codeLabel": "Code aus der App",
+      "enable": "Aktivieren",
+      "codesWarning": "Bewahren Sie diese Wiederherstellungscodes sicher auf. Jeder gilt nur einmal und wird nicht noch einmal angezeigt.",
+      "done": "Fertig, Codes gespeichert",
+      "disableIntro": "Zum Ausschalten bestätigen Sie mit Passwort und einem Code (aus der App oder ein Wiederherstellungscode).",
+      "password": "Aktuelles Passwort",
+      "codeOrRecovery": "Code oder Wiederherstellungscode",
+      "disable": "Zwei-Faktor ausschalten",
+      "disableFailed": "Zwei-Faktor konnte nicht ausgeschaltet werden:"
+    },
+    "sessions": {
+      "title": "Angemeldete Geräte",
+      "text": "Alle Sitzungen Ihres Kontos. Beenden Sie die, die Sie nicht kennen.",
+      "device": "Gerät",
+      "ip": "IP-Adresse",
+      "started": "Angemeldet seit",
+      "lastUsed": "Zuletzt benutzt",
+      "current": "Dieses Gerät",
+      "end": "Beenden",
+      "confirmTitle": "Sitzung beenden?",
+      "confirmText": "{{device}} ({{ip}}) wird abgemeldet und muss sich neu anmelden.",
+      "loadFailed": "Die Sitzungen konnten nicht geladen werden:",
+      "revokeFailed": "Die Sitzung konnte nicht beendet werden:"
+    }
+  },
+  "admin": {
+    "title": "App-Administration",
+    "subtitle": "Alles, was die ganze App für alle betrifft.",
+    "tabs": {
+      "users": "Benutzer",
+      "settings": "Einstellungen",
+      "activity": "Aktivitätsprotokoll",
+      "backups": "Datensicherung"
+    },
+    "users": {
+      "count_one": "{{count}} Konto",
+      "count_other": "{{count}} Konten",
+      "create": "Benutzer anlegen",
+      "createTitle": "Neuen Benutzer anlegen",
+      "createAction": "Anlegen",
+      "name": "Name",
+      "role": "Rolle",
+      "roleHint": {
+        "user": "Arbeitet mit den eigenen Bewerbungsdaten.",
+        "admin": "Verwaltet Konten und die App. Sieht keine Bewerbungsdaten anderer."
+      },
+      "status": "Status",
+      "active": "Aktiv",
+      "disabled": "Gesperrt",
+      "twoFactor": "Zwei-Faktor",
+      "lastLogin": "Letzte Anmeldung",
+      "never": "Noch nie",
+      "edit": "Bearbeiten",
+      "editTitle": "Konto {{username}} bearbeiten",
+      "accountActive": "Konto aktiv",
+      "accountActiveHint": "Ein gesperrtes Konto kann sich nicht mehr anmelden.",
+      "selfNote": "Das ist Ihr eigenes Konto: Sie können sich weder sperren noch Ihre Administrator-Rolle abgeben.",
+      "saveFailed": "Das Konto konnte nicht gespeichert werden:",
+      "setPassword": "Neues Passwort setzen",
+      "passwordTitle": "Neues Passwort für {{name}}",
+      "passwordText": "Das alte Passwort bleibt Ihnen unbekannt. Geben Sie der Person das neue Passwort auf sicherem Weg weiter.",
+      "passwordAction": "Passwort setzen",
+      "resetAction": "Zwei-Faktor zurücksetzen",
+      "resetTitle": "Zwei-Faktor zurücksetzen?",
+      "resetText": "Für {{name}} wird die Zwei-Faktor-Anmeldung ausgeschaltet. Sie kann sie danach neu einrichten.",
+      "resetFailed": "Zwei-Faktor konnte nicht zurückgesetzt werden:",
+      "deleteTitle": "Konto löschen?",
+      "deleteText": "Das Konto {{name}} ({{username}}) wird mit allen Daten gelöscht. Das lässt sich nicht rückgängig machen.",
+      "deleteSelf": "Das eigene Konto kann nicht gelöscht werden",
+      "deleteFailed": "Das Konto konnte nicht gelöscht werden:",
+      "loadFailed": "Die Benutzer konnten nicht geladen werden:"
+    },
+    "settings": {
+      "accessTitle": "Zugang",
+      "accessText": "Diese Schalter gelten sofort für die ganze App.",
+      "registrationOpen": "Registrierung offen",
+      "registrationOpenHint": "Jeder, der die Seite erreicht, kann sich ein Konto anlegen. Normalerweise aus: Konten legt der Administrator an.",
+      "requireTwoFactor": "Zwei-Faktor für alle verlangen",
+      "requireTwoFactorHint": "Wer noch keinen zweiten Faktor hat, muss ihn beim nächsten Anmelden einrichten.",
+      "confirm2faTitle": "Zwei-Faktor für alle verlangen?",
+      "confirm2faText": "Alle Konten ohne zweiten Faktor müssen ihn beim nächsten Anmelden einrichten; vorher ist nichts anderes möglich.",
+      "confirm2faAction": "Verlangen",
+      "saveFailed": "Die Einstellung konnte nicht gespeichert werden:",
+      "loadFailed": "Die Einstellungen konnten nicht geladen werden:"
+    }
+  },
+  "activity": {
+    "filterAction": "Aktion",
+    "filterUser": "Benutzer",
+    "all": "Alle",
+    "when": "Zeit",
+    "who": "Wer",
+    "what": "Aktion",
+    "target": "Betrifft",
+    "ip": "IP-Adresse",
+    "details": "Details",
+    "show": "Anzeigen",
+    "empty": "Keine Einträge.",
+    "total_one": "{{count}} Eintrag",
+    "total_other": "{{count}} Einträge",
+    "page": "Seite {{page}} von {{pages}}",
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "loadFailed": "Das Protokoll konnte nicht geladen werden:",
+    "actions": {
+      "auth": {
+        "login": "Angemeldet",
+        "login_failed": "Anmeldung fehlgeschlagen",
+        "logout": "Abgemeldet",
+        "register": "Registriert",
+        "refresh_reuse": "Sitzung wegen Wiederverwendung beendet",
+        "reauth_failed": "Bestätigung mit Passwort fehlgeschlagen",
+        "twofactor_failed": "Zwei-Faktor-Code falsch"
+      },
+      "setup": {
+        "completed": "Einrichtung abgeschlossen"
+      },
+      "admin": {
+        "emergency_reset": "Passwort und 2FA per Notfall-Reset zurückgesetzt"
+      },
+      "settings": {
+        "changed": "Einstellungen geändert"
+      },
+      "user": {
+        "created": "Konto angelegt",
+        "updated": "Konto geändert",
+        "deleted": "Konto gelöscht",
+        "disabled": "Konto gesperrt",
+        "enabled": "Konto entsperrt",
+        "role_changed": "Rolle geändert",
+        "password_set": "Passwort gesetzt"
+      },
+      "backup": {
+        "created": "Sicherung erstellt",
+        "download": "Sicherung heruntergeladen",
+        "downloaded": "Sicherung heruntergeladen",
+        "restore": "Wiederherstellung gestartet",
+        "restored": "Sicherung wiederhergestellt",
+        "settings_changed": "Sicherungs-Einstellungen geändert",
+        "upload": "Sicherung hochgeladen",
+        "uploaded": "Sicherung hochgeladen",
+        "auto_created": "Automatische Sicherung erstellt",
+        "auto_unchanged": "Automatische Sicherung übersprungen (keine Änderung)",
+        "auto_failed": "Automatische Sicherung fehlgeschlagen",
+        "deleted": "Sicherung gelöscht"
+      },
+      "twofactor": {
+        "enabled": "Zwei-Faktor eingeschaltet",
+        "disabled": "Zwei-Faktor ausgeschaltet",
+        "reset": "Zwei-Faktor zurückgesetzt"
+      },
+      "session": {
+        "revoked": "Sitzung beendet"
+      },
+      "account": {
+        "password_changed": "Passwort geändert"
+      }
+    },
+    "unknown": "Sonstige Aktion ({{code}})"
+  },
+  "backups": {
+    "weekdays": {
+      "1": "Mo",
+      "2": "Di",
+      "3": "Mi",
+      "4": "Do",
+      "5": "Fr",
+      "6": "Sa",
+      "7": "So"
+    },
+    "loadFailed": "Die Datensicherung konnte nicht geladen werden:",
+    "schedule": {
+      "sectionTitle": "Automatisch sichern",
+      "sectionText": "Legen Sie fest, wann die App Ihre Daten von allein sichert.",
+      "settingsLabel": "Einstellungen der automatischen Sicherung",
+      "master": "Automatische Sicherung",
+      "masterHint": "Ausschalten, wenn Sie schon ein eigenes Backup-System nutzen (z. B. die Appdata-Sicherung Ihres NAS). Sichern, Herunterladen und Wiederherstellen per Knopf gehen immer.",
+      "onStart": "Beim Start",
+      "onStartHint": "Eine Sicherung, sobald die App startet.",
+      "beforeShutdown": "Vor dem Beenden",
+      "beforeShutdownHint": "Eine letzte Sicherung, bevor die App sich beendet.",
+      "title": "Zeitplan",
+      "kindOff": "Aus",
+      "kindInterval": "Alle … Stunden",
+      "kindTimes": "Zu festen Zeiten",
+      "intervalLabel": "Alle … Stunden",
+      "intervalHint": "Stunden zwischen zwei Sicherungen.",
+      "weekdays": "An diesen Wochentagen",
+      "times": "Uhrzeiten",
+      "timeN": "Uhrzeit {{n}}",
+      "addTime": "Uhrzeit hinzufügen",
+      "removeTime": "Uhrzeit {{time}} entfernen",
+      "maxTimes": "Höchstens {{max}} Uhrzeiten.",
+      "problem": {
+        "interval": "Bitte eine ganze Zahl von {{min}} bis {{max}} eingeben.",
+        "noTimes": "Mindestens eine Uhrzeit fehlt noch.",
+        "duplicateTime": "Eine Uhrzeit steht doppelt in der Liste.",
+        "invalidTime": "Eine Uhrzeit ist unvollständig.",
+        "noWeekdays": "Bitte mindestens einen Wochentag wählen."
+      },
+      "catchUp": "Verpasste Sicherungen nachholen",
+      "catchUpHint": "War die App zur geplanten Zeit nicht an, wird die Sicherung beim nächsten Start nachgeholt.",
+      "saved": "Die Einstellungen wurden gespeichert.",
+      "saveFailed": "Die Einstellungen konnten nicht gespeichert werden:",
+      "hour": "Stunde",
+      "minute": "Minute"
+    },
+    "retention": {
+      "title": "Aufbewahrung",
+      "recent": "Letzte Sicherungen behalten",
+      "recentHint": "Die neuesten {{min}} bis {{max}} bleiben.",
+      "daily": "Eine pro Tag behalten (Tage)",
+      "dailyHint": "{{min}} bis {{max}} Tage; 0 = keine.",
+      "problemRecent": "Bitte eine ganze Zahl von {{min}} bis {{max}} eingeben.",
+      "problemDaily": "Bitte eine ganze Zahl von {{min}} bis {{max}} eingeben."
+    },
+    "preview": {
+      "title": "Die nächsten 7 Tage",
+      "text": "So sieht der Plan aus. Er ändert sich live, während Sie die Einstellungen bearbeiten.",
+      "planned_one": "{{count}} geplante Sicherung in den nächsten 7 Tagen.",
+      "planned_other": "{{count}} geplante Sicherungen in den nächsten 7 Tagen.",
+      "automaticOff": "Die automatische Sicherung ist aus – es sind keine automatischen Sicherungen geplant.",
+      "scheduleOff": "Kein Zeitplan gewählt – es sind keine zeitgesteuerten Sicherungen geplant.",
+      "noneInWindow": "In den nächsten 7 Tagen ist keine Sicherung geplant.",
+      "unsaved": "Vorschau, nicht gespeichert",
+      "today": "Heute",
+      "noRun": "keine",
+      "manyRuns": "{{count}} Sicherungen",
+      "eventsBoth": "Zusätzlich wird beim Start und vor dem Beenden gesichert.",
+      "eventsStart": "Zusätzlich wird beim Start gesichert.",
+      "eventsShutdown": "Zusätzlich wird vor dem Beenden gesichert.",
+      "eventsNone": "Beim Start und vor dem Beenden wird nicht gesichert.",
+      "timeZone": "Zeitzone",
+      "directory": "Sicherungsordner"
+    },
+    "desktopNote": "Sicherungen laufen nur, solange das Programm geöffnet ist. Was in der Zwischenzeit verpasst wurde, holt es beim nächsten Start nach (wenn aktiviert).",
+    "list": {
+      "title": "Sicherungen",
+      "text": "Alle vorhandenen Sicherungen, die neueste zuerst."
+    },
+    "backupNow": "Jetzt sichern",
+    "backupNowFailed": "Die Sicherung ist fehlgeschlagen:",
+    "downloadCurrent": "Aktuellen Stand herunterladen",
+    "downloadFailed": "Der Download ist fehlgeschlagen:",
+    "upload": "Sicherung hochladen",
+    "download": "Herunterladen",
+    "restore": "Wiederherstellen",
+    "table": {
+      "when": "Zeitpunkt",
+      "kind": "Art",
+      "size": "Größe",
+      "actions": "Aktionen",
+      "empty": "Noch keine Sicherung vorhanden."
+    },
+    "kind": {
+      "start": "Beim Start",
+      "shutdown": "Vor dem Beenden",
+      "scheduled": "Nach Zeitplan",
+      "manual": "Von Hand",
+      "pre-restore": "Vor Wiederherstellung",
+      "uploaded": "Hochgeladen"
+    },
+    "result": {
+      "created": "Sicherung erstellt: {{file}}",
+      "unchanged": "Seit der letzten Sicherung hat sich nichts geändert – es wurde keine neue angelegt.",
+      "downloaded": "Heruntergeladen: {{file}}",
+      "uploaded": "Hochgeladen: {{file}}. Sie steht jetzt in der Liste und kann wiederhergestellt werden.",
+      "tooBig": "Die Datei ist zu groß: {{size}} (erlaubt sind höchstens {{max}}).",
+      "deleted": "Gelöscht: {{file}}"
+    },
+    "reauth": {
+      "password": "Ihr aktuelles Passwort",
+      "passwordHint": "Zur Sicherheit: Diese Aktion betrifft die Daten aller Konten.",
+      "code": "Code aus der Authenticator-App"
+    },
+    "dialog": {
+      "sensitive": "Die Datei enthält die Daten aller Konten, auch die geschützten Passwörter. Bewahren Sie sie sicher auf.",
+      "downloadTitle": "Sicherung herunterladen",
+      "downloadText": "Die Sicherung vom {{date}} wird als Datei heruntergeladen.",
+      "currentTitle": "Aktuellen Stand herunterladen",
+      "currentText": "Es wird zuerst eine frische Sicherung angelegt und dann als Datei heruntergeladen.",
+      "uploadTitle": "Sicherung hochladen",
+      "uploadText": "Die Datei {{name}} ({{size}}) wird hochgeladen.",
+      "uploadChecks": "Sie wird geprüft: Es muss eine gültige Sicherung dieser App sein, nicht aus einer neueren Version. Danach steht sie in der Liste; wiederhergestellt wird erst, wenn Sie es dort auslösen.",
+      "restoreTitle": "Sicherung wiederherstellen",
+      "restoreIntro": "Es wird die Sicherung vom {{date}} ({{kind}}) wiederhergestellt. Das passiert:",
+      "restoreSafety": "Der aktuelle Stand wird vorher selbst als Sicherung gespeichert („Vor Wiederherstellung“) – Sie können ihn also zurückholen.",
+      "restoreSignOut": "Alle werden abgemeldet und müssen sich neu anmelden.",
+      "restoreReloadDesktop": "Das Programm lädt danach neu und zeigt den wiederhergestellten Stand.",
+      "restoreReplace": "Alle Daten, die nach dieser Sicherung entstanden sind, sind danach nicht mehr in der laufenden App.",
+      "deleteTitle": "Sicherung löschen",
+      "deleteText": "Die Sicherung vom {{date}} ({{kind}}) wird gelöscht.",
+      "deleteIrreversible": "Das lässt sich nicht rückgängig machen. Die laufende App ist davon nicht betroffen."
+    },
+    "deleteFailed": "Die Sicherung konnte nicht gelöscht werden:"
+  },
+  "errorScreen": {
+    "401": {
+      "title": "Nicht angemeldet",
+      "text": "Dafür müssen Sie angemeldet sein. Bitte melden Sie sich an."
+    },
+    "403": {
+      "title": "Kein Zugriff",
+      "text": "Für diese Seite fehlt Ihnen die Berechtigung."
+    },
+    "404": {
+      "title": "Seite nicht gefunden",
+      "text": "Diese Adresse gibt es nicht (mehr). Vielleicht hat sich ein Tippfehler eingeschlichen."
+    },
+    "429": {
+      "title": "Zu viele Anfragen",
+      "text": "Es kamen zu viele Anfragen in kurzer Zeit. Bitte warten Sie etwa {{seconds}} Sekunden und versuchen Sie es dann noch einmal."
+    },
+    "500": {
+      "title": "Das hat nicht geklappt",
+      "text": "Auf dem Server ist ein Fehler aufgetreten. Bitte versuchen Sie es noch einmal."
+    },
+    "503": {
+      "title": "Nicht erreichbar",
+      "text": "Der Server antwortet gerade nicht oder wird gewartet. Bitte versuchen Sie es gleich noch einmal."
+    },
+    "retry": "Noch einmal versuchen",
+    "home": "Zur Übersicht",
+    "signIn": "Zur Anmeldung"
+  },
+  "errors": {
+    "unexpected": "Es ist ein unerwarteter Fehler aufgetreten.",
+    "dialogTitle": "Das hat nicht geklappt",
+    "statusFallback": "Der Server hat mit dem Status {{status}} geantwortet.",
+    "validationField": "Eingabe „{{field}}“:",
+    "technical": {
+      "toggle": "Details",
+      "heading": "Technische Details",
+      "code": "Fehlercode",
+      "detail": "Meldung des Servers",
+      "field": "Feld",
+      "traceId": "Ablaufkennung"
+    },
+    "codes": {
+      "network": "Der Server ist nicht erreichbar. Prüfen Sie die Verbindung und versuchen Sie es noch einmal.",
+      "rate_limited": "Zu viele Versuche. Bitte in {{seconds}} Sekunden noch einmal probieren.",
+      "rate_limited_unknown": "Zu viele Versuche. Bitte einen Moment warten und dann noch einmal probieren.",
+      "csrf": {
+        "missing": "Die Anfrage wurde aus Sicherheitsgründen abgelehnt. Bitte laden Sie die Seite neu."
+      },
+      "request": {
+        "invalid": "Die Anfrage konnte nicht gelesen werden."
+      },
+      "server": {
+        "error": "Auf dem Server ist ein Fehler aufgetreten. Mit der Ablaufkennung in den technischen Details lässt er sich im Protokoll finden."
+      },
+      "status": {
+        "401": "Sie sind nicht angemeldet.",
+        "403": "Dafür fehlt die Berechtigung.",
+        "404": "Das wurde nicht gefunden.",
+        "429": "Zu viele Anfragen. Bitte einen Moment warten.",
+        "500": "Auf dem Server ist ein Fehler aufgetreten.",
+        "503": "Der Server ist gerade nicht verfügbar."
+      },
+      "validation": {
+        "failed": "Die Eingaben sind nicht gültig.",
+        "required": "Dieses Feld darf nicht leer sein.",
+        "min_length": "Zu kurz: mindestens {{min}} Zeichen.",
+        "max_length": "Zu lang: höchstens {{max}} Zeichen.",
+        "min_value": "Der Wert muss mindestens {{min}} sein.",
+        "range": "Der Wert muss zwischen {{min}} und {{max}} liegen.",
+        "one_of": "Dieser Wert ist nicht erlaubt.",
+        "pattern": "Das Format stimmt nicht.",
+        "invalid_characters": "Enthält nicht erlaubte Zeichen.",
+        "invalid_value": "Dieser Wert ist nicht gültig.",
+        "duplicates": "Ein Wert steht doppelt in der Liste.",
+        "file_too_large": "Die Datei ist zu groß.",
+        "max_items": "Es sind zu viele Einträge (höchstens {{max}}).",
+        "time_format": "Die Uhrzeit hat kein gültiges Format (HH:mm)."
+      },
+      "auth": {
+        "invalid_credentials": "Benutzername oder Passwort ist falsch.",
+        "login_failed": "Die Anmeldung ist fehlgeschlagen.",
+        "expired": "Die Anmeldung ist abgelaufen. Bitte melden Sie sich neu an.",
+        "required": "Bitte melden Sie sich an.",
+        "invalid": "Dieses Konto gibt es nicht mehr.",
+        "forbidden": "Dafür fehlt die Berechtigung.",
+        "disabled": "Dieses Konto ist gesperrt. Wenden Sie sich an den Administrator.",
+        "twofactor_required": "Es wird ein Code der Zwei-Faktor-Anmeldung verlangt.",
+        "twofactor_invalid": "Der Code ist falsch oder wurde schon verwendet.",
+        "twofactor_failed": "Der Code stimmt nicht.",
+        "twofactor_setup_required": "Die Zwei-Faktor-Anmeldung muss zuerst eingerichtet werden.",
+        "challenge_invalid": "Die Anmeldung ist abgelaufen. Bitte beginnen Sie noch einmal mit Benutzername und Passwort.",
+        "refresh_invalid": "Die Anmeldung wurde beendet. Bitte melden Sie sich neu an.",
+        "refresh_reused": "Aus Sicherheitsgründen wurde diese Sitzung beendet. Bitte melden Sie sich neu an.",
+        "reauth_failed": "Passwort oder Code stimmt nicht. Es wurde nichts verändert."
+      },
+      "password": {
+        "current_invalid": "Das aktuelle Passwort ist falsch."
+      },
+      "admin": {
+        "emergency_reset_other_admins_exist": "Es gibt weitere aktive Administratoren. Bitte wenden Sie sich an einen anderen Administrator, um Ihr Passwort zurückzusetzen.",
+        "emergency_reset_no_admin": "Es wurde kein aktives Administrator-Konto gefunden."
+      },
+      "emergency_reset": {
+        "code_invalid": "Der Notfall-Code ist falsch, abgelaufen oder wurde bereits verwendet."
+      },
+      "setup": {
+        "already_done": "Die Einrichtung ist schon abgeschlossen. Bitte melden Sie sich an.",
+        "required": "Zuerst muss das erste Konto eingerichtet werden.",
+        "token_invalid": "Der Einrichtungscode stimmt nicht. Er steht beim ersten Start im Protokoll des Servers."
+      },
+      "registration": {
+        "closed": "Die Registrierung ist geschlossen. Bitten Sie den Administrator um ein Konto."
+      },
+      "user": {
+        "username_taken": "Dieser Benutzername ist schon vergeben.",
+        "last_admin": "Das ist der letzte aktive Administrator; er muss aktiver Administrator bleiben.",
+        "self_demote": "Sie können sich Ihre eigene Administrator-Rolle nicht nehmen.",
+        "self_disable": "Sie können Ihr eigenes Konto nicht sperren.",
+        "self_delete": "Sie können Ihr eigenes Konto nicht löschen.",
+        "not_found": "Dieses Konto gibt es nicht."
+      },
+      "twofactor": {
+        "already_enabled": "Die Zwei-Faktor-Anmeldung ist schon eingeschaltet.",
+        "setup_not_started": "Starten Sie die Einrichtung zuerst, um einen neuen Schlüssel zu bekommen.",
+        "required_by_admin": "Der Administrator verlangt die Zwei-Faktor-Anmeldung für alle; sie lässt sich nicht ausschalten.",
+        "not_enabled": "Die Zwei-Faktor-Anmeldung ist nicht eingeschaltet.",
+        "code_already_used": "Dieser Code wurde schon verwendet. Warten Sie auf den nächsten Code der App oder nehmen Sie einen Wiederherstellungscode.",
+        "key_unavailable": "Der Schlüssel der Zwei-Faktor-Anmeldung kann nicht gelesen werden. Lassen Sie sie vom Administrator zurücksetzen und richten Sie sie neu ein."
+      },
+      "session": {
+        "not_found": "Diese Sitzung gibt es nicht oder sie ist schon beendet."
+      },
+      "backup": {
+        "failed": "Die Sicherung ist fehlgeschlagen. Einzelheiten stehen im Protokoll des Servers.",
+        "unchanged": "Seit der letzten Sicherung hat sich nichts geändert.",
+        "too_new": "Diese Sicherung stammt aus einer neueren Version der App und kann hier nicht wiederhergestellt werden.",
+        "not_found": "Diese Sicherung gibt es nicht (mehr).",
+        "invalid": "Die Datei ist keine gültige Sicherung dieser App.",
+        "too_large": "Die Datei ist zu groß.",
+        "restore_failed": "Die Wiederherstellung ist fehlgeschlagen. Der vorherige Stand wurde automatisch zurückgeholt; er ist außerdem als Sicherung {{safetyBackup}} gespeichert. Einzelheiten stehen im Protokoll des Servers.",
+        "upload_limit": "Höchstens {{max}} hochgeladene Sicherungen – bitte erst eine löschen.",
+        "restore_failed_not_rolled_back": "Die Wiederherstellung ist fehlgeschlagen und der vorherige Stand konnte nicht automatisch zurückgeholt werden. Er ist als Sicherung {{safetyBackup}} gespeichert: Stellen Sie diese Sicherung wieder her. Einzelheiten stehen im Protokoll des Servers.",
+        "busy": "Gerade läuft eine Sicherung oder Wiederherstellung. Bitte warten Sie einen Moment und versuchen Sie es dann noch einmal.",
+        "invalid_schema_mismatch": "Die Datei ist keine unveränderte {{product}}-Sicherung: Ihr Aufbau passt nicht zu dieser App. Verwenden Sie nur Sicherungen, die die App selbst erstellt hat und die nicht bearbeitet wurden."
+      },
+      "not_found": "Das wurde nicht gefunden.",
+      "maintenance": {
+        "busy": "Die App wird gerade gewartet (z. B. wird eine Sicherung wiederhergestellt). Bitte gleich noch einmal versuchen."
+      },
+      "host": {
+        "not_allowed": "Der Server antwortet nicht unter diesem Namen. Der Betreiber kann den Namen in der Einstellung ALLOWED_HOSTS erlauben."
+      },
+      "profile": {
+        "item_not_found": "Der Eintrag wurde nicht gefunden."
+      },
+      "experience": {
+        "not_found": "Die Position wurde nicht gefunden."
+      },
+      "education": {
+        "not_found": "Die Ausbildung wurde nicht gefunden."
+      },
+      "skill": {
+        "not_found": "Die Kenntnis wurde nicht gefunden."
+      },
+      "language": {
+        "not_found": "Die Sprache wurde nicht gefunden."
+      },
+      "certificate": {
+        "not_found": "Das Zertifikat wurde nicht gefunden."
+      },
+      "interest": {
+        "not_found": "Der Eintrag wurde nicht gefunden."
+      },
+      "custom_section": {
+        "not_found": "Der Abschnitt wurde nicht gefunden."
+      },
+      "custom_section_item": {
+        "not_found": "Der Eintrag wurde nicht gefunden."
+      },
+      "photo": {
+        "required": "Bitte eine Bilddatei auswählen.",
+        "too_large": "Das Bild ist größer als die maximal erlaubten 5 MB.",
+        "invalid_format": "Es werden nur JPEG-, PNG- und WebP-Bilder akzeptiert."
+      },
+      "ai": {
+        "invalid_json": "Die KI-Antwort enthielt kein gültiges JSON. Bitte fordern Sie die KI auf, ausschließlich JSON auszugeben.",
+        "parse_failed": "Die Antwort konnte nicht verarbeitet werden.",
+        "missing_fields": "Erforderliche Datenfelder fehlen in der KI-Antwort.",
+        "copy_paste_only": "Es ist der Modus 'Kopieren & Einfügen' aktiv. Bitte nutzen Sie 'Prompt kopieren' oder hinterlegen Sie einen API-Key.",
+        "api_error": "Fehler bei der Kommunikation mit dem KI-Dienst.",
+        "missing_key": "Für diesen Anbieter wird ein API-Key benötigt.",
+        "invalid_url": "Die angegebene Basis-URL ist ungültig."
+      },
+      "rate_limited_account": "Zu viele Versuche für dieses Konto – bitte 15 Minuten warten."
+    }
+  }
+}
