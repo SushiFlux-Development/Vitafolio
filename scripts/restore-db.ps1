@@ -10,6 +10,7 @@
   Server running: the server's own restore function is used (the same as the "Wiederherstellen" button): the script signs in as an
   administrator (asks for the user name, the password and, if turned on, the 2FA code - twice: the restore step needs a fresh code), the server makes the safety backup of the current
   state itself (kind "pre-restore"), restores, rotates the signing key and ends every session.
+  Backup archives (.zip) carry the user files as well and need the running server; the path below is for database-only backups (.db).
   Server stopped: the script makes the safety backup itself (.backups\auto\recent\app-<time>-pre-restore.db, SQLite online backup),
   replaces the database with SQLite's online backup API, ends every session, removes the token signing key (a new one is created at
   the next start) and writes an activity log entry. A backup from a newer schema than the database is refused (-Force overrides).
@@ -46,9 +47,24 @@ function Invoke-Tool([string[]]$Arguments) {
 }
 
 function Get-Counts([string]$File) {
-    $result = Invoke-Tool @('counts', $File)
-    if ($result.Code -ne 0) { throw "Zeilenzahlen von '$File' nicht lesbar: $($result.Output -join ' ')" }
-    return ($result.Output[-1] | ConvertFrom-Json)
+    $source = $File
+    $temporary = $null
+    if ($File -like '*.zip') {
+        # A backup archive carries the database as the entry app.db
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+        $temporary = Join-Path $dataDir ".restore-script-$([guid]::NewGuid().ToString('N')).db"
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($File)
+        try { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($zip.GetEntry('app.db'), $temporary) }
+        finally { $zip.Dispose() }
+        $source = $temporary
+    }
+    try {
+        $result = Invoke-Tool @('counts', $source)
+        if ($result.Code -ne 0) { throw "Zeilenzahlen von '$File' nicht lesbar: $($result.Output -join ' ')" }
+        return ($result.Output[-1] | ConvertFrom-Json)
+    }
+    finally { if ($temporary) { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue } }
 }
 
 function Show-Counts([string]$Title, $Counts) {
@@ -58,7 +74,7 @@ function Show-Counts([string]$Title, $Counts) {
 
 function Get-AvailableBackups {
     $files = foreach ($tier in 'recent', 'daily', 'uploaded') {
-        Get-ChildItem -LiteralPath (Join-Path $backupRoot $tier) -Filter 'app-*.db' -ErrorAction SilentlyContinue | ForEach-Object {
+        Get-ChildItem -LiteralPath (Join-Path $backupRoot $tier) -Filter 'app-*' -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.zip', '.db' } | ForEach-Object {
             [pscustomobject]@{ Tier = $tier; Name = $_.Name; Path = $_.FullName; Time = $_.LastWriteTime; Size = $_.Length }
         }
     }
@@ -180,6 +196,7 @@ try {
     Write-Host "Stelle $($chosen.Name) wieder her ($($chosen.Time.ToString('yyyy-MM-dd HH:mm:ss')), $($chosen.Tier))." -ForegroundColor Cyan
     $serverRuns = [bool](Get-JsonOrNull "$baseUrl/api/health")
     if ($serverRuns -and $Offline) { throw 'Der Server laeuft - -Offline geht nur bei gestopptem Server (.\start.ps1 stop).' }
+    if (-not $serverRuns -and $chosen.Name -like '*.zip') { throw 'Eine Archiv-Sicherung (mit Fotos, Unterschriften und Anlagen) wird nur ueber den laufenden Server wiederhergestellt: er legt die Sicherheitskopie an und tauscht die Dateien sicher aus. Bitte zuerst .\start.ps1 start.' }
 
     $before = if (Test-Path -LiteralPath $database) { Get-Counts $database } else { $null }
     $expected = Get-Counts $chosen.Path

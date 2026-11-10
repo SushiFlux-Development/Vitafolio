@@ -1,51 +1,28 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
-
-using System.Text.RegularExpressions;
 
 namespace Cv.Server.Documents;
 
 /// <summary>
 /// User-configurable options when rendering a CV/resume document.
 /// </summary>
-public sealed partial record CvRenderOptions(
+public sealed record CvRenderOptions(
     string? Design,
     string? AccentColor,
     string? Font,
     bool? ShowPhoto,
     string? PhotoShape,
-    string? Language)
+    string? Language,
+    bool? ApplySelection = null)
 {
-    [GeneratedRegex("^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$")]
-    private static partial Regex HexColorRegex();
+    public string NormalizedDesign => DocumentDesigns.Normalize(Design);
 
-    public string NormalizedDesign => Design?.Trim().ToLowerInvariant() switch
-    {
-        "modern" => "modern",
-        "plain" or "schlicht" => "plain",
-        _ => "classic"
-    };
+    /// <summary>Whether the document shows what the profile settings select (suggestion plus own decisions) instead of the whole profile. Off unless asked for.</summary>
+    public bool NormalizedApplySelection => ApplySelection ?? false;
 
-    public string NormalizedAccentColor
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(AccentColor)) return "#14213D";
-            var color = AccentColor.Trim();
-            if (!color.StartsWith('#')) color = "#" + color;
-            return HexColorRegex().IsMatch(color) ? color : "#14213D";
-        }
-    }
+    public string NormalizedAccentColor => DocumentText.NormalizeColor(AccentColor);
 
-    public string NormalizedFont
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Font)) return "Liberation Sans";
-            var f = Font.Trim();
-            return f.All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-') ? f : "Liberation Sans";
-        }
-    }
+    public string NormalizedFont => DocumentFonts.Normalize(Font);
 
     public bool NormalizedShowPhoto => ShowPhoto ?? true;
 
@@ -66,7 +43,7 @@ public sealed partial record CvRenderOptions(
 /// <summary>
 /// Options when rendering an application dossier cover sheet (Deckblatt).
 /// </summary>
-public sealed partial record CoverSheetOptions(
+public sealed record CoverSheetOptions(
     string? TargetJob,
     string? TargetCompany,
     IReadOnlyList<string>? Contents,
@@ -76,29 +53,9 @@ public sealed partial record CoverSheetOptions(
     string? PhotoShape,
     string? Language)
 {
-    [GeneratedRegex("^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$")]
-    private static partial Regex HexColorRegex();
+    public string NormalizedAccentColor => DocumentText.NormalizeColor(AccentColor);
 
-    public string NormalizedAccentColor
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(AccentColor)) return "#14213D";
-            var color = AccentColor.Trim();
-            if (!color.StartsWith('#')) color = "#" + color;
-            return HexColorRegex().IsMatch(color) ? color : "#14213D";
-        }
-    }
-
-    public string NormalizedFont
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Font)) return "Liberation Sans";
-            var f = Font.Trim();
-            return f.All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-') ? f : "Liberation Sans";
-        }
-    }
+    public string NormalizedFont => DocumentFonts.Normalize(Font);
 
     public bool NormalizedShowPhoto => ShowPhoto ?? true;
 
@@ -124,7 +81,7 @@ public sealed record DossierAttachmentItem(
 /// <summary>
 /// Options when rendering a complete application portfolio dossier (Deckblatt, Anschreiben, Lebenslauf).
 /// </summary>
-public sealed partial record DossierRenderOptions(
+public sealed record DossierRenderOptions(
     string? Design,
     string? AccentColor,
     string? Font,
@@ -137,36 +94,11 @@ public sealed partial record DossierRenderOptions(
     IReadOnlyList<string>? Contents,
     IReadOnlyList<DossierAttachmentItem>? Attachments = null)
 {
-    [GeneratedRegex("^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$")]
-    private static partial Regex HexColorRegex();
+    public string NormalizedDesign => DocumentDesigns.Normalize(Design);
 
-    public string NormalizedDesign => Design?.Trim().ToLowerInvariant() switch
-    {
-        "modern" => "modern",
-        "plain" or "schlicht" => "plain",
-        _ => "classic"
-    };
+    public string NormalizedAccentColor => DocumentText.NormalizeColor(AccentColor);
 
-    public string NormalizedAccentColor
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(AccentColor)) return "#14213D";
-            var color = AccentColor.Trim();
-            if (!color.StartsWith('#')) color = "#" + color;
-            return HexColorRegex().IsMatch(color) ? color : "#14213D";
-        }
-    }
-
-    public string NormalizedFont
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Font)) return "Liberation Sans";
-            var f = Font.Trim();
-            return f.All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-') ? f : "Liberation Sans";
-        }
-    }
+    public string NormalizedFont => DocumentFonts.Normalize(Font);
 
     public bool NormalizedShowPhoto => ShowPhoto ?? true;
 
@@ -184,4 +116,7 @@ public sealed partial record DossierRenderOptions(
     };
 
     public bool NormalizedIncludeCoverSheet => IncludeCoverSheet ?? true;
+
+    /// <summary>Plain defaults, for the test render of a single attachment.</summary>
+    internal static DossierRenderOptions ForCheck { get; } = new(null, null, null, null, null, null, null, null, null, null);
 }

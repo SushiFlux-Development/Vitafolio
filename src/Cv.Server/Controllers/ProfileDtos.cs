@@ -85,6 +85,9 @@ public sealed record EducationDto(
 {
     public static EducationDto From(Education e) =>
         new(e.Id, e.Degree, e.FieldOfStudy, e.Institution, e.City, e.Country, e.StartDate, e.EndDate, e.IsCurrent, e.Grade, e.Description, e.SortOrder, e.CreatedAt, e.UpdatedAt);
+
+    /// <summary>What orders educations by date: the start, or the end when the start is not known (a school: only the year of graduation).</summary>
+    public string SortKey() => string.IsNullOrWhiteSpace(StartDate) ? EndDate ?? "" : StartDate;
 }
 
 public sealed record SkillRequest(
@@ -236,7 +239,9 @@ public sealed record ProfileResponse(
     IReadOnlyList<LanguageDto> Languages,
     IReadOnlyList<CertificateDto> Certificates,
     IReadOnlyList<InterestDto> Interests,
-    IReadOnlyList<CustomSectionDto> CustomSections)
+    IReadOnlyList<CustomSectionDto> CustomSections,
+    PreviewOptionsDto? PreviewOptions = null,
+    Applications.CvContentSettingsDto? CvContentSettings = null)
 {
     public static ProfileResponse From(UserProfile p) =>
         new(
@@ -264,12 +269,46 @@ public sealed record ProfileResponse(
             p.CreatedAt,
             p.UpdatedAt,
             p.Experiences.OrderBy(e => e.SortOrder).ThenByDescending(e => e.StartDate).Select(ExperienceDto.From).ToList(),
-            p.Educations.OrderBy(e => e.SortOrder).ThenByDescending(e => e.StartDate).Select(EducationDto.From).ToList(),
+            p.Educations.OrderBy(e => e.SortOrder).ThenByDescending(e => string.IsNullOrWhiteSpace(e.StartDate) ? e.EndDate ?? "" : e.StartDate).Select(EducationDto.From).ToList(),
             p.Skills.OrderBy(s => s.SortOrder).ThenBy(s => s.Name).Select(SkillDto.From).ToList(),
             p.Languages.OrderBy(l => l.SortOrder).ThenBy(l => l.Language).Select(LanguageDto.From).ToList(),
             p.Certificates.OrderBy(c => c.SortOrder).ThenByDescending(c => c.IssueDate).Select(CertificateDto.From).ToList(),
             p.Interests.OrderBy(i => i.SortOrder).ThenBy(i => i.Name).Select(InterestDto.From).ToList(),
-            p.CustomSections.OrderBy(c => c.SortOrder).ThenBy(c => c.Title).Select(CustomSectionDto.From).ToList()
+            p.CustomSections.OrderBy(c => c.SortOrder).ThenBy(c => c.Title).Select(CustomSectionDto.From).ToList(),
+            PreviewOptionsDto.Parse(p.PreviewOptionsJson),
+            Applications.CvContentSettings.Parse(p.CvContentSettingsJson)
         );
 }
+
+/// <summary>The saved choices on "Preview and export". Values are always normalised by the same rules as <see cref="Documents.CvRenderOptions"/>.</summary>
+public sealed record PreviewOptionsDto(string Design, string Language, string AccentColor, string Font, bool ShowPhoto, string PhotoShape)
+{
+    private static readonly System.Text.Json.JsonSerializerOptions Json = new(System.Text.Json.JsonSerializerDefaults.Web);
+
+    /// <summary>Unknown values fall back to the default, so a removed font or design never breaks the page.</summary>
+    public static PreviewOptionsDto Normalize(PreviewOptionsRequest r)
+    {
+        var o = new Documents.CvRenderOptions(r.Design, r.AccentColor, r.Font, r.ShowPhoto, r.PhotoShape, r.Language);
+        return new(o.NormalizedDesign, o.NormalizedLanguage, o.NormalizedAccentColor, o.NormalizedFont, o.NormalizedShowPhoto, o.NormalizedPhotoShape);
+    }
+
+    public string ToJson() => System.Text.Json.JsonSerializer.Serialize(this, Json);
+
+    /// <summary>Reads the stored column: null when nothing was saved or the text is unreadable, otherwise normalised again.</summary>
+    public static PreviewOptionsDto? Parse(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            var raw = System.Text.Json.JsonSerializer.Deserialize<PreviewOptionsRequest>(json, Json);
+            return raw is null ? null : Normalize(raw);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+}
+
+public sealed record PreviewOptionsRequest(string? Design, string? Language, string? AccentColor, string? Font, bool? ShowPhoto, string? PhotoShape);
 

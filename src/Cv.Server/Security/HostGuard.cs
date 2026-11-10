@@ -138,7 +138,7 @@ public static class HostGuard
     private static void LogRejected(ILogger logger, string? host)
     {
         // One line per host name and 10 minutes, so a scanner cannot flood the log
-        var key = Truncate(HostName(host), 253);
+        var key = Truncate(LogText.Clean(HostName(host)), 253);
         var now = DateTime.UtcNow;
         if (LastLogged.TryGetValue(key, out var last) && now - last < TimeSpan.FromMinutes(10)) return;
         if (LastLogged.Count > 1000) LastLogged.Clear();

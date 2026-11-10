@@ -251,6 +251,9 @@ namespace Cv.Server.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IncludeFoldMarks")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -663,6 +666,9 @@ namespace Cv.Server.Data.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CvSelectionJson")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("CvShowPhoto")
                         .HasColumnType("INTEGER");
 
@@ -900,6 +906,13 @@ namespace Cv.Server.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DateFormat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("auto");
+
                     b.Property<bool>("Disabled")
                         .HasColumnType("INTEGER");
 
@@ -954,6 +967,10 @@ namespace Cv.Server.Data.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WhatsNewSeenVersion")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
@@ -1033,6 +1050,10 @@ namespace Cv.Server.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CvContentSettingsJson")
+                        .HasMaxLength(65536)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DateOfBirth")
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
@@ -1048,6 +1069,10 @@ namespace Cv.Server.Data.Migrations
 
                     b.Property<string>("GitHub")
                         .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuideAnswersJson")
+                        .HasMaxLength(512)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
@@ -1081,6 +1106,10 @@ namespace Cv.Server.Data.Migrations
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PreviewOptionsJson")
+                        .HasMaxLength(512)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ProfessionalTitle")

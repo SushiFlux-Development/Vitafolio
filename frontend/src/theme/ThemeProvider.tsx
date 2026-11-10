@@ -2,65 +2,71 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import type { ThemePreference } from '../api/types'
 
-export type ResolvedTheme = 'light' | 'dark'
+/** What is shown is always one of the two themes. */
+export type ResolvedTheme = ThemePreference
 
 const STORAGE_KEY = 'cv.theme'
 
 interface ThemeContextValue {
-  /** What the user chose: follow the system, or a fixed theme. */
+  /** The theme the user chose (light or dark; there is no "follow the system" choice). */
   preference: ThemePreference
-  /** What is shown right now. */
+  /** What is shown right now: the same as the choice. */
   resolved: ResolvedTheme
-  /** Applies a preference and remembers it in this browser (the account copy is saved by useAppearance). */
+  /** Applies a theme and remembers it in this browser (the account copy is saved by useAppearance). */
   setPreference: (preference: ThemePreference) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function isThemePreference(value: unknown): value is ThemePreference {
-  return value === 'system' || value === 'light' || value === 'dark'
+  return value === 'light' || value === 'dark'
 }
 
-function readStored(): ThemePreference {
+/** The system's own setting; it only decides the very first start. */
+function systemTheme(): ThemePreference {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function remember(theme: ThemePreference): void {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return isThemePreference(stored) ? stored : 'system'
+    localStorage.setItem(STORAGE_KEY, theme)
   } catch {
-    return 'system'
+    // Storage can be blocked; the choice then only lasts for this page load.
   }
 }
 
-function systemTheme(): ResolvedTheme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+/**
+ * The theme to start with: the stored choice. At the very first start (nothing stored) the system's setting decides once, and a
+ * "system" stored by an earlier version is turned into what it meant at this moment. Either way the result is stored, so from then on
+ * the choice stays and no longer follows the system.
+ */
+function startTheme(): ThemePreference {
+  let stored: string | null = null
+  try {
+    stored = localStorage.getItem(STORAGE_KEY)
+  } catch {
+    // Blocked storage: the system decides, on every load.
+  }
+  if (isThemePreference(stored)) return stored
+  const decided = systemTheme()
+  remember(decided)
+  return decided
 }
 
-/** System default plus a manual switch; the result lands on <html data-theme>, which the design tokens key off. */
+/** Light or dark; the result lands on <html data-theme>, which the design tokens key off. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>(readStored)
-  const [system, setSystem] = useState<ResolvedTheme>(systemTheme)
-  const resolved: ResolvedTheme = preference === 'system' ? system : preference
+  const [preference, setPreferenceState] = useState<ThemePreference>(startTheme)
 
   useEffect(() => {
-    const query = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => setSystem(query.matches ? 'dark' : 'light')
-    query.addEventListener('change', onChange)
-    return () => query.removeEventListener('change', onChange)
-  }, [])
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', resolved)
-  }, [resolved])
+    document.documentElement.setAttribute('data-theme', preference)
+  }, [preference])
 
   const setPreference = useCallback((next: ThemePreference) => {
     setPreferenceState(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      // Storage can be blocked; the choice then only lasts for this page load.
-    }
+    remember(next)
   }, [])
 
-  const value = useMemo(() => ({ preference, resolved, setPreference }), [preference, resolved, setPreference])
+  const value = useMemo(() => ({ preference, resolved: preference, setPreference }), [preference, setPreference])
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 

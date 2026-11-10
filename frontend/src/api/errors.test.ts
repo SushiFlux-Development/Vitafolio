@@ -27,10 +27,10 @@ describe('describeError', () => {
   })
 
   it('names the first field problem when a form does not show the field', () => {
-    const error = new ApiError(400, { code: 'validation.failed', errors: { keepRecent: [{ code: 'validation.range', params: { min: 5, max: 500 } }] } })
+    const error = new ApiError(400, { code: 'validation.failed', errors: { keepRecent: [{ code: 'validation.range', params: { min: 2, max: 500 } }] } })
     expect(describeError(t, error).message).toBe('Die Eingaben sind nicht gültig.')
-    const noCode = new ApiError(400, { errors: { keepRecent: [{ code: 'validation.range', params: { min: 5, max: 500 } }] } })
-    expect(describeError(t, noCode).message).toContain('Der Wert muss zwischen 5 und 500 liegen.')
+    const noCode = new ApiError(400, { errors: { keepRecent: [{ code: 'validation.range', params: { min: 2, max: 500 } }] } })
+    expect(describeError(t, noCode).message).toContain('Der Wert muss zwischen 2 und 500 liegen.')
   })
 
   it('keeps all technical details complete', () => {

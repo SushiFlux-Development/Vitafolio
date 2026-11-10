@@ -1,312 +1,241 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { CustomSection, CustomSectionItem, Profile } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
-import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { FormDialog } from '../../components/ui/FormDialog'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { LiveTextAreaField, LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { isValid, noRule, requiredField } from '../../validation/rules'
+
+interface SectionForm {
+  id?: string
+  title: string
+  sortOrder: number
+}
+
+interface ItemForm {
+  id?: string
+  title: string
+  subtitle: string
+  dateRange: string
+  description: string
+  sortOrder: number
+}
 
 export function CustomSectionsTab({ profile }: { profile: Profile }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
-
-  // Section dialogs
-  const [sectionDialogOpen, setSectionDialogOpen] = useState(false)
-  const [editingSection, setEditingSection] = useState<{ id?: string; title: string; sortOrder: number } | null>(null)
-
-  // Item dialogs
-  const [itemDialogOpen, setItemDialogOpen] = useState(false)
+  const sectionEntry = useEntryForm<SectionForm>()
+  const itemEntry = useEntryForm<ItemForm>()
+  // The section a new or changed entry belongs to.
   const [itemSectionId, setItemSectionId] = useState<string | null>(null)
-  const [editingItem, setEditingItem] = useState<{
-    id?: string
-    title: string
-    subtitle: string
-    dateRange: string
-    description: string
-    sortOrder: number
-  } | null>(null)
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const saveSectionMutation = useMutation({
-    mutationFn: (data: { id?: string; title: string; sortOrder: number }) =>
-      data.id ? profileApi.updateCustomSection(data.id, data) : profileApi.addCustomSection(data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setSectionDialogOpen(false)
-      setEditingSection(null)
+  const saveSection = useMutation({
+    mutationFn: (data: SectionForm) => {
+      const payload = { title: data.title.trim(), sortOrder: data.sortOrder }
+      return data.id ? profileApi.updateCustomSection(data.id, payload) : profileApi.addCustomSection(payload)
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onSuccess: () => {
+      refresh()
+      sectionEntry.close()
+    },
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteSectionMutation = useMutation({
+  const removeSection = useMutation({
     mutationFn: (id: string) => profileApi.deleteCustomSection(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDeleteSection = async (sec: CustomSection) => {
-    const ok = await confirm({
-      title: t('profile.customSections.deleteSection'),
-      message: 'Möchten Sie diesen Abschnitt und alle darin enthaltenen Einträge wirklich löschen?',
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteSectionMutation.mutate(sec.id)
-  }
-
-  const saveItemMutation = useMutation({
-    mutationFn: ({ sectionId, data }: { sectionId: string; data: { id?: string; title: string; subtitle?: string; dateRange?: string; description?: string; sortOrder: number } }) => {
+  const saveItem = useMutation({
+    mutationFn: ({ sectionId, data }: { sectionId: string; data: ItemForm }) => {
       const payload = {
-        title: data.title,
-        subtitle: data.subtitle || null,
-        dateRange: data.dateRange || null,
-        description: data.description || null,
+        title: data.title.trim(),
+        subtitle: data.subtitle.trim() || null,
+        dateRange: data.dateRange.trim() || null,
+        description: data.description.trim() || null,
         sortOrder: data.sortOrder,
       }
-      return data.id
-        ? profileApi.updateCustomSectionItem(sectionId, data.id, payload)
-        : profileApi.addCustomSectionItem(sectionId, payload)
+      return data.id ? profileApi.updateCustomSectionItem(sectionId, data.id, payload) : profileApi.addCustomSectionItem(sectionId, payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setItemDialogOpen(false)
-      setEditingItem(null)
-      setItemSectionId(null)
+      refresh()
+      itemEntry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteItemMutation = useMutation({
-    mutationFn: ({ sectionId, itemId }: { sectionId: string; itemId: string }) =>
-      profileApi.deleteCustomSectionItem(sectionId, itemId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+  const removeItem = useMutation({
+    mutationFn: ({ sectionId, itemId }: { sectionId: string; itemId: string }) => profileApi.deleteCustomSectionItem(sectionId, itemId),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDeleteItem = async (sectionId: string, item: CustomSectionItem) => {
-    const ok = await confirm({
-      title: t('profile.customSections.deleteItem'),
-      message: 'Möchten Sie diesen Eintrag wirklich löschen?',
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteItemMutation.mutate({ sectionId, itemId: item.id })
+  const askDeleteSection = async (section: CustomSection) => {
+    const ok = await confirm({ title: t('profile.customSections.deleteSection'), message: t('profile.customSections.deleteSectionConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) removeSection.mutate(section.id)
   }
 
-  const handleOpenAddSection = () => {
-    setEditingSection({ title: '', sortOrder: profile.customSections.length })
-    setSectionDialogOpen(true)
+  const askDeleteItem = async (sectionId: string, item: CustomSectionItem) => {
+    const ok = await confirm({ title: t('profile.customSections.deleteItem'), message: t('profile.customSections.deleteItemConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) removeItem.mutate({ sectionId, itemId: item.id })
   }
 
-  const handleOpenEditSection = (sec: CustomSection) => {
-    setEditingSection({ id: sec.id, title: sec.title, sortOrder: sec.sortOrder })
-    setSectionDialogOpen(true)
+  const newItem = (section: CustomSection) => {
+    setItemSectionId(section.id)
+    itemEntry.start({ title: '', subtitle: '', dateRange: '', description: '', sortOrder: section.items.length })
   }
 
-  const handleOpenAddItem = (sectionId: string, currentItemCount: number) => {
+  const editItem = (sectionId: string, item: CustomSectionItem) => {
     setItemSectionId(sectionId)
-    setEditingItem({
-      title: '',
-      subtitle: '',
-      dateRange: '',
-      description: '',
-      sortOrder: currentItemCount,
-    })
-    setItemDialogOpen(true)
+    itemEntry.start({ id: item.id, title: item.title, subtitle: item.subtitle ?? '', dateRange: item.dateRange ?? '', description: item.description ?? '', sortOrder: item.sortOrder })
   }
 
-  const handleOpenEditItem = (sectionId: string, item: CustomSectionItem) => {
-    setItemSectionId(sectionId)
-    setEditingItem({
-      id: item.id,
-      title: item.title,
-      subtitle: item.subtitle ?? '',
-      dateRange: item.dateRange ?? '',
-      description: item.description ?? '',
-      sortOrder: item.sortOrder,
-    })
-    setItemDialogOpen(true)
+  const sectionForm = sectionEntry.form
+  const submitSection = () => {
+    if (!sectionForm) return
+    sectionEntry.markAttempted()
+    if (isValid(requiredField, sectionForm.title)) saveSection.mutate(sectionForm)
   }
 
-  const handleSectionSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingSection) saveSectionMutation.mutate(editingSection)
-  }
-
-  const handleItemSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem && itemSectionId) {
-      saveItemMutation.mutate({ sectionId: itemSectionId, data: editingItem })
-    }
+  const itemForm = itemEntry.form
+  const submitItem = () => {
+    if (!itemForm || !itemSectionId) return
+    itemEntry.markAttempted()
+    if (isValid(requiredField, itemForm.title)) saveItem.mutate({ sectionId: itemSectionId, data: itemForm })
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.customSections.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.customSections.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={handleOpenAddSection}>
-          {t('profile.customSections.addSection')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.customSections.title')}
+        subtitle={t('profile.customSections.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={() => sectionEntry.start({ title: '', sortOrder: profile.customSections.length })}>
+            {t('profile.customSections.addSection')}
+          </Button>
+        }
+      />
 
       {profile.customSections.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="files" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.customSections.empty')}</p>
-        </div>
+        <EmptyState icon="files" title={t('profile.customSections.empty')} />
       ) : (
-        <div className="space-y-6">
-          {profile.customSections.map((sec) => (
-            <section key={sec.id} className="card p-5" aria-label={sec.title}>
+        <div className="card-grid items-start gap-6 [--card-min:32rem]">
+          {profile.customSections.map((section) => (
+            <section key={section.id} className="card p-5" aria-label={section.title}>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-                <h3 className="text-base font-semibold text-ink">{sec.title}</h3>
+                <h3 className="text-base font-semibold text-ink">{section.title}</h3>
                 <div className="flex items-center gap-1.5">
-                  <Button variant="create" small icon="plus" onClick={() => handleOpenAddItem(sec.id, sec.items.length)}>
+                  <Button variant="create" small icon="plus" onClick={() => newItem(section)}>
                     {t('profile.customSections.addItem')}
                   </Button>
-                  <Button variant="ghost" small icon="pencil" onClick={() => handleOpenEditSection(sec)}>
-                    <span className="sr-only">{t('profile.customSections.editSection')}</span>
-                  </Button>
-                  <Button variant="danger-outline" small icon="trash" onClick={() => void handleDeleteSection(sec)}>
-                    <span className="sr-only">{t('profile.customSections.deleteSection')}</span>
-                  </Button>
+                  <ItemActions
+                    itemName={section.title}
+                    editLabel={t('profile.customSections.editSection')}
+                    deleteLabel={t('profile.customSections.deleteSection')}
+                    onEdit={() => sectionEntry.start({ id: section.id, title: section.title, sortOrder: section.sortOrder })}
+                    onDelete={() => void askDeleteSection(section)}
+                  />
                 </div>
               </div>
 
-              {sec.items.length === 0 ? (
-                <p className="py-4 text-center text-xs text-ink-muted">Noch keine Einträge in diesem Abschnitt.</p>
+              {section.items.length === 0 ? (
+                <p className="py-4 text-center text-sm text-ink-muted">{t('profile.customSections.emptyItems')}</p>
               ) : (
-                <div className="space-y-2">
-                  {sec.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start justify-between gap-3 rounded-sm border border-line bg-surface-2 p-3"
-                    >
+                <ul className="space-y-2">
+                  {section.items.map((item) => (
+                    <li key={item.id} className="flex items-start justify-between gap-3 rounded-sm border border-line bg-surface-2 p-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-2">
                           <p className="font-semibold text-ink">{item.title}</p>
                           {item.subtitle && <span className="text-xs text-ink-muted">({item.subtitle})</span>}
-                          {item.dateRange && <span className="badge badge-select text-xs">{item.dateRange}</span>}
+                          {item.dateRange && <span className="badge badge-select">{item.dateRange}</span>}
                         </div>
-                        {item.description && <p className="mt-1 whitespace-pre-line text-sm text-ink">{item.description}</p>}
+                        {item.description && <p className="mt-1 text-sm whitespace-pre-line text-ink">{item.description}</p>}
                       </div>
-
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button variant="ghost" small icon="pencil" onClick={() => handleOpenEditItem(sec.id, item)}>
-                          <span className="sr-only">{t('profile.customSections.editItem')}</span>
-                        </Button>
-                        <Button
-                          variant="danger-outline"
-                          small
-                          icon="trash"
-                          onClick={() => void handleDeleteItem(sec.id, item)}
-                        >
-                          <span className="sr-only">{t('profile.customSections.deleteItem')}</span>
-                        </Button>
-                      </div>
-                    </div>
+                      <ItemActions
+                        itemName={item.title}
+                        editLabel={t('profile.customSections.editItem')}
+                        deleteLabel={t('profile.customSections.deleteItem')}
+                        onEdit={() => editItem(section.id, item)}
+                        onDelete={() => void askDeleteItem(section.id, item)}
+                      />
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </section>
           ))}
         </div>
       )}
 
-      {/* Add / Edit Section Dialog */}
-      <Dialog
-        open={sectionDialogOpen}
-        onClose={() => setSectionDialogOpen(false)}
-        title={editingSection?.id ? t('profile.customSections.editSection') : t('profile.customSections.addSection')}
+      <FormDialog
+        open={sectionEntry.open}
+        onClose={sectionEntry.close}
+        onSubmit={submitSection}
+        title={sectionForm?.id ? t('profile.customSections.editSection') : t('profile.customSections.addSection')}
         icon="files"
         size="sm"
+        busy={saveSection.isPending}
+        dirty={sectionEntry.dirty}
       >
-        {editingSection && (
-          <form onSubmit={handleSectionSubmit} className="space-y-4">
-            <TextField
-              label={t('profile.customSections.sectionTitle')}
-              value={editingSection.title}
-              onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
-              placeholder="z. B. Publikationen, Patente, Auszeichnungen"
-              required
-            />
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setSectionDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveSectionMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+        {sectionForm && (
+          <LiveTextField
+            label={t('profile.customSections.sectionTitle')} required
+            value={sectionForm.title}
+            onValueChange={(value) => sectionEntry.patch({ title: value })}
+            check={requiredField}
+            attempted={sectionEntry.attempted}
+            placeholder={t('profile.customSections.sectionPlaceholder')}
+            data-autofocus
+          />
         )}
-      </Dialog>
+      </FormDialog>
 
-      {/* Add / Edit Item Dialog */}
-      <Dialog
-        open={itemDialogOpen}
-        onClose={() => setItemDialogOpen(false)}
-        title={editingItem?.id ? t('profile.customSections.editItem') : t('profile.customSections.addItem')}
+      <FormDialog
+        open={itemEntry.open}
+        onClose={itemEntry.close}
+        onSubmit={submitItem}
+        title={itemForm?.id ? t('profile.customSections.editItem') : t('profile.customSections.addItem')}
         icon="fileText"
-        size="md"
+        busy={saveItem.isPending}
+        dirty={itemEntry.dirty}
       >
-        {editingItem && (
-          <form onSubmit={handleItemSubmit} className="space-y-4">
-            <TextField
-              label={t('profile.customSections.itemTitle')}
-              value={editingItem.title}
-              onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-              required
+        {itemForm && (
+          <>
+            <LiveTextField
+              label={t('profile.customSections.itemTitle')} required
+              value={itemForm.title}
+              onValueChange={(value) => itemEntry.patch({ title: value })}
+              check={requiredField}
+              attempted={itemEntry.attempted}
+              data-autofocus
             />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
-                label={t('profile.customSections.itemSubtitle')}
-                value={editingItem.subtitle}
-                onChange={(e) => setEditingItem({ ...editingItem, subtitle: e.target.value })}
-              />
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <LiveTextField label={t('profile.customSections.itemSubtitle')} value={itemForm.subtitle} onValueChange={(value) => itemEntry.patch({ subtitle: value })} check={noRule} />
+              <LiveTextField
                 label={t('profile.customSections.itemDate')}
-                value={editingItem.dateRange}
-                onChange={(e) => setEditingItem({ ...editingItem, dateRange: e.target.value })}
-                placeholder="z. B. 2024 oder 03/2023 – 09/2023"
+                value={itemForm.dateRange}
+                onValueChange={(value) => itemEntry.patch({ dateRange: value })}
+                check={noRule}
+                placeholder={t('profile.customSections.itemDatePlaceholder')}
               />
             </div>
-            <div>
-              <label htmlFor="custom-item-desc" className="block text-sm font-medium text-ink">
-                {t('profile.customSections.itemDescription')}
-              </label>
-              <textarea
-                id="custom-item-desc"
-                rows={3}
-                value={editingItem.description}
-                onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                className="input mt-1.5 w-full resize-y"
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setItemDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveItemMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+            <LiveTextAreaField label={t('profile.customSections.itemDescription')} rows={3} value={itemForm.description} onValueChange={(value) => itemEntry.patch({ description: value })} check={noRule} />
+          </>
         )}
-      </Dialog>
+      </FormDialog>
     </div>
   )
 }

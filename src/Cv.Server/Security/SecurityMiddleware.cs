@@ -9,10 +9,12 @@ public static class SecurityMiddleware
     /// <summary>
     /// The content security policy of the served UI: only the server's own origin for scripts, styles, fonts, images and API calls; no
     /// framing; no plugins. Inline style attributes are allowed (the UI's animation library sets them), inline scripts are not.
+    /// The one exception for embedded content: the PDF previews are shown in an <c>&lt;iframe&gt;</c> whose source is a <c>blob:</c> URL
+    /// the page created itself from a response of its own API, so frames may load <c>blob:</c> (and nothing else); <c>object-src</c> stays <c>'none'</c>.
     /// </summary>
     public const string ContentSecurityPolicy =
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; " +
-        "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+        "connect-src 'self'; frame-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
     /// <summary>Standard security headers on every response; API answers are never cached.</summary>
     public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app) => app.Use(async (context, next) =>

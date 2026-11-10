@@ -10,13 +10,13 @@ import { AuthLayout } from '../../components/layout/AuthLayout'
 import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice, Notice } from '../../components/ui/Notice'
+import { Notice } from '../../components/ui/Notice'
 import { isValid, normalizeSetupToken, passwordCheck, repeatCheck, setupTokenCheck } from '../../validation/rules'
 import { useServerErrors } from '../../validation/useServerErrors'
 
 /**
  * Emergency password and 2FA reset for the sole administrator.
- * When locked out, the operator can request a one-time code to be printed to the server logs
+ * When locked out, the operator can request a one-time code that is written to a file in the data folder
  * and enter it here together with a new password.
  */
 export function EmergencyResetPage() {
@@ -91,7 +91,7 @@ export function EmergencyResetPage() {
         </div>
       ) : (
         <>
-          <div className="mb-5 rounded border border-border bg-surface p-4">
+          <div className="card mb-5 p-4">
             <h2 className="text-base font-semibold text-ink">{t('emergencyReset.step1Title')}</h2>
             <p className="mt-1 text-sm text-ink-muted">{t('emergencyReset.step1Hint')}</p>
             <div className="mt-3">
@@ -106,7 +106,7 @@ export function EmergencyResetPage() {
             )}
           </div>
 
-          <div className="rounded border border-border bg-surface p-4">
+          <div className="card p-4">
             <h2 className="text-base font-semibold text-ink mb-3">{t('emergencyReset.step2Title')}</h2>
             <form onSubmit={(event) => void handleSubmit(event)} noValidate className="flex flex-col gap-3">
               <LiveTextField
@@ -145,9 +145,12 @@ export function EmergencyResetPage() {
                 {t('emergencyReset.submit')}
               </Button>
 
-              <AlertSlot reserve={reserveFor(t, ['admin.emergency_reset_other_admins_exist', 'admin.emergency_reset_no_admin', 'emergency_reset.code_invalid', 'rate_limited'])}>
-                {server.error !== null && <ErrorNotice error={server.error} />}
-              </AlertSlot>
+              <AlertSlot
+                reserve={reserveFor(t, ['emergency_reset.code_invalid'])}
+                error={server.error}
+                normalCodes={['emergency_reset.code_invalid']}
+                onDismiss={() => server.setError(null)}
+              />
             </form>
           </div>
 

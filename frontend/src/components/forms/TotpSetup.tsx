@@ -10,7 +10,7 @@ import { AlertSlot } from '../ui/AlertSlot'
 import { Button } from '../ui/Button'
 import { CopyButton } from '../ui/CopyButton'
 import { LiveTextField } from '../ui/LiveTextField'
-import { Notice, ErrorNotice } from '../ui/Notice'
+import { Notice } from '../ui/Notice'
 import { QrCode } from '../ui/QrCode'
 import { isTotpCodeComplete, required, totpCheck } from '../../validation/rules'
 import { useServerErrors } from '../../validation/useServerErrors'
@@ -90,6 +90,9 @@ export function TotpSetup({ onFinished, onEnabled, askPassword = true, stacked =
     </div>
   )
 }
+
+/** The answer of the normal flow (wrong code); everything else is rare and laid over the content. */
+const TOTP_ANSWERS = ['auth.twofactor_invalid'] as const
 
 function ScanStep({ setup, stacked, askPassword, onEnabled }: { setup: TotpSetupData; stacked: boolean; askPassword: boolean; onEnabled: (recoveryCodes: string[]) => void }) {
   const { t } = useTranslation()
@@ -176,9 +179,12 @@ function ScanStep({ setup, stacked, askPassword, onEnabled }: { setup: TotpSetup
               {t('settings.totp.enable')}
             </Button>
           </div>
-          <AlertSlot reserve={reserveFor(t, ['auth.twofactor_invalid', 'rate_limited'])}>
-            {server.hasGeneralError && <ErrorNotice error={server.error} />}
-          </AlertSlot>
+          <AlertSlot
+            reserve={reserveFor(t, TOTP_ANSWERS)}
+            error={server.hasGeneralError ? server.error : null}
+            normalCodes={TOTP_ANSWERS}
+            onDismiss={() => server.setError(null)}
+          />
         </form>
       </div>
     </div>

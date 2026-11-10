@@ -1,17 +1,23 @@
-/** Date, time and size formatting in the active interface language. */
+import { formatDayParts } from './validation/dates'
+import type { DateFormatId } from './validation/dates'
 
-export function formatDateTime(iso: string | null | undefined, language: string): string {
+/** Date, time and size formatting. Dates follow the chosen date format (validation/dates.ts), not the interface language. */
+
+/** The day of an instant in the chosen date format and the viewer's time zone. */
+export function formatDate(iso: string | null | undefined, format: DateFormatId): string {
   if (!iso) return '-'
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
-  return new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  return formatDayParts(date.getFullYear(), date.getMonth() + 1, date.getDate(), format)
 }
 
-export function formatDate(iso: string | null | undefined, language: string): string {
+/** Day and time of an instant; the time is always 24-hour ("14:30"). */
+export function formatDateTime(iso: string | null | undefined, format: DateFormatId): string {
   if (!iso) return '-'
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
-  return new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(date)
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  return `${formatDayParts(date.getFullYear(), date.getMonth() + 1, date.getDate(), format)}, ${time}`
 }
 
 export function formatBytes(bytes: number, language: string): string {
@@ -53,4 +59,15 @@ export function describeUserAgent(userAgent: string | null | undefined): string 
             : undefined
   const parts = [browser, system].filter(Boolean)
   return parts.length > 0 ? parts.join(' · ') : userAgent
+}
+
+/** The address when it is a plain http(s) link, otherwise null: text from outside (release pages) never becomes a javascript: or data: link. */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
 }

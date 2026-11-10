@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+import type { KeyboardEvent } from 'react'
 import { Icon } from './Icon'
 import type { IconName } from './Icon'
 
@@ -17,10 +19,35 @@ interface SegmentedProps<T extends string> {
   disabled?: boolean
 }
 
-/** A short single-choice control (theme, language); the chosen segment is the "selection" category, like the tabs. */
+/**
+ * A short single-choice control (theme, language); the chosen segment is the "selection" category, like the tabs. It behaves
+ * like a native radio group: Tab reaches only the chosen segment, the arrow keys move the choice (and the focus) to the
+ * neighbour, wrapping around.
+ */
 export function Segmented<T extends string>({ options, value, onChange, label, compact = false, disabled = false }: SegmentedProps<T>) {
+  const group = useRef<HTMLDivElement>(null)
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0
+    if (step === 0 || disabled) return
+    event.preventDefault()
+    const index = options.findIndex((option) => option.value === value)
+    const nextIndex = (index + step + options.length) % options.length
+    const next = options[nextIndex]
+    if (!next) return
+    onChange(next.value)
+    // The newly chosen segment takes the focus along; it exists already, only its tab stop changes.
+    group.current?.querySelectorAll<HTMLElement>('[role="radio"]')[nextIndex]?.focus()
+  }
+
   return (
-    <div role="radiogroup" aria-label={label} className={`rounded-sm border border-line-strong bg-surface p-0.5 ${compact ? 'flex' : 'inline-flex'}`}>
+    <div
+      ref={group}
+      role="radiogroup"
+      aria-label={label}
+      onKeyDown={handleKeyDown}
+      className={`rounded-sm border border-line-strong bg-surface p-0.5 ${compact ? 'flex' : 'inline-flex'}`}
+    >
       {options.map((option) => {
         const selected = option.value === value
         return (
@@ -28,6 +55,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, c
             key={option.value}
             type="button"
             role="radio"
+            tabIndex={selected ? 0 : -1}
             aria-checked={selected}
             aria-label={compact ? option.label : undefined}
             title={compact ? option.label : undefined}

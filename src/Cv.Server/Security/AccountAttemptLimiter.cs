@@ -7,9 +7,10 @@ using Cv.Server.Errors;
 namespace Cv.Server.Security;
 
 /// <summary>
-/// A second brake next to the per-IP limits: sign-in and 2FA attempts per account (default 20 per 15 minutes per normalised username /
-/// user), so an attacker spread over many addresses still cannot try passwords or codes against one account at speed. A reached limit
-/// is logged in German (a series of attempts against one account).
+/// A second brake next to the per-IP limits: wrong passwords and codes per account and client network (default 20 per 15 minutes). Only
+/// failures count, and the budget belongs to the pair account + network, so a stranger guessing at somebody else's account uses up their
+/// own budget and never locks the real owner out. Sign-in, 2FA, step-up, password change and enabling 2FA share one budget, so spreading
+/// guesses over several endpoints gains nothing. A reached limit is logged in German.
 /// </summary>
 public sealed class AccountAttemptLimiter : IDisposable
 {
@@ -30,21 +31,31 @@ public sealed class AccountAttemptLimiter : IDisposable
         }));
     }
 
-    /// <summary>Counts one attempt; throws 429 <c>rate_limited</c> (scope <c>account</c>) when the account's budget is used up.</summary>
-    public void Attempt(HttpContext context, string kind, string account)
+    /// <summary>Throws 429 <c>rate_limited</c> (scope <c>account</c>) when this client's budget for the account is used up. Costs nothing.</summary>
+    public void EnsureAllowed(HttpContext context, string account)
     {
-        using var lease = _limiter.AttemptAcquire($"{kind}:{account}");
+        // Zero permits only asks whether the window still has room
+        using var lease = _limiter.AttemptAcquire(Key(context, account), 0);
         if (lease.IsAcquired) return;
         var seconds = lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
             ? (int)Math.Ceiling(retryAfter.TotalSeconds)
             : (int)_limits.AccountWindow.TotalSeconds;
-        _logger.LogWarning("Viele Anmeldeversuche ({Kind}) für das Konto '{Account}' - weitere Versuche für {Seconds} Sekunden gesperrt (letzte IP {Ip}).",
-            kind, account.Length > 64 ? account[..64] : account, seconds, context.Connection.RemoteIpAddress);
+        var name = LogText.Clean(account);
+        _logger.LogWarning("Viele Fehlversuche für das Konto '{Account}' - weitere Versuche von dieser Adresse für {Seconds} Sekunden gesperrt (IP {Ip}).",
+            name.Length > 64 ? name[..64] : name, seconds, context.Connection.RemoteIpAddress);
         context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
         throw new ApiException(StatusCodes.Status429TooManyRequests, "rate_limited",
             $"Too many attempts for this account. Please wait {seconds} seconds and try again.",
             new Dictionary<string, object?> { ["retryAfterSeconds"] = seconds, ["scope"] = "account" });
     }
+
+    /// <summary>Counts one wrong password or code against this client's budget for the account.</summary>
+    public void RecordFailure(HttpContext context, string account)
+    {
+        using var lease = _limiter.AttemptAcquire(Key(context, account));
+    }
+
+    private static string Key(HttpContext context, string account) => $"{account}|{ClientPartition.Key(context.Connection.RemoteIpAddress)}";
 
     public void Dispose() => _limiter.Dispose();
 }
@@ -61,4 +72,12 @@ public static class ClientPartition
         for (var i = 8; i < 16; i++) bytes[i] = 0;
         return new IPAddress(bytes) + "/64";
     }
+}
+
+/// <summary>Text that comes from a client and ends up in a log line.</summary>
+public static class LogText
+{
+    /// <summary>Replaces control characters (line breaks above all) with spaces, so a value cannot forge further log lines.</summary>
+    public static string Clean(string value) =>
+        value.Any(char.IsControl) ? string.Concat(value.Select(c => char.IsControl(c) ? ' ' : c)) : value;
 }

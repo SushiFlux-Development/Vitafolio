@@ -13,11 +13,17 @@ import { AuthLayout } from '../../components/layout/AuthLayout'
 import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice } from '../../components/ui/Notice'
 import { isLoginCodeComplete, loginCodeCheck, required } from '../../validation/rules'
 import { useServerErrors } from '../../validation/useServerErrors'
 
 type Step = { kind: 'password' } | { kind: 'code'; challengeId: string }
+
+/**
+ * Answers of the sign-in steps that stay in the flow with reserved room. Repeated failed attempts are the expected case here,
+ * and a failure laid over the page would hide the links a locked-out person needs (emergency reset), so too many attempts is no rare failure.
+ */
+export const PASSWORD_ANSWERS = ['auth.invalid_credentials', 'auth.disabled', 'rate_limited', 'rate_limited_account'] as const
+export const CODE_ANSWERS = ['auth.twofactor_invalid', 'rate_limited', 'rate_limited_account'] as const
 
 /** Sign-in: username and password, then - when the account has two-factor authentication - the code. */
 export function LoginPage() {
@@ -91,9 +97,7 @@ function PasswordStep({ onCode }: { onCode: (challengeId: string) => void }) {
         <Button type="submit" variant="confirm" busy={busy} className="mt-1 w-full">
           {t('login.submit')}
         </Button>
-        <AlertSlot reserve={reserveFor(t, ['auth.invalid_credentials', 'auth.disabled', 'rate_limited', 'rate_limited_account'])}>
-          {server.error !== null && <ErrorNotice error={server.error} />}
-        </AlertSlot>
+        <AlertSlot reserve={reserveFor(t, PASSWORD_ANSWERS)} error={server.error} normalCodes={PASSWORD_ANSWERS} onDismiss={() => server.setError(null)} />
       </form>
       <div className="mt-3 flex flex-col gap-1 text-sm text-ink-muted">
         {bootstrap.registrationOpen && (
@@ -160,9 +164,7 @@ function CodeStep({ challengeId, onBack }: { challengeId: string; onBack: () => 
         <Button type="submit" variant="confirm" busy={busy} className="mt-1 w-full">
           {t('login.codeSubmit')}
         </Button>
-        <AlertSlot reserve={reserveFor(t, ['auth.twofactor_invalid', 'rate_limited', 'rate_limited_account'])}>
-          {server.error !== null && <ErrorNotice error={server.error} />}
-        </AlertSlot>
+        <AlertSlot reserve={reserveFor(t, CODE_ANSWERS)} error={server.error} normalCodes={CODE_ANSWERS} onDismiss={() => server.setError(null)} />
       </form>
       <button type="button" className="mt-2 text-sm font-semibold text-link underline" onClick={onBack}>
         {t('login.back')}

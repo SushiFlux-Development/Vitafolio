@@ -22,6 +22,7 @@ public sealed class AdminUsersController(
     SessionService sessions,
     TwoFactorService twoFactor,
     ActivityLogger activity,
+    Storage.DataFiles files,
     TimeProvider time) : ControllerBase
 {
     [HttpGet]
@@ -144,6 +145,8 @@ public sealed class AdminUsersController(
         db.Users.Remove(user);
         activity.Record(HttpContext, "user.deleted", user.Username, new { userId = user.Id });
         await db.SaveChangesAsync(ct);
+        // After the commit: the rows are gone, the files follow (photo, signatures, attachments, archived dossiers)
+        files.DeleteAllOfUser(user.Id);
         return NoContent();
     }
 

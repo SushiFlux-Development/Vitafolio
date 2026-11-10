@@ -1,235 +1,184 @@
-import { useState, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { attachmentsApi } from '../../api/endpoints'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { Dialog } from '../../components/ui/Dialog'
-import { ErrorNotice, Notice } from '../../components/ui/Notice'
+import { useErrorDialog } from '../../components/ui/ErrorDialog'
 import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { LiveTextField } from '../../components/ui/LiveTextField'
+import { ErrorNotice, Notice } from '../../components/ui/Notice'
+import { SelectField } from '../../components/ui/SelectField'
+import { formatBytes } from '../../format'
+import { noRule } from '../../validation/rules'
 
 interface AttachmentsModalProps {
   open: boolean
   onClose: () => void
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+/**
+ * The category is stored as this word (older entries are saved that way), so the stored values stay; only the labels are
+ * translated. An unknown stored category is shown as it is.
+ */
+const CATEGORIES = [
+  { value: 'Zeugnis', label: 'workReference' },
+  { value: 'Abschluss', label: 'degree' },
+  { value: 'Zertifikat', label: 'certificate' },
+  { value: 'Referenz', label: 'recommendation' },
+  { value: 'Arbeitsprobe', label: 'sample' },
+  { value: 'Sonstiges', label: 'other' },
+] as const
 
 export function AttachmentsModal({ open, onClose }: AttachmentsModalProps) {
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const showError = useErrorDialog()
+  const fileInput = useRef<HTMLInputElement>(null)
 
-  const [uploadTitle, setUploadTitle] = useState('')
-  const [uploadCategory, setUploadCategory] = useState('Zeugnis')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState<string>(CATEGORIES[0].value)
+  const [file, setFile] = useState<File | null>(null)
 
-  const { data: attachments = [], isLoading } = useQuery({
-    queryKey: ['attachments'],
-    queryFn: attachmentsApi.list,
-    enabled: open,
-  })
+  const attachments = useQuery({ queryKey: ['attachments'], queryFn: attachmentsApi.list, enabled: open })
 
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedFile) throw new Error('Bitte wählen Sie eine Datei aus.')
-      return attachmentsApi.upload(selectedFile, uploadTitle.trim() || undefined, uploadCategory || undefined)
-    },
+  const upload = useMutation({
+    mutationFn: (chosen: File) => attachmentsApi.upload(chosen, title.trim() || undefined, category || undefined),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['attachments'] })
-      setSelectedFile(null)
-      setUploadTitle('')
-      setError(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      setFile(null)
+      setTitle('')
+      if (fileInput.current) fileInput.current.value = ''
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Upload fehlgeschlagen.'),
+    onError: (error) => showError(error, t('attachments.errors.upload')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => attachmentsApi.delete(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['attachments'] })
-    },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Löschen fehlgeschlagen.'),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['attachments'] }),
+    onError: (error) => showError(error, t('attachments.errors.delete')),
   })
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setSelectedFile(file)
-    if (!uploadTitle.trim()) {
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
-      setUploadTitle(nameWithoutExt)
-    }
+  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const chosen = event.target.files?.[0]
+    if (!chosen) return
+    setFile(chosen)
+    // The file name without its extension is a sensible title until the user types one.
+    if (!title.trim()) setTitle(chosen.name.replace(/\.[^/.]+$/, ''))
   }
 
+  const categoryLabel = (value: string) => {
+    const known = CATEGORIES.find((category) => category.value === value)
+    return known ? t(`attachments.categories.${known.label}`) : value
+  }
+
+  const askDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: t('attachments.deleteTitle'),
+      message: t('attachments.deleteConfirm', { title: name }),
+      confirmLabel: t('common.delete'),
+      tone: 'danger',
+    })
+    if (ok) remove.mutate(id)
+  }
+
+  const list = attachments.data ?? []
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Anlagen & Zeugnisse verwalten"
-      icon="files"
-      size="lg"
-    >
+    <Dialog open={open} onClose={onClose} title={t('attachments.title')} icon="files" size="lg" closeOnBackdrop={false} footer={<Button onClick={onClose}>{t('common.close')}</Button>}>
       <div className="space-y-6">
-        <Notice tone="info">
-          Laden Sie Arbeitszeugnisse, Diplome, Zertifikate oder Arbeitsproben hoch. Diese können Sie
-          anschließend flexibel jedem Bewerbungsdossier anhängen.
-        </Notice>
+        <Notice tone="info">{t('attachments.intro')}</Notice>
 
-        {error && <ErrorNotice error={error} />}
-
-        {/* Upload form card */}
-        <div className="p-4 rounded-lg border border-border bg-canvas-subtle space-y-4">
-          <h3 className="font-semibold text-sm text-ink flex items-center gap-2">
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (file && !upload.isPending) upload.mutate(file)
+          }}
+          className="space-y-3 rounded-md border border-line bg-surface-2 p-4"
+        >
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
             <Icon name="upload" size={16} />
-            Neues Dokument hinzufügen (PDF, PNG, JPG, WebP bis 20 MB)
+            {t('attachments.addTitle')}
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <TextField
-                label="Bezeichnung"
-                value={uploadTitle}
-                onChange={(e) => setUploadTitle(e.target.value)}
-                placeholder="z. B. Arbeitszeugnis Tech GmbH 2025"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-ink-muted mb-1">Kategorie</label>
-              <select
-                value={uploadCategory}
-                onChange={(e) => setUploadCategory(e.target.value)}
-                className="w-full text-sm p-2 rounded border border-border bg-canvas text-ink focus:border-primary focus:outline-none"
-              >
-                <option value="Zeugnis">Arbeitszeugnis</option>
-                <option value="Abschluss">Abschluss / Diplom</option>
-                <option value="Zertifikat">Zertifikat / Schulung</option>
-                <option value="Referenz">Referenzschreiben</option>
-                <option value="Arbeitsprobe">Arbeitsprobe</option>
-                <option value="Sonstiges">Sonstiges</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
+            <LiveTextField className="sm:col-span-2" label={t('attachments.fields.title')} value={title} onValueChange={setTitle} check={noRule} placeholder={t('attachments.fields.titlePlaceholder')} />
+            <SelectField label={t('attachments.fields.category')} value={category} onChange={(event) => setCategory(event.target.value)}>
+              {CATEGORIES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(`attachments.categories.${option.label}`)}
+                </option>
+              ))}
+            </SelectField>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <div className="flex items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <Button
-                variant="secondary"
-                icon="upload"
-                onClick={() => fileInputRef.current?.click()}
-                small
-              >
-                Datei auswählen
+          {/* One line, always: the name is cut inside its own space (the full name is the tooltip), the save button never wraps. */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <input ref={fileInput} id="attachment-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*" onChange={handleFile} className="sr-only" />
+              <Button icon="upload" small className="shrink-0" onClick={() => fileInput.current?.click()}>
+                {t('attachments.chooseFile')}
               </Button>
-              {selectedFile && (
-                <span className="text-xs text-ink font-medium">
-                  {selectedFile.name} ({formatBytes(selectedFile.size)})
-                </span>
-              )}
+              <span className="min-w-0 truncate text-xs font-medium text-ink" aria-live="polite" title={file?.name}>
+                {file ? `${file.name} (${formatBytes(file.size, i18n.language)})` : t('attachments.noFile')}
+              </span>
             </div>
-
-            <Button
-              variant="confirm"
-              icon="plus"
-              onClick={() => uploadMutation.mutate()}
-              disabled={!selectedFile || uploadMutation.isPending}
-              small
-            >
-              {uploadMutation.isPending ? 'Wird hochgeladen...' : 'Dokument speichern'}
+            <Button type="submit" variant="confirm" icon="plus" small className="shrink-0" busy={upload.isPending} disabled={!file}>
+              {t('attachments.save')}
             </Button>
           </div>
-        </div>
+        </form>
 
-        {/* Existing attachments list */}
-        <div className="space-y-3">
-          <h3 className="font-semibold text-sm text-ink">
-            Gespeicherte Dokumente ({attachments.length})
-          </h3>
+        <section className="space-y-3" aria-label={t('attachments.listTitle')}>
+          <h3 className="text-sm font-semibold text-ink">{t('attachments.listCount', { count: list.length })}</h3>
 
-          {isLoading ? (
-            <p className="text-xs text-ink-muted">Wird geladen...</p>
-          ) : attachments.length === 0 ? (
-            <div className="p-8 text-center text-ink-muted text-xs border border-dashed border-border rounded-lg">
-              Noch keine Anlagen hinterlegt. Laden Sie oben ein erstes Zeugnis oder Zertifikat hoch.
-            </div>
+          {attachments.isPending ? (
+            <p className="text-sm text-ink-muted" role="status">
+              {t('common.loading')}
+            </p>
+          ) : attachments.isError ? (
+            <ErrorNotice error={attachments.error} title={t('attachments.errors.load')} />
+          ) : list.length === 0 ? (
+            <div className="rounded-md border border-dashed border-line-strong p-8 text-center text-sm text-ink-muted">{t('attachments.empty')}</div>
           ) : (
-            <div className="divide-y divide-border border border-border rounded-lg bg-canvas overflow-hidden">
-              {attachments.map((att) => (
-                <div key={att.id} className="p-3.5 flex items-center justify-between gap-4">
-                  <div className="min-w-0 flex items-center gap-3">
-                    <div className="p-2 rounded bg-primary/10 text-primary shrink-0">
-                      <Icon name={att.contentType === 'application/pdf' ? 'fileText' : 'files'} size={18} />
-                    </div>
+            <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+              {list.map((attachment) => (
+                <li key={attachment.id} className="flex items-center justify-between gap-4 p-3.5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 rounded-sm bg-select p-2 text-select-ink">
+                      <Icon name={attachment.contentType === 'application/pdf' ? 'fileText' : 'files'} size={18} />
+                    </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-ink truncate">{att.title}</span>
-                        {att.category && (
-                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-canvas-subtle text-ink-muted border border-border">
-                            {att.category}
-                          </span>
-                        )}
+                        <span className="truncate text-sm font-semibold text-ink">{attachment.title}</span>
+                        {attachment.category && <span className="badge badge-neutral">{categoryLabel(attachment.category)}</span>}
                       </div>
-                      <div className="text-xs text-ink-muted mt-0.5 flex items-center gap-3">
-                        <span>{att.fileName}</span>
-                        <span>·</span>
-                        <span>{formatBytes(att.sizeBytes)}</span>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
+                        <span className="truncate">{attachment.fileName}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{formatBytes(attachment.sizeBytes, i18n.language)}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={attachmentsApi.downloadUrl(att.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <Icon name="download" size={14} className="mr-1" />
-                      Ansehen
+                  <div className="flex shrink-0 items-center gap-2">
+                    <a href={attachmentsApi.downloadUrl(attachment.id)} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
+                      <Icon name="download" size={14} />
+                      {t('attachments.view')}
+                      <span className="sr-only">: {attachment.title}</span>
                     </a>
-                    <Button
-                      variant="danger"
-                      icon="trash"
-                      small
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: 'Anlage löschen',
-                          message: `Möchten Sie "${att.title}" wirklich löschen?`,
-                          confirmLabel: 'Löschen',
-                        })
-                        if (ok) {
-                          deleteMutation.mutate(att.id)
-                        }
-                      }}
-                    >
-                      Löschen
-                    </Button>
+                    <ItemActions itemName={attachment.title} deleteLabel={t('common.delete')} onDelete={() => void askDelete(attachment.id, attachment.title)} />
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <Button variant="secondary" onClick={onClose}>
-            Schließen
-          </Button>
-        </div>
+        </section>
       </div>
     </Dialog>
   )

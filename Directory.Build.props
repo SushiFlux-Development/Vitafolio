@@ -24,6 +24,9 @@
     <Product Condition="'$(CvProductName)' != ''">$(CvProductName)</Product>
     <CvCompany Condition="'$(CvBrandingJson)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(CvBrandingJson)', '"company"\s*:\s*"([^"]+)"').Groups[1].Value)</CvCompany>
     <Company Condition="'$(CvCompany)' != ''">$(CvCompany)</Company>
+    <CvRepository Condition="'$(CvBrandingJson)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(CvBrandingJson)', '"repository"\s*:\s*"([^"]+)"').Groups[1].Value)</CvRepository>
+    <!-- Earlier company names ("previousCompanies": the quoted names, read at run time by Branding.PreviousCompanies): the Windows program moves the data folder of an earlier name once -->
+    <CvPreviousCompanies Condition="'$(CvBrandingJson)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(CvBrandingJson)', '"previousCompanies"\s*:\s*\[([^\]]*)\]').Groups[1].Value)</CvPreviousCompanies>
     <Authors Condition="'$(CvCompany)' != ''">$(CvCompany)</Authors>
     <Copyright Condition="'$(CvCompany)' != ''">© 2026 $(CvCompany)</Copyright>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

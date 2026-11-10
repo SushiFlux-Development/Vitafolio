@@ -9,7 +9,6 @@ import { useAppState } from '../../auth/AppState'
 import { Button } from '../ui/Button'
 import { AlertSlot } from '../ui/AlertSlot'
 import { LiveTextField } from '../ui/LiveTextField'
-import { ErrorNotice } from '../ui/Notice'
 import { NewPasswordFields } from './NewPasswordFields'
 import { reserveFor } from './reserve'
 
@@ -17,11 +16,11 @@ interface AccountFormProps {
   submitLabel: string
   /** Performs the request; a failure must be thrown so the form can show the server's answer. */
   onSubmit: (account: NewAccount) => Promise<unknown>
-  /** Error codes the server can answer with in normal operation (their room is reserved below the button). */
+  /** Error codes the server can answer with in normal operation (their room is reserved below the button); any other failure is rare and laid over the content. */
   answerCodes: readonly string[]
   /** The first-account setup asks for the one-time code from the server's log. */
   askSetupToken?: boolean
-  /** Offers a Cancel button next to the submit button (dialogs). */
+  /** Offers a Cancel button next to the submit button (dialogs; a rare failure then grows upward, see AlertSlot). */
   onCancel?: () => void
   children?: React.ReactNode
 }
@@ -154,6 +153,16 @@ export function AccountForm({ submitLabel, onSubmit, answerCodes, askSetupToken 
         serverError={server.fields.password}
       />
       {children}
+      {/* In a dialog the answer sits above the buttons and a rare failure grows upward, so it never covers the button that tries again. */}
+      {onCancel && (
+        <AlertSlot
+          reserve={reserveFor(t, answerCodes)}
+          error={server.hasGeneralError ? server.error : null}
+          normalCodes={answerCodes}
+          grow="up"
+          onDismiss={() => server.setError(null)}
+        />
+      )}
       <div className={`mt-1 flex gap-2 ${onCancel ? 'justify-end' : ''}`}>
         {onCancel && (
           <Button onClick={onCancel} disabled={busy}>
@@ -164,7 +173,14 @@ export function AccountForm({ submitLabel, onSubmit, answerCodes, askSetupToken 
           {submitLabel}
         </Button>
       </div>
-      <AlertSlot reserve={reserveFor(t, answerCodes)}>{server.hasGeneralError && <ErrorNotice error={server.error} />}</AlertSlot>
+      {!onCancel && (
+        <AlertSlot
+          reserve={reserveFor(t, answerCodes)}
+          error={server.hasGeneralError ? server.error : null}
+          normalCodes={answerCodes}
+          onDismiss={() => server.setError(null)}
+        />
+      )}
     </form>
   )
 }

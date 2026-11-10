@@ -1,17 +1,24 @@
-import { useState } from 'react'
-import { Icon } from '../../components/ui/Icon'
+import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/ui/Button'
-import { useGapAnalyzer } from './useGapAnalyzer'
+import { Icon } from '../../components/ui/Icon'
+import { useDateFormat } from '../../hooks/useDateFormat'
 import type { Profile } from '../../api/types'
+import { useGapAnalyzer } from './useGapAnalyzer'
+import type { StationLabel } from './useGapAnalyzer'
 
 interface GapAnalyzerCardProps {
   profile: Profile
+  /** Offers to fill a gap: start and end as ISO months (YYYY-MM) and the suggested title of the new station. */
   onQuickAdd?: (gapStart: string, gapEnd: string, suggestedTitle: string) => void
 }
 
 export function GapAnalyzerCard({ profile, onQuickAdd }: GapAnalyzerCardProps) {
-  const analysis = useGapAnalyzer(profile)
+  const { t } = useTranslation()
+  const { format } = useDateFormat()
+  const analysis = useGapAnalyzer(profile, format)
   const [expanded, setExpanded] = useState(false)
+  const detailsId = useId()
 
   if (!analysis.hasGaps && !analysis.isContinuous) {
     return null
@@ -19,84 +26,59 @@ export function GapAnalyzerCard({ profile, onQuickAdd }: GapAnalyzerCardProps) {
 
   if (analysis.isContinuous) {
     return (
-      <div className="rounded-lg border border-success/30 bg-success/5 p-3 flex items-center justify-between text-xs text-ink mb-4">
-        <div className="flex items-center gap-2">
-          <Icon name="circleCheck" className="h-4 w-4 text-success flex-shrink-0" />
-          <span className="font-medium text-success-strong">
-            Lücken-Check bestanden: Ihr Werdegang ist lückenlos dokumentiert.
-          </span>
-        </div>
+      <div className="notice notice-success flex items-center gap-2" role="status" data-hint="profile-gaps">
+        <Icon name="circleCheck" size={18} className="shrink-0" />
+        <span className="font-medium">{t('profile.gaps.continuous')}</span>
       </div>
     )
   }
 
+  // A station is named "Title (Employer)"; a missing part is said in words, never left as an empty bracket.
+  const describe = (label: StationLabel | undefined) =>
+    `${label?.title || t('profile.gaps.unnamedTitle')} (${label?.organisation || t('profile.gaps.unnamedOrganisation')})`
+
   return (
-    <div className="rounded-lg border border-warning/40 bg-warning/5 p-3.5 text-xs text-ink mb-4 space-y-2">
-      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <div className="flex items-center gap-2 font-medium text-warning-strong">
-          <Icon name="alertTriangle" className="h-4 w-4 text-warning flex-shrink-0" />
-          <span>
-            Lücken-Analyse:{' '}
-            <strong>
-              {analysis.totalGapsCount} {analysis.totalGapsCount === 1 ? 'Lücke' : 'Lücken'}
-            </strong>{' '}
-            im zeitlichen Ablauf gefunden.
-          </span>
-        </div>
-        <button
-          type="button"
-          className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-        >
-          {expanded ? 'Details verbergen' : 'Details & Tipps anzeigen'}
-          <Icon name={expanded ? 'chevronDown' : 'chevronRight'} className="h-3.5 w-3.5" />
-        </button>
-      </div>
+    <div className="notice notice-warning space-y-2" data-hint="profile-gaps">
+      <button type="button" className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpanded((value) => !value)}>
+        <span className="flex items-center gap-2 font-medium">
+          <Icon name="alertTriangle" size={18} className="shrink-0" />
+          <span>{t('profile.gaps.found', { count: analysis.totalGapsCount })}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1 text-[0.8125rem] font-medium underline underline-offset-2">
+          {expanded ? t('profile.gaps.hide') : t('profile.gaps.show')}
+          <Icon name={expanded ? 'chevronDown' : 'chevronRight'} size={14} />
+        </span>
+      </button>
 
       {expanded && (
-        <div className="pt-2 border-t border-warning/20 space-y-3">
-          <p className="text-ink-muted">
-            Personaler achten im Lebenslauf auf zeitliche Kontinuität. Ab etwa 1–2 Monaten Unterbrechung
-            empfiehlt sich eine kurze, transparente Angabe, um Nachfragen im Vorstellungsgespräch souverän zu begegnen.
-          </p>
+        <div id={detailsId} className="space-y-3 border-t border-current/20 pt-3">
+          <p>{t('profile.gaps.advice')}</p>
 
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {analysis.gaps.map((gap) => (
-              <div
-                key={gap.id}
-                className="p-2.5 rounded bg-canvas border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-              >
+              <li key={gap.id} className="flex flex-col justify-between gap-2 rounded-sm border border-line bg-surface p-2.5 text-ink sm:flex-row sm:items-center">
                 <div>
-                  <span className="font-semibold text-ink">
-                    {gap.startFormatted} – {gap.endFormatted} ({gap.durationMonths}{' '}
-                    {gap.durationMonths === 1 ? 'Monat' : 'Monate'})
+                  <span className="font-semibold">
+                    {gap.startFormatted} – {gap.endFormatted} ({t('profile.gaps.months', { count: gap.durationMonths })})
                   </span>
-                  <div className="text-ink-muted text-[11px] mt-0.5">
-                    Zwischen: <span className="text-ink">{gap.previousTitle}</span> ➔{' '}
-                    <span className="text-ink">{gap.nextTitle}</span>
+                  <div className="mt-0.5 text-xs text-ink-muted">
+                    {t('profile.gaps.between')}: <span className="text-ink">{describe(gap.previous)}</span> → <span className="text-ink">{describe(gap.next)}</span>
                   </div>
                 </div>
 
                 {onQuickAdd && (
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Button
-                      small
-                      variant="secondary"
-                      onClick={() => onQuickAdd(gap.startFormatted, gap.endFormatted, 'Berufliche Neuorientierung')}
-                    >
-                      + Neuorientierung
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button small onClick={() => onQuickAdd(gap.startMonth, gap.endMonth, t('profile.gaps.orientation'))}>
+                      + {t('profile.gaps.orientation')}
                     </Button>
-                    <Button
-                      small
-                      variant="secondary"
-                      onClick={() => onQuickAdd(gap.startFormatted, gap.endFormatted, 'Weiterbildung & Qualifizierung')}
-                    >
-                      + Weiterbildung
+                    <Button small onClick={() => onQuickAdd(gap.startMonth, gap.endMonth, t('profile.gaps.training'))}>
+                      + {t('profile.gaps.training')}
                     </Button>
                   </div>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </div>

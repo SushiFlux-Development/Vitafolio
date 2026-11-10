@@ -3,8 +3,8 @@ using Cv.Server.Configuration;
 namespace Cv.Desktop.Hosting;
 
 /// <summary>
-/// The version shown in error reports and logs, in the readable form (<c>v2026.11.12 (13.557)</c>, beta with the beta sign, dev with
-/// <c>-dev</c>). Taken from version.txt next to the program (or the repository's, in a source checkout) and the channel - formatted by the
+/// The version shown in error reports and logs, in the readable form (<c>v2026.11.12.13.557</c>, beta and nightly with their sign, dev with
+/// <c>(&lt;/&gt;)</c>). Taken from version.txt next to the program (or the repository's, in a source checkout) and the channel - formatted by the
 /// server's one <see cref="VersionFormat"/> helper. The channel: <c>dev</c> for a development run, otherwise the text in
 /// release-channel.txt next to the program (written by the packaging script), otherwise <c>release</c>.
 /// </summary>
@@ -16,17 +16,20 @@ internal static class DesktopVersion
         try
         {
             var file = Path.Combine(AppContext.BaseDirectory, "release-channel.txt");
-            if (File.Exists(file))
-            {
-                var value = File.ReadAllText(file).Trim().ToLowerInvariant();
-                if (value is "beta" or "dev" or "release") return value;
-            }
+            if (File.Exists(file)) return ParseChannel(File.ReadAllText(file));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Unreadable: the plain release form
         }
         return "release";
+    }
+
+    /// <summary>The channel from the marker file; anything unknown counts as a release.</summary>
+    internal static string ParseChannel(string? text)
+    {
+        var value = text?.Trim().ToLowerInvariant();
+        return value is "beta" or "nightly" or "dev" or "release" ? value : "release";
     }
 
     public static string Readable(string channel)

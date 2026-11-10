@@ -9,7 +9,7 @@ import { Dialog } from './Dialog'
 
 // For failures of actions that have no form to show them in (delete a user, revoke a session, run a backup): a
 // dismissable dialog (close button, Esc) whose body scrolls, so the complete message is always readable and copyable.
-// Usage: const showError = useErrorDialog(); try { ... } catch (error) { showError(error, t('...')) }
+// Usage: const showError = useErrorDialog(); try { ... } catch (error) { showError(error, title) }
 
 type ShowError = (error: unknown, title?: string) => void
 

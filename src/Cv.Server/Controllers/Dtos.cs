@@ -11,7 +11,7 @@ public sealed record LoginRequest(string? Username, string? Password);
 
 public sealed record LoginTwoFactorRequest(string? ChallengeId, string? Code);
 
-public sealed record PreferencesRequest(string? Language, string? Theme);
+public sealed record PreferencesRequest(string? Language, string? Theme, string? DateFormat);
 
 public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
 
@@ -28,16 +28,17 @@ public sealed record SetPasswordRequest(string? NewPassword);
 
 public sealed record EmergencyResetConfirmRequest(string? Code, string? NewPassword);
 
-public sealed record SettingsRequest(bool? RegistrationOpen, bool? RequireTwoFactor);
+/// <summary><c>password</c>/<c>code</c>: the step-up for changes that weaken the instance's protection (see AdminController).</summary>
+public sealed record SettingsRequest(bool? RegistrationOpen, bool? RequireTwoFactor, IReadOnlyList<string>? AiAllowedHosts = null, string? Password = null, string? Code = null);
 
 // Responses
 
 /// <summary>The signed-in user as the UI sees it (<c>/api/auth/me</c> and every sign-in answer).</summary>
 public sealed record UserDto(string Id, string Username, string DisplayName, string Role, bool TwoFactorEnabled, bool MustSetupTwoFactor,
-    string? Language, string Theme)
+    string? Language, string Theme, string DateFormat)
 {
     public static UserDto From(User user, bool requireTwoFactor) => new(user.Id.ToString(), user.Username, user.DisplayName, user.Role,
-        user.TotpEnabled, requireTwoFactor && !user.TotpEnabled && !user.IsLocalOwner, user.Language, user.Theme);
+        user.TotpEnabled, requireTwoFactor && !user.TotpEnabled && !user.IsLocalOwner, user.Language, user.Theme, user.DateFormat);
 }
 
 public sealed record UserResponse(UserDto User);

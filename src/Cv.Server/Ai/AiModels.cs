@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using System.Text.Json.Serialization;
@@ -40,7 +40,9 @@ public sealed record UpdateAdminServerAiConfigRequest(
     string? Provider,
     string? Model,
     string? BaseUrl,
-    string? ApiKey
+    string? ApiKey,
+    string? Password = null,
+    string? Code = null
 );
 
 public sealed record UpdateAiConfigRequest(
@@ -51,9 +53,11 @@ public sealed record UpdateAiConfigRequest(
     bool? Pseudonymize
 );
 
+/// <summary><c>Code</c> is the stable error code of a failed test; the UI translates it. <c>Message</c> is an English fallback.</summary>
 public sealed record TestAiConnectionResponse(
     bool Success,
-    string? Message
+    string? Message,
+    string? Code = null
 );
 
 public sealed record AiPromptRequest(

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using System.Net;
@@ -30,7 +30,7 @@ public sealed class AttachmentsTests(ServerFixture server) : IClassFixture<Serve
         Assert.Empty(initialList.EnumerateArray().ToList());
 
         // 2. Upload sample PDF
-        byte[] samplePdf = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"u8.ToArray();
+        byte[] samplePdf = DocumentSamples.Pdf();
         using var pdfContent = new MultipartFormDataContent();
         var filePart = new ByteArrayContent(samplePdf);
         filePart.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");

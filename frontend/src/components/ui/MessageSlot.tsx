@@ -7,6 +7,8 @@ interface MessageSlotProps {
   danger?: boolean
   /** Every text that can show up here, so the room is sized for the longest of them (see TextField "reserve"). */
   reserve: readonly string[]
+  /** The text size of the slot (it must be the size the message is shown in, or the room is wrong). */
+  textClassName?: string
 }
 
 /**
@@ -15,10 +17,10 @@ interface MessageSlotProps {
  * tall as the tallest. The copies are drawn from a data attribute, so they are no text in the page: screen readers,
  * find-in-page and tests only ever see the message that is really shown. This is what keeps the layout rigid.
  */
-export function MessageSlot({ id, message, danger = false, reserve }: MessageSlotProps) {
+export function MessageSlot({ id, message, danger = false, reserve, textClassName = 'text-[0.8125rem]' }: MessageSlotProps) {
   if (!message && reserve.length === 0) return null
   return (
-    <div className="grid text-[0.8125rem] leading-snug">
+    <div className={`grid leading-snug ${textClassName}`}>
       {message && (
         <p id={id} className={`col-start-1 row-start-1 ${danger ? 'text-danger' : 'text-ink-muted'}`}>
           {message}

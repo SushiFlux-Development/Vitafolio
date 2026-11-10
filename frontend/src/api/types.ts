@@ -1,7 +1,10 @@
 /** Wire types of the API contract. All JSON is camelCase. */
 
+import type { DateFormatPreference } from '../validation/dates'
+
 export type Role = 'admin' | 'user'
-export type ThemePreference = 'system' | 'light' | 'dark'
+/** The two themes there are. An account saved before this may still hold "system" on the server (see User.theme); it is turned into one of these on load. */
+export type ThemePreference = 'light' | 'dark'
 export type LanguageCode = 'de' | 'en'
 export type HostMode = 'server' | 'desktop'
 
@@ -13,7 +16,9 @@ export interface User {
   twoFactorEnabled: boolean
   mustSetupTwoFactor: boolean
   language: LanguageCode | null
-  theme: ThemePreference | null
+  theme: ThemePreference | 'system' | null
+  /** How dates are typed and shown ('auto' = by the interface language); a server without the setting leaves it out. */
+  dateFormat?: DateFormatPreference | null
 }
 
 export interface TextRule {
@@ -37,14 +42,29 @@ export interface Bootstrap {
   registrationOpen: boolean
   rules: Rules
   languages: LanguageCode[]
+  /** The fonts documents can use - the only list there is (shipped with the server). */
+  documentFonts?: DocumentFont[]
+  /** The CV designs on offer - the only list there is (names and descriptions are translations in the UI). */
+  documentDesigns?: DocumentDesign[]
+}
+
+export interface DocumentDesign {
+  id: string
+  /** How the gallery groups the design; none = the ordinary group. */
+  group?: string
+}
+
+export interface DocumentFont {
+  family: string
+  serif: boolean
 }
 
 export interface VersionInfo {
-  /** The readable form, e.g. "v2026.11.12 (13.557)" - shown as it is. */
+  /** The readable form, e.g. "v2026.11.12.13.557" (release), "v2026.11.12.13.557 (β)" (beta), "(α)" (nightly), "(</>)" (dev) - shown as it is. */
   version: string
   short: string
   buildId: string
-  channel: 'dev' | 'beta' | 'release' | string
+  channel: 'dev' | 'beta' | 'nightly' | 'release' | string
 }
 
 export interface UserEnvelope {
@@ -81,6 +101,89 @@ export interface AdminUser {
 export interface AdminSettings {
   registrationOpen: boolean
   requireTwoFactor: boolean
+  /** Host names or IPs own AI base URLs may point to on this server. */
+  aiAllowedHosts: string[]
+}
+
+export interface UpdateReleaseDto {
+  tag: string
+  display: string
+  channel: string
+  htmlUrl?: string | null
+  publishedAt?: string | null
+  notes?: string | null
+}
+
+export interface UpdateStatusDto {
+  currentVersion: string
+  currentTag: string
+  currentChannel: string
+  host: 'desktop' | 'server' | string
+  /** 'unknownVersion': the running version cannot be compared, nothing is offered. */
+  state: 'upToDate' | 'available' | 'devBuild' | 'unknownVersion' | 'error' | 'checking' | string
+  hasUpdate: boolean
+  available?: UpdateReleaseDto | null
+  latestRelease?: UpdateReleaseDto | null
+  latestBeta?: UpdateReleaseDto | null
+  latestNightly?: UpdateReleaseDto | null
+  checkedAt?: string | null
+  nextManualCheckAt?: string | null
+  throttled: boolean
+  error?: string | null
+  dockerImage: string
+  /** The chosen update channel; while nothing is saved, the channel of the running build. */
+  channel: UpdateChannel
+  channelSaved: boolean
+  /** The image tag this channel needs on Docker/Unraid: 'latest', 'beta' or 'nightly'. */
+  dockerTag: string
+  /** Windows program, installed by the setup program, not a development run. */
+  canInstall: boolean
+  install: UpdateInstall
+}
+
+export type UpdateChannel = 'none' | 'beta' | 'nightly'
+
+export type UpdateInstallState = 'idle' | 'downloading' | 'backingUp' | 'restarting' | 'failed'
+
+export interface UpdateInstall {
+  state: UpdateInstallState
+  /** 0-100 while downloading, otherwise null. */
+  progress?: number | null
+  targetTag?: string | null
+  targetDisplay?: string | null
+  /** updates.download_failed, updates.checksum_failed, updates.backup_failed, updates.no_package, updates.busy, ... */
+  errorCode?: string | null
+  error?: string | null
+  /** The complete technical text for "Technical details" and the Copy button. */
+  errorDetails?: string | null
+  /** Name of the backup made before the update. */
+  backupFile?: string | null
+}
+
+export interface ChangelogSection {
+  /** new | changed | fixed | security | removed | deprecated | other */
+  category: string
+  title: string
+  /** May contain inline Markdown (**bold**). */
+  items: string[]
+}
+
+export interface WhatsNew {
+  show: boolean
+  version?: string | null
+  tag?: string | null
+  language: string
+  summary?: string | null
+  sections: ChangelogSection[]
+}
+
+export interface AboutInfo {
+  product: string
+  license: string
+  sourceUrl: string
+  /** Static file of the app with the third-party licences. */
+  thirdPartyLicensesUrl: string
+  handbook: { de: boolean; en: boolean }
 }
 
 export interface ActivityItem {
@@ -100,7 +203,7 @@ export interface ActivityPage {
   total: number
 }
 
-export type BackupKind = 'start' | 'shutdown' | 'scheduled' | 'manual' | 'pre-restore' | 'uploaded'
+export type BackupKind = 'start' | 'shutdown' | 'scheduled' | 'manual' | 'pre-restore' | 'pre-update' | 'uploaded'
 
 export interface BackupEntry {
   id: string
@@ -109,6 +212,8 @@ export interface BackupEntry {
   sizeBytes: number
   kind: BackupKind | string
   tier: 'recent' | 'daily' | string
+  /** "database": an old backup without photos, signatures and attachments. */
+  format?: 'archive' | 'database'
 }
 
 export type ScheduleKind = 'off' | 'interval' | 'times'
@@ -142,6 +247,8 @@ export interface BackupSettingsInfo extends BackupSettings {
   nextRuns: string[]
   timeZone: string
   directory: string
+  /** The largest backup file this server accepts. */
+  maxUploadBytes?: number
 }
 
 /** One error entry of a field: a stable code plus the values for its message. */
@@ -287,6 +394,10 @@ export interface Profile {
   certificates: Certificate[]
   interests: Interest[]
   customSections: CustomSection[]
+  /** What "Preview & export" shows of this profile (the suggestion and the person's own corrections); missing = follow the suggestion. */
+  cvContentSettings?: CvContentSettings | null
+  /** The last chosen options of "Preview & export"; null while nothing has been saved yet. */
+  previewOptions?: PreviewOptions | null
 }
 
 export interface PersonalDataPayload {
@@ -311,14 +422,37 @@ export interface PersonalDataPayload {
   bio?: string | null
 }
 
+export type CvLevel = 'full' | 'short' | 'hidden'
+
+/**
+ * What the master profile shows in its own CV (preview and export). With `useSuggestion` the suggestion of the app decides what is
+ * shown in full, shortened or left out; `overrides` are the person's own corrections to it (an entry that is not listed follows the
+ * suggestion). Without `useSuggestion` everything is shown except what the overrides leave out.
+ */
+export interface CvContentSettings {
+  useSuggestion: boolean
+  overrides: {
+    experiences: Record<string, CvLevel>
+    educations: Record<string, CvLevel>
+    certificates: Record<string, 'full' | 'hidden'>
+    hiddenSections: string[]
+  }
+}
+
 export interface CvRenderOptions {
-  design?: 'classic' | 'modern' | 'plain'
+  /** A design id from the server's list (Bootstrap.documentDesigns). */
+  design?: string
   accentColor?: string
   font?: string
   showPhoto?: boolean
   photoShape?: 'round' | 'rounded' | 'rect'
   language?: 'de' | 'en'
+  /** Asks the server to apply the effective selection of the master profile (what the person left out); the page always sends it. */
+  applySelection?: boolean
 }
+
+/** The remembered choice on "Preview & export" (all six values; the server normalises them). */
+export type PreviewOptions = Required<Omit<CvRenderOptions, 'applySelection'>>
 
 export interface CoverLetter {
   id: string
@@ -348,6 +482,8 @@ export interface CoverLetter {
   language: 'de' | 'en'
   font?: string | null
   accentColor?: string | null
+  /** Fold and punch marks on the printed letter, also inside a dossier. Saved with the letter; on for letters that existed before the choice. */
+  includeFoldMarks: boolean
   createdAt: string
   updatedAt: string
 }
@@ -387,12 +523,15 @@ export interface CoverLetterPayload {
   language?: 'de' | 'en'
   font?: string | null
   accentColor?: string | null
+  /** Left out = unchanged on an edit (an older client must not switch the marks on again), on for a new letter. */
+  includeFoldMarks?: boolean
 }
 
 export interface CoverLetterRenderOptions {
   font?: string
   accentColor?: string
   language?: 'de' | 'en'
+  /** Left out = the saved choice of the letter; a value overrides it for this render only (the editor shows the unsaved state). */
   includeFoldMarks?: boolean
 }
 
@@ -416,6 +555,18 @@ export type ApplicationStatus =
   | 'rejected'
   | 'withdrawn'
 
+/**
+ * What of the master profile an application leaves out of its CV. Stations and educations: `short` (without the description) or
+ * `hidden`; certificates: `hidden`; `hiddenSections` holds "summary", "skills", "languages", "interests" and "custom:<guid>".
+ * An id that is not listed is shown in full, so an empty selection (or none at all) is the complete profile.
+ */
+export interface CvSelection {
+  experiences: Record<string, 'short' | 'hidden'>
+  educations: Record<string, 'short' | 'hidden'>
+  certificates: Record<string, 'hidden'>
+  hiddenSections: string[]
+}
+
 export interface ApplicationEvent {
   id: string
   applicationId: string
@@ -437,6 +588,8 @@ export interface ApplicationListItem {
   isFollowUpDue: boolean
   coverLetterTitle?: string | null
   hasArchivedPdf: boolean
+  /** The name the downloaded dossier gets (company and job title), as the server builds it. */
+  dossierFileName?: string | null
   updatedAt: string
 }
 
@@ -465,11 +618,17 @@ export interface Application {
   cvPhotoShape: 'round' | 'rounded' | 'rect'
   includeCoverSheet: boolean
   attachmentIds: string[]
+  /** What the CV of this application leaves out; null or missing = the complete master profile. */
+  cvSelection?: CvSelection | null
   hasArchivedPdf: boolean
+  /** The name the downloaded dossier gets (company and job title), as the server builds it. */
+  dossierFileName?: string | null
   notes?: string | null
   createdAt: string
   updatedAt: string
   events: ApplicationEvent[]
+  /** Only on the answer of an action that tried to freeze the dossier and could not ("archive.failed", "archive.attachments_unavailable"). */
+  archiveWarning?: 'archive.failed' | 'archive.attachments_unavailable' | null
 }
 
 export interface Attachment {
@@ -484,6 +643,12 @@ export interface Attachment {
   updatedAt: string
 }
 
+/**
+ * The body of an edit (PUT) replaces the editable fields as a whole: send everything the form shows. Optional text fields left out are
+ * cleared; so are `followUpAt` (the 14-day rule applies again) and `coverLetterId`. Left out = unchanged: `appliedAt` (a sent application
+ * keeps its date; it can be corrected, not removed), `attachmentIds`, and the CV options (`cv*`, `includeCoverSheet`).
+ * `cvDesign` is classic, modern or plain; `cvLanguage` de or en; `cvPhotoShape` round, rounded or rect; dates between 2000 and 2100.
+ */
 export interface ApplicationPayload {
   jobTitle: string
   company: string
@@ -506,7 +671,37 @@ export interface ApplicationPayload {
   cvPhotoShape?: 'round' | 'rounded' | 'rect'
   includeCoverSheet?: boolean
   attachmentIds?: string[]
+  /**
+   * What the CV leaves out. The form always sends it: `{}` is "complete" and also clears an earlier selection on a change (a missing or
+   * null value means "unchanged" there). Entries that are shown in full are left out, `full` is not a value.
+   */
+  cvSelection?: Partial<CvSelection>
   notes?: string | null
+}
+
+export type ContentStage = 'entry' | 'some' | 'long'
+
+/** The suggestion of the server for what an application of this person should contain (`GET /api/applications/content-suggestion`). */
+export interface ContentSuggestion {
+  yearsOfExperience: number
+  stage: ContentStage
+  /** The answers of the guide page that shaped this suggestion, and its plan. Their shape is the server's business: not used here. */
+  situation?: unknown
+  plan?: unknown
+  /** Every `reason` is a code of the server; an unknown one is shown as a general text. */
+  experiences: { id: string; suggestion: CvLevel; reason: string; effective?: CvLevel; override?: CvLevel | null }[]
+  educations: { id: string; suggestion: CvLevel; reason: string; effective?: CvLevel; override?: CvLevel | null }[]
+  certificates: { id: string; suggestion: 'full' | 'hidden'; reason: string; effective?: 'full' | 'hidden'; override?: 'full' | 'hidden' | null }[]
+  attachments: { id: string; suggestion: 'include' | 'omit'; reason: string }[]
+  checklist: { key: string; state: 'ok' | 'missing' | 'optional' | 'not_needed' }[]
+}
+
+/** Which version of the dossier a preview shows: the filed snapshot ("archived") or a fresh render of the current state ("current"). */
+export type DossierSource = 'archived' | 'current'
+
+export interface DossierPreview {
+  blob: Blob
+  source: DossierSource
 }
 
 export interface ApplicationStatusUpdatePayload {
@@ -536,7 +731,7 @@ export interface ApplicationStats {
 
 // ==================== AI ASSISTANT TYPES ====================
 
-export type AiProvider = 'copy_paste' | 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'custom'
+export type AiProvider = 'copy_paste' | 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'lmstudio' | 'custom'
 
 export type AiTask =
   | 'generate_cover_letter'
@@ -551,6 +746,30 @@ export interface AiConfig {
   baseUrl: string | null
   hasApiKey: boolean
   pseudonymize: boolean
+  /** The administrator set up an AI service for the whole server: direct generation works without an own key. */
+  hasServerFallback?: boolean
+  serverFallbackProvider?: string | null
+}
+
+/** The AI service of the whole server (administrators only); the key itself never comes back. */
+export interface AdminAiConfig {
+  enabled: boolean
+  provider: AiProvider | null
+  model: string | null
+  baseUrl: string | null
+  hasApiKey: boolean
+}
+
+export interface UpdateAdminAiConfigPayload {
+  enabled: boolean
+  provider: AiProvider
+  model: string
+  baseUrl: string | null
+  /** Empty/absent = keep the stored key. */
+  apiKey?: string | null
+  /** Step-up: the administrator's current password (and 2FA code). */
+  password?: string
+  code?: string
 }
 
 export interface UpdateAiConfigPayload {
@@ -564,6 +783,8 @@ export interface UpdateAiConfigPayload {
 export interface TestAiConnectionResult {
   success: boolean
   message: string | null
+  /** Stable error code of a failed test, translated by the UI. */
+  code?: string | null
 }
 
 export interface AiPromptPayload {
@@ -639,6 +860,23 @@ export interface TranslatedItem {
 export interface AiTranslateResult {
   translatedText: string
   items?: TranslatedItem[]
+}
+
+/** Where the user stands in working life, as answered in the guide (Ratgeber). */
+export type GuideSituation = 'school' | 'training_or_studies' | 'working' | 'returning'
+export type GuidePlanKind = 'same_field' | 'new_field' | 'first_job'
+export type GuideExplain = 'gap' | 'parental_leave' | 'illness' | 'unemployment' | 'dropped_out' | 'frequent_changes'
+export type GuideRegion = 'de' | 'uk' | 'us'
+
+/** The answers of the guide's wizard, saved per account (`/api/profile/guide-answers`). */
+export interface GuideAnswers {
+  situation: GuideSituation
+  /** Whole years in working life; null when the question does not apply (school, training, studies). */
+  yearsOfExperience: number | null
+  plan: GuidePlanKind
+  /** Empty = nothing to explain. */
+  explain: GuideExplain[]
+  region: GuideRegion
 }
 
 

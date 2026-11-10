@@ -6,8 +6,9 @@ test.describe('signing in and out (own browser, the saved session stays untouche
 
   test('sign in, see the version, sign out, and the app is closed again', async ({ page }) => {
     await signInComplete(page)
-    // The running version is shown in the readable form, e.g. "v2026.11.12 (13.557-dev)".
-    await expect(page.getByTestId('version').first()).toHaveText(/^v\d+\.\d+\.\d+/)
+    // The running version is shown in the readable form: five segments, the channel symbol in parentheses behind them for everything but a
+    // release, e.g. "v2026.11.12.13.557 (</>)" in the development environment (see scripts/version-display.sh).
+    await expect(page.getByTestId('version').first()).toHaveText(/^v\d{4}\.\d+\.\d+(\.\d+\.\d+)?( \(\S+\))?$/)
     await signOut(page)
     await page.goto('/settings')
     await expect(page).toHaveURL(/\/login$/)
@@ -44,5 +45,7 @@ test('the theme switch applies at once and survives a reload', async ({ page }) 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await page.getByRole('radio', { name: 'System' }).click()
+  await expect(page.getByRole('radio', { name: 'System' })).toHaveCount(0)
+  // Back to the default, so the owner's account is left as it was
+  await page.getByRole('radio', { name: 'Hell' }).click()
 })

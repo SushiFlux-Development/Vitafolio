@@ -1,6 +1,7 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
+using System.Text;
 using System.Text.RegularExpressions;
 using Cv.Server.Data;
 
@@ -9,17 +10,37 @@ namespace Cv.Server.Ai;
 public static class AiPseudonymizer
 {
     public const string TokenName = "[BEWERBER_NAME]";
+    public const string TokenFirstName = "[BEWERBER_VORNAME]";
+    public const string TokenLastName = "[BEWERBER_NACHNAME]";
     public const string TokenEmail = "[BEWERBER_EMAIL]";
     public const string TokenPhone = "[BEWERBER_TELEFON]";
     public const string TokenAddress = "[BEWERBER_ANSCHRIFT]";
+    public const string TokenStreet = "[BEWERBER_STRASSE]";
+    public const string TokenCityLine = "[BEWERBER_WOHNORT]";
+    public const string TokenCity = "[BEWERBER_ORT]";
     public const string TokenBirthDate = "[BEWERBER_GEBURTSDATUM]";
     public const string TokenBirthPlace = "[BEWERBER_GEBURTSORT]";
 
+    // Letters, digits or the underscore next to a match mean it is only part of a word ("Max" in "Maximilian") or of one of our own tokens
+    private const string WordStart = @"(?<![\p{L}\p{N}_])";
+    private const string WordEnd = @"(?![\p{L}\p{N}_])";
+
+    /// <summary>Shorter values ("Li", an initial) would match ordinary text far too often to be worth replacing on their own.</summary>
+    private const int MinPartLength = 2;
+
+    /// <summary>A phone number shorter than this is not a phone number; matching it would hit ordinary numbers in the text.</summary>
+    private const int MinPhoneDigits = 6;
+
     public sealed record ReplacementMap(
         string? Name,
+        string? FirstName,
+        string? LastName,
         string? Email,
         string? Phone,
         string? Address,
+        string? Street,
+        string? CityLine,
+        string? City,
         string? BirthDate,
         string? BirthPlace
     );
@@ -28,25 +49,27 @@ public static class AiPseudonymizer
     {
         if (profile is null)
         {
-            return new ReplacementMap(null, null, null, null, null, null);
+            return new ReplacementMap(null, null, null, null, null, null, null, null, null, null, null);
         }
 
-        var fullName = $"{profile.FirstName} {profile.LastName}".Trim();
-        if (string.IsNullOrWhiteSpace(fullName)) fullName = null;
-
-        var addressParts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(profile.Street)) addressParts.Add(profile.Street);
-        var cityLine = $"{profile.PostalCode} {profile.City}".Trim();
-        if (!string.IsNullOrWhiteSpace(cityLine)) addressParts.Add(cityLine);
-        var address = addressParts.Count > 0 ? string.Join(", ", addressParts) : null;
+        var street = Value(profile.Street);
+        var city = Value(profile.City);
+        var cityLine = Value($"{profile.PostalCode} {profile.City}");
+        var addressParts = new[] { street, cityLine }.Where(p => p is not null);
+        var address = string.Join(", ", addressParts);
 
         return new ReplacementMap(
-            Name: fullName,
-            Email: string.IsNullOrWhiteSpace(profile.Email) ? null : profile.Email.Trim(),
-            Phone: string.IsNullOrWhiteSpace(profile.Phone) ? null : profile.Phone.Trim(),
-            Address: address,
-            BirthDate: profile.DateOfBirth,
-            BirthPlace: string.IsNullOrWhiteSpace(profile.PlaceOfBirth) ? null : profile.PlaceOfBirth.Trim()
+            Name: Value($"{profile.FirstName} {profile.LastName}"),
+            FirstName: Value(profile.FirstName),
+            LastName: Value(profile.LastName),
+            Email: Value(profile.Email),
+            Phone: Value(profile.Phone),
+            Address: address.Length == 0 ? null : address,
+            Street: street,
+            CityLine: cityLine,
+            City: city,
+            BirthDate: Value(profile.DateOfBirth),
+            BirthPlace: Value(profile.PlaceOfBirth)
         );
     }
 
@@ -56,35 +79,18 @@ public static class AiPseudonymizer
 
         var result = text;
 
-        if (!string.IsNullOrEmpty(map.Email))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.Email), TokenEmail, RegexOptions.IgnoreCase);
-        }
-
-        if (!string.IsNullOrEmpty(map.Phone))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.Phone), TokenPhone, RegexOptions.IgnoreCase);
-        }
-
-        if (!string.IsNullOrEmpty(map.Address))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.Address), TokenAddress, RegexOptions.IgnoreCase);
-        }
-
-        if (!string.IsNullOrEmpty(map.Name))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.Name), TokenName, RegexOptions.IgnoreCase);
-        }
-
-        if (!string.IsNullOrEmpty(map.BirthDate))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.BirthDate), TokenBirthDate, RegexOptions.IgnoreCase);
-        }
-
-        if (!string.IsNullOrEmpty(map.BirthPlace))
-        {
-            result = Regex.Replace(result, Regex.Escape(map.BirthPlace), TokenBirthPlace, RegexOptions.IgnoreCase);
-        }
+        // Longest and most specific first: the mail address contains the name, the address the street and the city
+        result = Replace(result, map.Email, TokenEmail, TextPattern);
+        result = ReplacePhone(result, map.Phone);
+        result = Replace(result, map.Address, TokenAddress, TextPattern);
+        result = Replace(result, map.Street, TokenStreet, TextPattern);
+        result = Replace(result, map.CityLine, TokenCityLine, TextPattern);
+        result = Replace(result, map.City, TokenCity, TextPattern);
+        result = Replace(result, map.Name, TokenName, TextPattern);
+        result = Replace(result, map.LastName, TokenLastName, TextPattern);
+        result = Replace(result, map.FirstName, TokenFirstName, TextPattern);
+        result = Replace(result, map.BirthDate, TokenBirthDate, TextPattern);
+        result = Replace(result, map.BirthPlace, TokenBirthPlace, TextPattern);
 
         return result;
     }
@@ -95,47 +101,89 @@ public static class AiPseudonymizer
 
         var result = text;
 
-        if (!string.IsNullOrEmpty(map.Name))
-        {
-            result = result.Replace(TokenName, map.Name, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[CANDIDATE_NAME]", map.Name, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[NAME]", map.Name, StringComparison.OrdinalIgnoreCase);
-        }
+        result = Restore(result, map.Name, TokenName, "[CANDIDATE_NAME]", "[NAME]");
+        result = Restore(result, map.FirstName, TokenFirstName, "[VORNAME]", "[FIRST_NAME]");
+        result = Restore(result, map.LastName, TokenLastName, "[NACHNAME]", "[LAST_NAME]");
+        result = Restore(result, map.Email, TokenEmail, "[CANDIDATE_EMAIL]", "[EMAIL]");
+        result = Restore(result, map.Phone, TokenPhone, "[CANDIDATE_PHONE]", "[TELEFON]", "[PHONE]");
+        result = Restore(result, map.Address, TokenAddress, "[CANDIDATE_ADDRESS]", "[ANSCHRIFT]");
+        result = Restore(result, map.Street, TokenStreet, "[STRASSE]", "[STREET]");
+        result = Restore(result, map.CityLine, TokenCityLine, "[WOHNORT]");
+        result = Restore(result, map.City, TokenCity, "[ORT]", "[CITY]");
+        result = Restore(result, map.BirthDate, TokenBirthDate, "[GEBURTSDATUM]");
+        result = Restore(result, map.BirthPlace, TokenBirthPlace, "[GEBURTSORT]");
 
-        if (!string.IsNullOrEmpty(map.Email))
-        {
-            result = result.Replace(TokenEmail, map.Email, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[CANDIDATE_EMAIL]", map.Email, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[EMAIL]", map.Email, StringComparison.OrdinalIgnoreCase);
-        }
+        return result;
+    }
 
-        if (!string.IsNullOrEmpty(map.Phone))
-        {
-            result = result.Replace(TokenPhone, map.Phone, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[CANDIDATE_PHONE]", map.Phone, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[TELEFON]", map.Phone, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[PHONE]", map.Phone, StringComparison.OrdinalIgnoreCase);
-        }
+    private static string? Value(string? raw) => string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
 
-        if (!string.IsNullOrEmpty(map.Address))
-        {
-            result = result.Replace(TokenAddress, map.Address, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[CANDIDATE_ADDRESS]", map.Address, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[ANSCHRIFT]", map.Address, StringComparison.OrdinalIgnoreCase);
-        }
+    private static string Replace(string text, string? value, string token, Func<string, string> pattern) =>
+        string.IsNullOrEmpty(value) || value.Length < MinPartLength
+            ? text
+            : Regex.Replace(text, pattern(value), token.Replace("$", "$$", StringComparison.Ordinal), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        if (!string.IsNullOrEmpty(map.BirthDate))
-        {
-            result = result.Replace(TokenBirthDate, map.BirthDate, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[GEBURTSDATUM]", map.BirthDate, StringComparison.OrdinalIgnoreCase);
-        }
+    /// <summary>Any run of spaces in the value matches any whitespace in the text (a name split over a line break, a double space).</summary>
+    private static string TextPattern(string value) =>
+        WordStart + string.Join(@"\s+", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Select(Regex.Escape)) + WordEnd;
 
-        if (!string.IsNullOrEmpty(map.BirthPlace))
+    private static string ReplacePhone(string text, string? phone)
+    {
+        if (string.IsNullOrEmpty(phone)) return text;
+        foreach (var variant in PhoneVariants(phone))
         {
-            result = result.Replace(TokenBirthPlace, map.BirthPlace, StringComparison.OrdinalIgnoreCase)
-                           .Replace("[GEBURTSORT]", map.BirthPlace, StringComparison.OrdinalIgnoreCase);
+            text = Regex.Replace(text, PhonePattern(variant), TokenPhone, RegexOptions.CultureInvariant);
         }
+        return text;
+    }
 
+    /// <summary>
+    /// The digits as stored plus the usual ways to write the same number: "+49 170 1234567", "0049 170 1234567" and "0170 1234567" are one
+    /// number. How long the country code is cannot be known from the number alone, so 1 to 3 digits are all tried; the long digit run makes
+    /// an accidental match practically impossible. Longest first.
+    /// </summary>
+    internal static IReadOnlyList<string> PhoneVariants(string phone)
+    {
+        var digits = new string(phone.Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length < MinPhoneDigits) return [];
+
+        var variants = new List<string> { digits };
+        var international = phone.TrimStart().StartsWith('+') ? digits
+            : digits.StartsWith("00", StringComparison.Ordinal) ? digits[2..]
+            : null;
+        if (international is not null)
+        {
+            variants.Add("00" + international);
+            for (var codeLength = 1; codeLength <= 3 && international.Length - codeLength >= MinPhoneDigits; codeLength++)
+            {
+                variants.Add("0" + international[codeLength..]);
+                variants.Add(international[..codeLength] + "0" + international[codeLength..]); // "+49 (0) 170 ..."
+                variants.Add(international[codeLength..]);
+            }
+        }
+        return variants.Distinct().OrderByDescending(v => v.Length).ToList();
+    }
+
+    /// <summary>Digits with any common separators in between, optionally a leading plus, never inside a longer digit run.</summary>
+    private static string PhonePattern(string digits)
+    {
+        var pattern = new StringBuilder(@"(?<![\d])\+?");
+        for (var i = 0; i < digits.Length; i++)
+        {
+            if (i > 0) pattern.Append(@"[\s\-/.()]*");
+            pattern.Append(digits[i]);
+        }
+        return pattern.Append(@"(?![\d])").ToString();
+    }
+
+    private static string Restore(string text, string? value, string token, params string[] aliases)
+    {
+        if (string.IsNullOrEmpty(value)) return text;
+        var result = text.Replace(token, value, StringComparison.OrdinalIgnoreCase);
+        foreach (var alias in aliases)
+        {
+            result = result.Replace(alias, value, StringComparison.OrdinalIgnoreCase);
+        }
         return result;
     }
 }

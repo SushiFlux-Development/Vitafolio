@@ -2,10 +2,30 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { inflateRawSync } from 'node:zlib'
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 
 // Helpers for the checks that go beyond a journey: complete messages, contrast of what is really rendered, edited backup files.
+
+/** The database of a backup: the file itself for an old database-only backup, else the entry app.db of the archive. */
+export function databaseOfBackup(backup: Buffer): Buffer {
+  if (backup.subarray(0, 4).toString('latin1') !== 'PK\u0003\u0004') return backup
+  const end = backup.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+  let offset = backup.readUInt32LE(end + 16)
+  for (let index = backup.readUInt16LE(end + 10); index > 0; index--) {
+    const nameLength = backup.readUInt16LE(offset + 28)
+    const name = backup.toString('utf8', offset + 46, offset + 46 + nameLength)
+    if (name === 'app.db') {
+      const local = backup.readUInt32LE(offset + 42)
+      const start = local + 30 + backup.readUInt16LE(local + 26) + backup.readUInt16LE(local + 28)
+      const data = backup.subarray(start, start + backup.readUInt32LE(offset + 20))
+      return backup.readUInt16LE(offset + 10) === 8 ? inflateRawSync(data) : Buffer.from(data)
+    }
+    offset += 46 + nameLength + backup.readUInt16LE(offset + 30) + backup.readUInt16LE(offset + 32)
+  }
+  throw new Error('The backup archive has no app.db.')
+}
 
 /**
  * A genuine backup with one SQL statement added (an extra table, an extra trigger): what somebody who edits a backup by hand
@@ -15,7 +35,7 @@ export function editBackup(genuine: Buffer, statement: string): Buffer {
   const folder = mkdtempSync(join(tmpdir(), 'cv-e2e-edited-'))
   try {
     const path = join(folder, 'edited.db')
-    writeFileSync(path, genuine)
+    writeFileSync(path, databaseOfBackup(genuine))
     const database = new DatabaseSync(path)
     // Plain journal mode, so everything lives in the one file that is read back
     database.exec('PRAGMA journal_mode = DELETE')
@@ -204,7 +224,8 @@ export async function scanTextContrast(page: Page, scope?: Locator): Promise<{ m
 
 /**
  * Waits until the fractional opacities on the page stop changing (entrance fades are over): measuring earlier would see
- * half-transparent text. Elements that stay translucent on purpose do not hold it up.
+ * half-transparent text. Elements that stay translucent on purpose do not hold it up. An empty page is not calm, it is not there yet
+ * (the app first asks the server what to show): two empty looks in a row must not count as "nothing is moving".
  */
 export async function waitForCalmPage(page: Page) {
   let previous = ''
@@ -217,7 +238,8 @@ export async function waitForCalmPage(page: Page) {
           .map((entry) => entry.index + ':' + entry.opacity.toFixed(2))
           .join(','),
       )
-      const calm = current === previous
+      const hasContent = await page.evaluate(() => (document.body.innerText ?? '').trim().length > 0)
+      const calm = hasContent && current === previous
       previous = current
       return calm
     })

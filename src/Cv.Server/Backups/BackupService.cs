@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Cv.Server.Configuration;
 using Cv.Server.Data;
+using Cv.Server.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -24,13 +25,20 @@ public static class BackupKinds
     public const string Scheduled = "scheduled";
     public const string Manual = "manual";
     public const string PreRestore = "pre-restore";
+
+    /// <summary>The copy made right before the Windows program updates itself: the way back should the new version not work.</summary>
+    public const string PreUpdate = "pre-update";
+
     public const string Uploaded = "uploaded";
 
-    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Start, Shutdown, Scheduled, Manual, PreRestore, Uploaded };
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Start, Shutdown, Scheduled, Manual, PreRestore, PreUpdate, Uploaded };
+
+    /// <summary>Safety copies made for one purpose: outside the rotation, they neither count towards the kept number nor are they pruned by it.</summary>
+    public static bool IsSafetyCopy(string kind) => kind is PreRestore or PreUpdate;
 }
 
 /// <summary>One backup file as the admin API lists it. <see cref="Id"/> = "&lt;tier&gt;-&lt;stamp&gt;-&lt;kind&gt;", the only handle the API accepts.</summary>
-public sealed record BackupEntry(string Id, string File, DateTime CreatedAt, long SizeBytes, string Kind, string Tier)
+public sealed record BackupEntry(string Id, string File, DateTime CreatedAt, long SizeBytes, string Kind, string Tier, string Format)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public string FullPath { get; init; } = "";
@@ -49,23 +57,47 @@ public enum BackupCheck
 
     /// <summary>The schema differs from what the migrations create (e.g. smuggled triggers or views, a missing append-only trigger).</summary>
     SchemaMismatch,
+
+    /// <summary>A backup archive that breaks the format rules: unsafe names, links, unexpected entries, a manifest that does not match.</summary>
+    InvalidArchive,
+
+    /// <summary>More entries or more unpacked data than the limits allow.</summary>
+    TooLarge,
+
+    /// <summary>A valid backup, but the disk has no room to unpack it.</summary>
+    NoSpace,
 }
 
 /// <summary>
-/// Backups of the SQLite file, the same for every host:
+/// Backups of the database and the user files as one archive (see <see cref="BackupArchive"/>), the same for every host:
 /// <list type="bullet">
-/// <item><b>How:</b> SQLite's online backup API (a consistent copy while the server keeps writing) - never a copy of the live file.</item>
-/// <item><b>Only when something changed:</b> a hash of the content (schema plus every row of every table in a fixed order) is compared
-/// with the last kept backup; otherwise an empty database after a data loss would push the last good backups out of the rotation.</item>
-/// <item><b>Verified:</b> <c>PRAGMA integrity_check</c> on the copy must answer "ok", else the copy is discarded.</item>
+/// <item><b>How:</b> SQLite's online backup API (a consistent copy while the server keeps writing) - never a copy of the live file. The files
+/// are read after the snapshot; deletions wait until the archive is complete, so everything the snapshot references is in it.</item>
+/// <item><b>Only when something changed:</b> a hash of the database content (schema plus every row of every table in a fixed order) plus path,
+/// size and SHA-256 of every file is compared with the last kept backup; otherwise an empty state after a data loss would push the last good
+/// backups out of the rotation.</item>
+/// <item><b>Verified:</b> <c>PRAGMA integrity_check</c> on the copy, then the finished archive is read back completely; a failure discards it.</item>
 /// <item><b>Kept:</b> <c>recent/</c> the newest N, <c>daily/</c> the first backup of each day for D days (both from the backup settings);
-/// <c>uploaded/</c> is never pruned. Only files named <c>app-&lt;yyyyMMdd-HHmmss&gt;-&lt;kind&gt;.db</c> are ever deleted.</item>
+/// <c>uploaded/</c> is never pruned. Only files named <c>app-&lt;yyyyMMdd-HHmmss&gt;-&lt;kind&gt;.zip</c> (or <c>.db</c>: database-only backups of
+/// earlier versions) are ever deleted.</item>
 /// </list>
 /// </summary>
-public sealed partial class BackupService(ServerSettings settings, BackupSettingsStore backupSettings, ILogger<BackupService> logger, TimeProvider time)
+public sealed partial class BackupService(
+    ServerSettings settings,
+    BackupSettingsStore backupSettings,
+    DataFiles files,
+    AppVersion version,
+    ILogger<BackupService> logger,
+    TimeProvider time)
 {
     public const string Prefix = "app";
-    public const string Extension = ".db";
+    public const string ArchiveExtension = ".zip";
+
+    /// <summary>Backups of earlier versions: only the SQLite file. They stay listed and restorable.</summary>
+    public const string DatabaseExtension = ".db";
+
+    public const string FormatArchive = "archive";
+    public const string FormatDatabase = "database";
 
     public const string TierRecent = "recent";
     public const string TierDaily = "daily";
@@ -80,7 +112,7 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
     /// <summary>Columns that change with every sign-in or save without changing the content (time stamps, the last used TOTP step).</summary>
     private static readonly HashSet<string> VolatileColumns = new(StringComparer.Ordinal)
     {
-        "app_settings.UpdatedAt", "users.LastLoginAt", "users.TotpLastUsedStep",
+        "app_settings.UpdatedAt", "users.LastLoginAt", "users.TotpLastUsedStep", "users.WhatsNewSeenVersion",
     };
 
     /// <summary>Activity entries about backups, sign-ins and sessions are written by the backups themselves and by every login: no content change.</summary>
@@ -88,7 +120,7 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
 
     private static readonly byte[] SqliteHeader = "SQLite format 3\0"u8.ToArray();
 
-    [GeneratedRegex(@"^app-(\d{8}-\d{6})-(start|shutdown|scheduled|manual|pre-restore|uploaded)\.db$")]
+    [GeneratedRegex(@"^app-(\d{8}-\d{6})-(start|shutdown|scheduled|manual|pre-restore|pre-update|uploaded)\.(?:zip|db)$")]
     private static partial Regex NamePattern();
 
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -119,7 +151,10 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
 
     internal async Task<BackupResult> RunLockedAsync(string kind, bool force, CancellationToken ct)
     {
-        string? temp = null;
+        string? tempDatabase = null;
+        string? tempArchive = null;
+        // Before the snapshot: from now on no file the snapshot may reference goes away until the archive is complete
+        using var hold = files.HoldDeletes();
         try
         {
             if (!File.Exists(settings.DatabaseFile))
@@ -130,44 +165,106 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
             var options = await backupSettings.GetAsync(ct);
             Directory.CreateDirectory(Dir(TierRecent));
             Directory.CreateDirectory(Dir(TierDaily));
+            RemoveLeftovers();
 
-            temp = Path.Combine(Dir(TierRecent), $".tmp-{Guid.NewGuid():N}{Extension}");
-            Snapshot(settings.DatabaseFile, temp);
-            if (Verify(temp) is { } problem)
+            tempDatabase = Path.Combine(Dir(TierRecent), $".tmp-{Guid.NewGuid():N}{DatabaseExtension}");
+            Snapshot(settings.DatabaseFile, tempDatabase);
+            if (Verify(tempDatabase) is { } problem)
             {
                 logger.LogError("Sicherung ({Kind}): die Kopie ist nicht in Ordnung ({Problem}) - verworfen.", kind, problem);
                 return new BackupResult(BackupOutcome.Failed, null, "The backup copy failed its integrity check: " + problem);
             }
 
-            var hash = ContentHash(temp);
+            var sources = files.ListForBackup(ct);
+            var limits = settings.BackupLimits;
+            var totalBytes = new FileInfo(tempDatabase).Length + sources.Sum(f => f.Size);
+            if (sources.Count > limits.MaxFiles || totalBytes > limits.MaxBytes)
+            {
+                // Better a loud failure than a backup that could never be restored
+                logger.LogError("Sicherung ({Kind}): {Count} Dateien mit {Bytes} Bytes überschreiten die eingestellten Grenzen (Backups:MaxFiles, Backups:MaxSizeMegabytes).", kind, sources.Count, totalBytes);
+                return new BackupResult(BackupOutcome.Failed, null, "The data exceeds the configured backup limits.");
+            }
+
+            var hash = StateHash(ContentHash(tempDatabase), sources);
             if (!force && File.Exists(HashFile) && (await File.ReadAllTextAsync(HashFile, ct)).Trim() == hash)
             {
                 logger.LogInformation("Sicherung ({Kind}): keine Änderung seit der letzten Sicherung - übersprungen.", kind);
                 return new BackupResult(BackupOutcome.Unchanged, null, null);
             }
 
-            var final = FreeName(Dir(TierRecent), kind, out var now);
-            File.Move(temp, final);
-            temp = null;
+            tempArchive = Path.Combine(Dir(TierRecent), $".tmp-{Guid.NewGuid():N}{ArchiveExtension}");
+            BackupArchive.Write(tempArchive, tempDatabase,
+                sources.Select(f => new ArchiveSource(f.RelativePath, f.FullPath)),
+                version.Current.Version, LastMigration(tempDatabase), time.GetUtcNow().UtcDateTime, ct);
+
+            var check = BackupArchive.Verify(tempArchive, limits, databaseTarget: null, ct);
+            if (check.Check != BackupCheck.Ok)
+            {
+                logger.LogError("Sicherung ({Kind}): das Archiv ist nicht in Ordnung ({Problem}) - verworfen.", kind, check.Detail);
+                return new BackupResult(BackupOutcome.Failed, null, "The backup archive failed its check: " + check.Detail);
+            }
+
+            var final = FreeName(Dir(TierRecent), kind, ArchiveExtension, out var now);
+            File.Move(tempArchive, final);
+            tempArchive = null;
             await File.WriteAllTextAsync(HashFile, hash, ct);
-            if (options.KeepDailyDays > 0 && !Directory.GetFiles(Dir(TierDaily), DayPattern(now)).Any(f => Parse(f) is not null))
+            if (options.KeepDailyDays > 0 && !BackupKinds.IsSafetyCopy(kind) && !Directory.GetFiles(Dir(TierDaily), DayPattern(now)).Any(f => Parse(f) is not null))
             {
                 File.Copy(final, Path.Combine(Dir(TierDaily), Path.GetFileName(final)));
             }
-            Prune(options, now);
+            Prune(options, now, final);
             var entry = Describe(final, TierRecent)!;
-            logger.LogInformation("Sicherung ({Kind}) angelegt: {File} ({Bytes} Bytes).", kind, entry.File, entry.SizeBytes);
+            logger.LogInformation("Sicherung ({Kind}) angelegt: {File} ({Bytes} Bytes, {Count} Dateien).", kind, entry.File, entry.SizeBytes, sources.Count);
             return new BackupResult(BackupOutcome.Created, entry, null);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException or InvalidDataException)
         {
             logger.LogError("Sicherung ({Kind}) fehlgeschlagen: {Message}", kind, ex.Message);
             return new BackupResult(BackupOutcome.Failed, null, ex.Message);
         }
         finally
         {
-            if (temp is not null) TryDelete(temp);
+            if (tempArchive is not null) TryDelete(tempArchive);
+            if (tempDatabase is not null)
+            {
+                TryDelete(tempDatabase);
+                DeleteSideFiles(tempDatabase);
+            }
         }
+    }
+
+    /// <summary>
+    /// Work files of a run that was cut off (a shutdown backup that ran out of time, a crash). Backups hold the lock, so nothing in the recent folder is in use;
+    /// an upload may be arriving right now, hence the age check there.
+    /// </summary>
+    private void RemoveLeftovers()
+    {
+        foreach (var file in Directory.GetFiles(Dir(TierRecent), ".tmp-*")) TryDelete(file);
+        var incoming = Path.Combine(Root, "incoming");
+        if (!Directory.Exists(incoming)) return;
+        var limit = time.GetUtcNow().UtcDateTime.AddDays(-1);
+        foreach (var file in Directory.GetFiles(incoming).Where(f => File.GetLastWriteTimeUtc(f) < limit)) TryDelete(file);
+    }
+
+    /// <summary>
+    /// "Did anything change": the database content hash (independent of the page layout) plus every file's path, size and content. A renamed or
+    /// replaced file counts as a change, a database page moved by a vacuum does not.
+    /// </summary>
+    internal static string StateHash(string databaseHash, IEnumerable<DataFile> sources)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Append(hash, databaseHash + "\n");
+        foreach (var file in sources) Append(hash, $"{file.RelativePath}|{file.Size}|{file.Sha256}\n");
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
+    }
+
+    private static string? LastMigration(string databaseFile)
+    {
+        using var connection = new SqliteConnection(SqliteDatabase.ConnectionString(databaseFile, pooling: false, SqliteOpenMode.ReadOnly));
+        connection.Open();
+        return TableExists(connection, "__EFMigrationsHistory")
+            ? SqliteDatabase.Scalar(connection, "SELECT \"MigrationId\" FROM \"__EFMigrationsHistory\" ORDER BY \"MigrationId\" DESC LIMIT 1") as string
+            : null;
     }
 
     /// <summary>All backups, newest first.</summary>
@@ -178,7 +275,7 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
         {
             var dir = Dir(tier);
             if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.GetFiles(dir, Prefix + "-*" + Extension))
+            foreach (var file in Directory.GetFiles(dir, Prefix + "-*"))
             {
                 if (Describe(file, tier) is { } entry) result.Add(entry);
             }
@@ -215,17 +312,48 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
     public BackupEntry? Latest() => List().FirstOrDefault(e => e.Tier == TierRecent);
 
     /// <summary>
-    /// Checks an uploaded file and stores it as kind <c>uploaded</c>. The source file is moved away (it must be a temporary file).
+    /// Checks an uploaded file and stores it as kind <c>uploaded</c>. The source file is moved away (it must be a temporary file). Both forms are
+    /// accepted: an archive, and a database file from an earlier version.
     /// </summary>
     public async Task<(BackupCheck Check, BackupEntry? Entry, string? Detail)> StoreUploadAsync(string tempFile, IReadOnlyCollection<string> knownMigrations, CancellationToken ct)
     {
-        var (check, detail) = await CheckAsync(tempFile, knownMigrations, ct);
+        var (check, detail) = await CheckFileAsync(tempFile, knownMigrations, ct);
         if (check != BackupCheck.Ok) return (check, null, detail);
+        var extension = BackupArchive.LooksLikeArchive(tempFile) ? ArchiveExtension : DatabaseExtension;
         Directory.CreateDirectory(Dir(TierUploaded));
-        var final = FreeName(Dir(TierUploaded), BackupKinds.Uploaded, out _);
+        var final = FreeName(Dir(TierUploaded), BackupKinds.Uploaded, extension, out _);
         File.Move(tempFile, final);
         logger.LogInformation("Hochgeladene Sicherung gespeichert: {File}.", Path.GetFileName(final));
         return (BackupCheck.Ok, Describe(final, TierUploaded), null);
+    }
+
+    /// <summary>The complete check of a backup file in either form. Only the database is unpacked, next to the file; the rest is read and hashed.</summary>
+    public async Task<(BackupCheck Check, string? Detail)> CheckFileAsync(string file, IReadOnlyCollection<string> knownMigrations, CancellationToken ct)
+    {
+        if (new FileInfo(file).Length > settings.BackupLimits.MaxBytes) return (BackupCheck.TooLarge, "file size");
+        if (!BackupArchive.LooksLikeArchive(file)) return await CheckAsync(file, knownMigrations, ct);
+
+        var database = file + ".check";
+        try
+        {
+            var archive = BackupArchive.Verify(file, settings.BackupLimits, database, ct);
+            if (archive.Check != BackupCheck.Ok) return (archive.Check, archive.Detail);
+            var (check, detail) = await CheckAsync(database, knownMigrations, ct);
+            if (check != BackupCheck.Ok) return (check, detail);
+            return SchemaVersionMismatch(archive.Manifest!, database) is { } mismatch ? (BackupCheck.InvalidArchive, mismatch) : (BackupCheck.Ok, null);
+        }
+        finally
+        {
+            TryDelete(database);
+            DeleteSideFiles(database);
+        }
+    }
+
+    /// <summary>The manifest's schema version has to be the one the database really has; null when it is.</summary>
+    internal static string? SchemaVersionMismatch(BackupManifest manifest, string databaseFile)
+    {
+        var actual = LastMigration(databaseFile);
+        return string.Equals(actual, manifest.SchemaVersion, StringComparison.Ordinal) ? null : $"manifest says schema {manifest.SchemaVersion}, database has {actual}";
     }
 
     /// <summary>Is this file a usable backup of this app (SQLite, intact, our tables, no migrations this build does not know)?</summary>
@@ -478,7 +606,8 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
         var info = new FileInfo(path);
         if (!info.Exists) return null;
         var created = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(parsed.Stamp, DateTimeKind.Unspecified), LocalZoneSafe(parsed.Stamp));
-        return new BackupEntry($"{tier}-{Stamp(parsed.Stamp)}-{parsed.Kind}", info.Name, created, info.Length, parsed.Kind, tier)
+        var format = path.EndsWith(DatabaseExtension, StringComparison.Ordinal) ? FormatDatabase : FormatArchive;
+        return new BackupEntry($"{tier}-{Stamp(parsed.Stamp)}-{parsed.Kind}", info.Name, created, info.Length, parsed.Kind, tier, format)
         {
             FullPath = info.FullName,
         };
@@ -487,28 +616,72 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
     // A stamp in the skipped hour of a DST change cannot be converted: fall back to UTC for that one
     private TimeZoneInfo LocalZoneSafe(DateTime stamp) => time.LocalTimeZone.IsInvalidTime(stamp) ? TimeZoneInfo.Utc : time.LocalTimeZone;
 
-    /// <summary>"app-20261104-020000-manual.db" - always Gregorian digits, whatever the culture of the machine (file names are identifiers).</summary>
-    internal static string FileName(DateTime at, string kind) => $"{Prefix}-{Stamp(at)}-{kind}{Extension}";
+    /// <summary>"app-20261104-020000-manual.zip" - always Gregorian digits, whatever the culture of the machine (file names are identifiers).</summary>
+    internal static string FileName(DateTime at, string kind, string extension = ArchiveExtension) => $"{Prefix}-{Stamp(at)}-{kind}{extension}";
 
     internal static string Stamp(DateTime at) => at.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
 
-    internal static string DayPattern(DateTime at) => $"{Prefix}-{at.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-*{Extension}";
+    internal static string DayPattern(DateTime at) => $"{Prefix}-{at.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-*";
 
-    private string FreeName(string dir, string kind, out DateTime now)
+    private string FreeName(string dir, string kind, string extension, out DateTime now)
     {
         now = time.GetLocalNow().DateTime;
-        // Two backups within one second must never overwrite each other
-        while (Directory.GetFiles(dir, $"{Prefix}-{Stamp(now)}-*{Extension}").Length > 0) now = now.AddSeconds(1);
-        return Path.Combine(dir, FileName(now, kind));
+        // A new backup must sort after every existing one (retention keeps "the newest N" by stamp), also after several quick runs
+        // that were pushed into the future by the rule below, or after a clock that went backwards
+        foreach (var existing in Directory.GetFiles(dir, Prefix + "-*"))
+        {
+            if (Parse(existing) is { } parsed && parsed.Stamp >= now) now = parsed.Stamp.AddSeconds(1);
+        }
+        // Two backups within one second must never overwrite each other, whatever their form (the id is built from the stamp)
+        while (Directory.GetFiles(dir, $"{Prefix}-{Stamp(now)}-*").Length > 0) now = now.AddSeconds(1);
+        return Path.Combine(dir, FileName(now, kind, extension));
     }
 
     private static string Quote(string name) => "\"" + name.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
 
-    private void Prune(BackupSettings options, DateTime now)
+    /// <summary>
+    /// Called by a restore after it succeeded (holding the lock): earlier safety backups are no longer needed, the one of this restore stays
+    /// as the way back. Until then every safety backup is kept, whatever the retention says.
+    /// </summary>
+    internal void RemoveOlderSafetyBackups(BackupEntry keep)
     {
-        foreach (var old in Retention.ToDelete(Directory.GetFiles(Dir(TierRecent), Prefix + "-*" + Extension),
-                     Directory.GetFiles(Dir(TierDaily), Prefix + "-*" + Extension), now, options.KeepRecent, options.KeepDailyDays))
+        foreach (var file in Directory.GetFiles(Dir(TierRecent), Prefix + "-*"))
         {
+            if (Parse(file) is { Kind: BackupKinds.PreRestore } && !string.Equals(Path.GetFullPath(file), keep.FullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                TryDelete(file);
+            }
+        }
+    }
+
+    /// <summary>After a new copy before an update, only the newest stays: one way back, not one more file per update.</summary>
+    internal async Task KeepOnlyPreUpdateAsync(BackupEntry keep)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            foreach (var file in Directory.GetFiles(Dir(TierRecent), Prefix + "-*"))
+            {
+                if (Parse(file) is { Kind: BackupKinds.PreUpdate } && !string.Equals(Path.GetFullPath(file), keep.FullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryDelete(file);
+                }
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    // Runs only after the new backup is complete, verified and moved into place - a failed run never reaches it
+    private void Prune(BackupSettings options, DateTime now, string justCreated)
+    {
+        foreach (var old in Retention.ToDelete(Directory.GetFiles(Dir(TierRecent), Prefix + "-*"),
+                     Directory.GetFiles(Dir(TierDaily), Prefix + "-*"), now, options.KeepRecent, options.KeepDailyDays))
+        {
+            // Belt and braces: the backup that was just verified and moved into place is never the one that goes
+            if (string.Equals(Path.GetFullPath(old), Path.GetFullPath(justCreated), StringComparison.OrdinalIgnoreCase)) continue;
             TryDelete(old);
         }
     }
@@ -540,14 +713,17 @@ public sealed partial class BackupService(ServerSettings settings, BackupSetting
     {
         public static IEnumerable<string> ToDelete(IEnumerable<string> recent, IEnumerable<string> daily, DateTime now, int keepRecent, int keepDailyDays)
         {
-            var sortedRecent = recent.Select(path => (path, parsed: Parse(path))).Where(e => e.parsed is not null)
+            // The safety backup before a restore is outside the rotation: it neither counts towards the kept number nor is it
+            // pruned here (see BackupService.RemoveOlderSafetyBackups for when it goes)
+            var sortedRecent = recent.Select(path => (path, parsed: Parse(path)))
+                .Where(e => e.parsed is not null && !BackupKinds.IsSafetyCopy(e.parsed.Value.Kind))
                 .OrderByDescending(e => e.parsed!.Value.Stamp).ToList();
             foreach (var (path, _) in sortedRecent.Skip(keepRecent)) yield return path;
 
             var cutoff = now.Date.AddDays(-keepDailyDays);
             foreach (var path in daily)
             {
-                if (Parse(path) is { } parsed && (keepDailyDays == 0 || parsed.Stamp.Date < cutoff)) yield return path;
+                if (Parse(path) is { } parsed && !BackupKinds.IsSafetyCopy(parsed.Kind) && (keepDailyDays == 0 || parsed.Stamp.Date < cutoff)) yield return path;
             }
         }
     }

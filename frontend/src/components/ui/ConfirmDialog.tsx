@@ -19,17 +19,32 @@ export interface ConfirmOptions {
 
 type ConfirmFunction = (options: ConfirmOptions) => Promise<boolean>
 
-const ConfirmContext = createContext<ConfirmFunction | null>(null)
+/**
+ * How a question was answered: the action button, the cancel button, or closed without an answer (Esc, click on the backdrop,
+ * replaced by another question).
+ */
+export type ConfirmChoice = 'confirm' | 'cancel' | 'dismiss'
+type ChooseFunction = (options: ConfirmOptions) => Promise<ConfirmChoice>
 
+const ConfirmContext = createContext<ChooseFunction | null>(null)
+
+/** Asks; true only for the action button (cancel button, Esc and backdrop all mean false). */
 export function useConfirm(): ConfirmFunction {
-  const confirm = useContext(ConfirmContext)
-  if (!confirm) throw new Error('useConfirm needs <ConfirmProvider> above it')
-  return confirm
+  const choose = useContext(ConfirmContext)
+  if (!choose) throw new Error('useConfirm needs <ConfirmProvider> above it')
+  return useCallback((options) => choose(options).then((choice) => choice === 'confirm'), [choose])
+}
+
+/** Like useConfirm, but tells the cancel button from closing without an answer, for questions where "not now" is a third answer. */
+export function useConfirmChoice(): ChooseFunction {
+  const choose = useContext(ConfirmContext)
+  if (!choose) throw new Error('useConfirmChoice needs <ConfirmProvider> above it')
+  return choose
 }
 
 interface Pending {
   options: ConfirmOptions
-  resolve: (ok: boolean) => void
+  resolve: (choice: ConfirmChoice) => void
   /** Closed but still held, so the text does not vanish while the dialog fades out. */
   open: boolean
 }
@@ -41,11 +56,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const cancelRef = useRef<HTMLButtonElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
 
-  const confirm = useCallback<ConfirmFunction>(
+  const choose = useCallback<ChooseFunction>(
     (options) =>
-      new Promise<boolean>((resolve) => {
-        // A second request replaces an open one; the first counts as cancelled.
-        pendingRef.current?.resolve(false)
+      new Promise<ConfirmChoice>((resolve) => {
+        // A second request replaces an open one; the first counts as closed without an answer.
+        pendingRef.current?.resolve('dismiss')
         const next = { options, resolve, open: true }
         pendingRef.current = next
         setPending(next)
@@ -53,8 +68,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const close = (ok: boolean) => {
-    pendingRef.current?.resolve(ok)
+  const close = (choice: ConfirmChoice) => {
+    pendingRef.current?.resolve(choice)
     pendingRef.current = null
     setPending((current) => (current ? { ...current, open: false } : null))
   }
@@ -63,11 +78,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const danger = options?.tone === 'danger'
 
   return (
-    <ConfirmContext.Provider value={confirm}>
+    <ConfirmContext.Provider value={choose}>
       {children}
       <Dialog
         open={pending?.open === true}
-        onClose={() => close(false)}
+        onClose={() => close('dismiss')}
         title={options?.title ?? ''}
         icon={danger ? 'trash' : 'alertTriangle'}
         tone={danger ? 'danger' : 'default'}
@@ -78,10 +93,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         initialFocus={danger ? cancelRef : confirmRef}
         footer={
           <>
-            <Button ref={cancelRef} onClick={() => close(false)}>
+            <Button ref={cancelRef} onClick={() => close('cancel')}>
               {options?.cancelLabel ?? t('common.cancel')}
             </Button>
-            <Button ref={confirmRef} variant={danger ? 'danger' : 'confirm'} onClick={() => close(true)}>
+            <Button ref={confirmRef} variant={danger ? 'danger' : 'confirm'} onClick={() => close('confirm')}>
               {options?.confirmLabel ?? ''}
             </Button>
           </>

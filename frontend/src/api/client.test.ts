@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError, onSessionLost, onTwoFactorSetupRequired, readRetryAfter } from './client'
+import { api, apiResponse, ApiError, isAbort, onSessionLost, onTwoFactorSetupRequired, readRetryAfter } from './client'
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
@@ -203,5 +203,28 @@ describe('two-factor setup demanded during a running session', () => {
     await api('GET', '/api/admin/users').catch(() => undefined)
     unsubscribe()
     expect(demanded).not.toHaveBeenCalled()
+  })
+})
+
+describe('cancelled requests', () => {
+  it('hand the signal to fetch', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(json(200, {})))
+    const controller = new AbortController()
+    await apiResponse('POST', '/api/profile/preview/pdf', {}, controller.signal)
+    expect(call(0).init.signal).toBe(controller.signal)
+  })
+
+  it('stay an AbortError and are never reported as a lost connection', async () => {
+    fetchMock.mockRejectedValue(new DOMException('The operation was aborted.', 'AbortError'))
+    const error = await apiResponse('GET', '/api/x', undefined, new AbortController().signal).catch((failure: unknown) => failure)
+    expect(isAbort(error)).toBe(true)
+    expect(error).not.toBeInstanceOf(ApiError)
+  })
+
+  it('still turn a real network failure into an ApiError with status 0', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const error = await apiResponse('GET', '/api/x').catch((failure: unknown) => failure)
+    expect(isAbort(error)).toBe(false)
+    expect((error as ApiError).status).toBe(0)
   })
 })

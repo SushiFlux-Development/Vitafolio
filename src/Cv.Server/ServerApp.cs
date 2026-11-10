@@ -22,6 +22,13 @@ namespace Cv.Server;
 /// </summary>
 public static class ServerApp
 {
+    /// <summary>
+    /// How long the host waits for the hosted services to stop - the backup before shutdown runs in that time. Set explicitly instead of relying on the
+    /// default: the container's stop timeout (40 seconds in docker-compose.yml and in the Unraid template) must stay above this value, or Docker kills the
+    /// app in the middle of the backup.
+    /// </summary>
+    public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
+
     public static WebApplication Build(ServerAppOptions options, string[]? args = null)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -36,7 +43,7 @@ public static class ServerApp
         builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
 
         var settings = ServerSettings.Resolve(options, builder.Configuration, builder.Environment);
-        AddServices(builder, settings);
+        AddServices(builder, settings, options);
 
         var app = builder.Build();
         LogStart(app, settings);
@@ -45,12 +52,13 @@ public static class ServerApp
         return app;
     }
 
-    private static void AddServices(WebApplicationBuilder builder, ServerSettings settings)
+    private static void AddServices(WebApplicationBuilder builder, ServerSettings settings, ServerAppOptions options)
     {
         var services = builder.Services;
         builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Migrations", LogLevel.Warning);
 
+        services.Configure<HostOptions>(host => host.ShutdownTimeout = ShutdownTimeout);
         services.AddSingleton(settings);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<AppVersion>();
@@ -64,6 +72,7 @@ public static class ServerApp
         services.AddSingleton<Documents.TypstRenderer>();
         services.AddSingleton<Documents.DocxRenderer>();
         services.AddSingleton<AccountAttemptLimiter>();
+        services.AddSingleton<Storage.DataFiles>();
         services.AddSingleton<BackupService>();
         services.AddSingleton<BackupSettingsStore>();
         services.AddSingleton<RestoreService>();
@@ -74,10 +83,24 @@ public static class ServerApp
         services.AddScoped<SessionService>();
         services.AddScoped<TwoFactorService>();
         services.AddScoped<StepUp>();
+        services.AddSingleton<Ai.AiOutboundGuard>();
+        services.AddSingleton<Ai.AiUsageLimiter>();
+        services.AddSingleton<Documents.RenderGate>();
         services.AddHttpClient<Ai.IAiClient, Ai.AiClient>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(60);
+        }).ConfigurePrimaryHttpMessageHandler(sp => sp.GetRequiredService<Ai.AiOutboundGuard>().CreateHandler());
+        services.AddHttpClient("updates", c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(20);
         });
+        services.AddSingleton<Updates.IUpdateChannelSetting>(sp => sp.GetRequiredService<SettingsService>());
+        services.AddSingleton<Updates.UpdateService>();
+        services.AddSingleton<Updates.UpdateInstallCoordinator>();
+        services.AddSingleton<Updates.WhatsNewReader>();
+        if (options.UpdateInstaller is { } installer) services.AddSingleton(installer);
+        else services.AddSingleton<Updates.IUpdateInstaller, Updates.NoUpdateInstaller>();
+        services.AddHostedService<Updates.UpdateCheckWorker>();
         services.AddScoped<Ai.AiService>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<SessionCleanupWorker>();
@@ -183,11 +206,20 @@ public static class ServerApp
 
     private static void PrepareData(WebApplication app, ServerSettings settings)
     {
+        // Before the database is opened: a restore that was cut off (crash, power failure) is rolled back first
+        RestoreWorkspace.RecoverIfNeeded(settings.DataDirectory, app.Logger);
         SqliteDatabase.Prepare(settings.DatabaseFile, app.Services, app.Logger);
         if (settings.IsDesktop) DesktopOwner.Ensure(app.Services, app.Logger);
         else AnnounceSetupTokenIfNeeded(app.Services);
         // Created now, so a broken key folder stops the start instead of the first sign-in
         app.Services.GetRequiredService<SigningKeyStore>();
+        // Documents are rendered with the shipped fonts only; a package without them would silently print in a fallback font
+        var missingFonts = Documents.DocumentFonts.Missing();
+        if (missingFonts.Count > 0)
+        {
+            app.Logger.LogError("Die mitgelieferten Schriften fehlen in {Folder} ({Families}); Dokumente würden in einer Ersatzschrift gedruckt. Das Paket ist unvollständig.",
+                Documents.DocumentFonts.Directory, string.Join(", ", missingFonts));
+        }
         // Once the last hosted service has stopped (the final backup is made): close pooled connections so SQLite folds the WAL back
         app.Lifetime.ApplicationStopped.Register(Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools);
     }

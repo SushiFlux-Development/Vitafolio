@@ -27,6 +27,14 @@ internal static class Texts
 
     public static string Stopping => T("Wird beendet – die Datensicherung läuft …", "Closing – the backup is running …");
 
+    public static string Updating => T("Das Update wird vorbereitet – das Programm startet gleich neu …", "Preparing the update – the program will restart shortly …");
+
+    public static string UpdateApplyFailedTitle => T("Das Update konnte nicht gestartet werden", "The update could not be started");
+
+    public static string UpdateApplyFailed => T(
+        $"Das Installationsprogramm für das Update ließ sich nicht starten. Ihre installierte Version und Ihre Daten sind unverändert; starten Sie {Product} wieder und versuchen Sie es erneut.",
+        $"The update installer could not be started. Your installed version and your data are unchanged; start {Product} again and try once more.");
+
     // ---- dialogs ----
     public static string Close => T("Schließen", "Close");
 
@@ -97,6 +105,16 @@ internal static class Texts
     public static string UnexpectedError => T(
         "Im Programm ist ein unerwarteter Fehler aufgetreten.",
         "An unexpected error occurred in the program.");
+
+    public static string DataMoveFailedTitle => T("Ihre Daten konnten nicht verschoben werden", "Your data could not be moved");
+
+    public static string DataMoveFailed(string from, string to) => T(
+        $"{Product} hat einen neuen Firmennamen und legt seine Daten deshalb in einem neuen Ordner ab. Das Verschieben von „{from}“ nach „{to}“ hat gerade nicht geklappt. " +
+        $"Nichts ist verloren: {Product} arbeitet in dieser Sitzung mit den Daten im alten Ordner. Beim nächsten Start wird das Verschieben erneut versucht. " +
+        "Wenn der Fehler bleibt, schließen Sie andere Programme, die den Ordner geöffnet haben könnten (zum Beispiel den Explorer oder ein Sicherungsprogramm).",
+        $"{Product} has a new company name and therefore keeps its data in a new folder. Moving \"{from}\" to \"{to}\" did not work just now. " +
+        $"Nothing is lost: {Product} works with the data in the old folder in this session. The move is tried again at the next start. " +
+        "If the error stays, close other programs that may have the folder open (for example Explorer or a backup program).");
 
     public static string LogFile(string path) => T($"Protokolldatei: {path}", $"Log file: {path}");
 }

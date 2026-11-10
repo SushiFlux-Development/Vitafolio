@@ -19,6 +19,9 @@ services:
         APP_VERSION_DETAIL: ${APP_VERSION_DETAIL:-}
         APP_CHANNEL: ${APP_CHANNEL:-release}
         APP_TITLE: ${APP_TITLE:-App}
+        # No value: taken from the environment when set (start.ps1 reads them from branding.json), otherwise the Dockerfile default applies
+        APP_COMPANY:
+        REPOSITORY:
         VCS_REF: ${VCS_REF:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
     image: vitafolio:local

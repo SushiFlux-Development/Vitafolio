@@ -27,7 +27,7 @@ export function SetupPage() {
       <AccountForm
         submitLabel={t('setup.submit')}
         askSetupToken={bootstrap.setupTokenRequired === true}
-        answerCodes={['setup.already_done', 'setup.token_invalid', 'rate_limited']}
+        answerCodes={['setup.already_done', 'setup.token_invalid']}
         onSubmit={async (account) => {
           const { user } = await authApi.setup(account)
           queryClient.setQueryData<Session>(ME_KEY, { user, twoFactorSetupRequired: user.mustSetupTwoFactor })

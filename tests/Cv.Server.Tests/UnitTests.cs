@@ -9,29 +9,34 @@ namespace Cv.Server.Tests;
 public sealed class VersionFormatTests
 {
     [Theory]
-    [InlineData("v2026.11.12", "v2026.11.12.13.557", "release", "v2026.11.12 (13.557)")]
-    [InlineData("v2026.11.12", "v2026.11.12.13.557", "beta", "v2026.11.12 (13.557 β)")]
-    [InlineData("v2026.11.12", "v2026.11.12.13.557", "dev", "v2026.11.12 (13.557-dev)")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "release", "v2026.11.12.13.557")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "beta", "v2026.11.12.13.557 (β)")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "nightly", "v2026.11.12.13.557 (α)")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "alpha", "v2026.11.12.13.557 (α)")]
+    [InlineData("v2026.11.10", "v2026.11.10.13.557", "dev", "v2026.11.10.13.557 (</>)")]
     [InlineData("v2026.11.12", null, "release", "v2026.11.12")]
-    [InlineData("v2026.11.12", null, "beta", "v2026.11.12")]
-    [InlineData("v2026.11.12", null, "dev", "v2026.11.12-dev")]
-    [InlineData("v2026.11.12", "", "dev", "v2026.11.12-dev")]
+    [InlineData("v2026.11.12", null, "beta", "v2026.11.12 (β)")]
+    [InlineData("v2026.11.12", null, "nightly", "v2026.11.12 (α)")]
+    [InlineData("v2026.11.12", null, "dev", "v2026.11.12 (</>)")]
+    [InlineData("v2026.11.12", "", "dev", "v2026.11.12 (</>)")]
     // Build ids that do not belong to the short version or are malformed count as "no counters" (never empty parentheses)
     [InlineData("v2026.11.12", "v2026.11.11.13.557", "release", "v2026.11.12")]
     [InlineData("v2026.11.12", "v2026.11.12.13", "release", "v2026.11.12")]
     [InlineData("v2026.11.12", "v2026.11.12.13.557.1", "release", "v2026.11.12")]
     [InlineData("v2026.11.12", "v2026.11.12.13..557", "release", "v2026.11.12")]
     [InlineData("v2026.11.12", "v2026.11.12.a.557", "release", "v2026.11.12")]
-    [InlineData("v2026.11.12", "v2026.11.12.13.557", "unknown", "v2026.11.12 (13.557)")]
-    [InlineData("v0.0.0", null, "dev", "v0.0.0-dev")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "unknown", "v2026.11.12.13.557")]
+    [InlineData("v0.0.0", null, "dev", "v0.0.0 (</>)")]
     public void Display_matches_the_script(string shortVersion, string? buildId, string channel, string expected) =>
         Assert.Equal(expected, VersionFormat.Display(shortVersion, buildId, channel));
 
     [Theory]
     [InlineData("v2026.11.12", "v2026.11.12.13.557", "release", "v2026.11.12")]
     [InlineData("v2026.11.12", "v2026.11.12.13.557", "beta", "v2026.11.12.13.557-beta")]
-    [InlineData("v2026.11.12", "v2026.11.12.13.557", "dev", "v2026.11.12.13.557-dev")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "nightly", "v2026.11.12.13.557-nightly")]
+    [InlineData("v2026.11.12", "v2026.11.12.13.557", "dev", "v2026.11.12.13.557")]
     [InlineData("v2026.11.12", null, "beta", "v2026.11.12-beta")]
+    [InlineData("v2026.11.12", null, "nightly", "v2026.11.12-nightly")]
     public void Tag_matches_the_script(string shortVersion, string? buildId, string channel, string expected) =>
         Assert.Equal(expected, VersionFormat.Tag(shortVersion, buildId, channel));
 

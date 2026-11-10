@@ -24,26 +24,32 @@ RUN dotnet publish src/Cv.Server/Cv.Server.csproj -c Release -o /app --no-restor
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 # Version of the built commit: APP_VERSION = line 1 of version.txt (v2026.11.12), APP_VERSION_DETAIL = line 2 (the build id with the two
-# counters). The app turns them into the readable form together with the channel ("dev", "beta", "release"). IMAGE_TAG is the technical
-# tag (no spaces or parentheses) and becomes the OCI version label; empty = APP_VERSION.
+# counters). The app turns them into the readable form together with the channel ("release", "beta", "nightly"; "dev" for a local build).
+# IMAGE_TAG is the technical tag (no spaces or parentheses) and becomes the OCI version label; empty = APP_VERSION.
+# APP_TITLE, APP_COMPANY and REPOSITORY come from branding.json (name, company, repository): the release workflow and start.ps1 pass them. The
+# defaults only serve a plain "docker build"; a test keeps them equal to branding.json.
 ARG APP_VERSION=v0.0.0
 ARG APP_VERSION_DETAIL=
 ARG APP_CHANNEL=release
 ARG APP_TITLE=App
+ARG APP_COMPANY="SushiFlux Development"
+ARG REPOSITORY=SushiFlux-Development/Vitafolio
 ARG IMAGE_TAG=
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 LABEL org.opencontainers.image.title="${APP_TITLE}" \
       org.opencontainers.image.version="${IMAGE_TAG:-$APP_VERSION}" \
-      org.opencontainers.image.source="https://github.com/SushifluxDevelop/Vitafolio" \
+      org.opencontainers.image.source="https://github.com/${REPOSITORY}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
-      org.opencontainers.image.vendor="SushiFlux Develop"
+      org.opencontainers.image.vendor="${APP_COMPANY}"
 WORKDIR /app
 COPY --from=backend /app ./
 COPY --from=frontend /src/frontend/dist ./wwwroot
-COPY LICENSE ./LICENSE
+COPY LICENSE THIRD-PARTY-NOTICES.md CHANGELOG.md ./
+# The manuals as PDF (the sources are not part of the build context). The folder always exists, without PDFs it is simply empty
+COPY docs/handbuch ./docs/handbuch
 # The entrypoint starts as root only to hand /data to PUID/PGID, then drops to that user (setpriv, util-linux) - the app never runs as
 # root. Carriage returns are stripped in case of a CRLF checkout. tzdata makes the TZ variable work (backup schedule, activity log);
 # the last check fails the build if a future base image no longer ships setpriv or the time zone database.

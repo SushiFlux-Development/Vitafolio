@@ -33,6 +33,15 @@ public sealed class ServerAppOptions
 
     public string? VersionFilePath { get; init; }
 
-    /// <summary><c>dev</c> | <c>beta</c> | <c>release</c>.</summary>
+    /// <summary><c>dev</c> | <c>beta</c> | <c>nightly</c> | <c>release</c>.</summary>
     public string? Channel { get; init; }
+
+    /// <summary>The bundled customer changelog (<c>CHANGELOG.md</c>); default: next to the program, in a source checkout the repository's.</summary>
+    public string? ChangelogPath { get; init; }
+
+    /// <summary>The folder holding <c>de/</c> and <c>en/</c> with the manual PDFs; default: <c>docs/handbuch</c> next to the program or in the repository.</summary>
+    public string? HandbookDirectory { get; init; }
+
+    /// <summary>Only the Windows program installs updates itself; everything else leaves this empty and the install endpoint answers accordingly.</summary>
+    public Updates.IUpdateInstaller? UpdateInstaller { get; init; }
 }

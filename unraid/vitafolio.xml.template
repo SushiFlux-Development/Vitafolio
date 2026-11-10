@@ -1,58 +1,75 @@
 <?xml version="1.0"?>
+<!--
+  Unraid Community Applications template. Do not edit unraid/vitafolio.xml by hand: it is rendered from this file by
+  scripts/render-unraid-template.sh (the release workflow uses the same script).
+  Placeholders (a name in capitals with two underscores on each side):
+    VERSION     the image tag the template starts on: latest (releases), beta or nightly (the pre-release builds)
+    IMAGE       the image reference without tag (ghcr.io/owner/name, lower case), from "repository" in branding.json
+    PACKAGE     the package name on GitHub (the part after the last slash, lower case)
+    REPOSITORY  owner/name of the public repository, from "repository" in branding.json
+    BRANCH      the branch the feed files are read from, from "branch" in branding.json
+  Which image tag moves with which build (set by the release workflow):
+    latest  = full releases only        beta = betas and full releases        nightly = nightly builds and full releases
+-->
 <Container version="2">
   <Name>Vitafolio</Name>
-  <Repository>ghcr.io/sushifluxdevelop/vitafolio:__VERSION__</Repository>
-  <Registry>https://github.com/SushifluxDevelop/Vitafolio/pkgs/container/vitafolio</Registry>
-  <DefaultTagDescription>Releases only (recommended) / Nur Releases (empfohlen)</DefaultTagDescription>
+  <Repository>__IMAGE__:__VERSION__</Repository>
+  <Registry>https://github.com/__REPOSITORY__/pkgs/container/__PACKAGE__</Registry>
+  <DefaultTagDescription>Full releases only (recommended). / Nur Voll-Releases (empfohlen).</DefaultTagDescription>
   <Branch>
     <Tag>beta</Tag>
-    <TagDescription>Betas (β) and releases, always the newest of both. / Betas (β) und Releases, immer die neueste von beiden.</TagDescription>
+    <TagDescription>Beta builds (β) and full releases: you test new features early, the newest of both is installed. / Beta-Versionen (β) und Voll-Releases: Sie testen neue Funktionen früh, installiert wird jeweils die neueste von beiden.</TagDescription>
   </Branch>
   <Branch>
     <Tag>nightly</Tag>
-    <TagDescription>Nightly builds (α), betas (β) and releases, always the newest of all three. / Nightly-Builds (α), Betas (β) und Releases, immer die neueste aller drei.</TagDescription>
+    <TagDescription>Nightly builds (α) and full releases: the very latest state, possibly unfinished. Betas are skipped. / Nightly-Builds (α) und Voll-Releases: der allerneueste Stand, möglicherweise unfertig. Betas werden übersprungen.</TagDescription>
   </Branch>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
-  <Support>https://github.com/SushifluxDevelop/Vitafolio/issues</Support>
-  <Project>https://github.com/SushifluxDevelop/Vitafolio</Project>
-  <Overview>Vitafolio – Open-Source-Bewerbungsmappen, Lebensläufe &amp; Anschreiben nach DIN 5008, Bewerbungs-Tracker und datenschutzfreundliche KI-Unterstützung. ASP.NET Core Backend mit integriertem React-Frontend und integrierter Typst-PDF-Engine. SQLite-Datenbank und Datensicherungen liegen eigenständig im gemounteten Datenordner.</Overview>
+  <Support>https://github.com/__REPOSITORY__/issues</Support>
+  <Project>https://github.com/__REPOSITORY__</Project>
+  <ReadMe>https://github.com/__REPOSITORY__#readme</ReadMe>
+  <Overview>English: Vitafolio is a free, open-source app for writing job applications that look good. Build your CV from simple blocks (experience, education, skills, languages, certificates), write cover letters, add an optional cover page and your certificates as attachments, and export the whole application as one PDF, or as a Word file to keep editing. Choose between several designs, colours and fonts. A tracker shows where each application stands and reminds you to follow up. AI help is optional and keeps your personal data out: use your own API key, a model running on your own computer, or copy a ready-made request into the AI subscription you already have. Several people can share one server, each with their own account and their own data. Backups are made automatically and can be downloaded and restored in the app. Deutsch: Vitafolio ist eine kostenlose Open-Source-App für Bewerbungen, die gut aussehen. Bauen Sie Ihren Lebenslauf aus einfachen Bausteinen (Berufserfahrung, Ausbildung, Kenntnisse, Sprachen, Zertifikate), schreiben Sie Anschreiben, fügen Sie auf Wunsch ein Deckblatt und Ihre Zeugnisse als Anlagen hinzu und exportieren Sie die ganze Bewerbung als eine PDF-Datei oder als Word-Datei zum Weiterbearbeiten. Zur Wahl stehen mehrere Designs, Farben und Schriften. Ein Tracker zeigt, wo jede Bewerbung steht, und erinnert ans Nachfassen. KI-Hilfe ist freiwillig und hält Ihre persönlichen Daten heraus: mit eigenem API-Key, mit einem Modell auf Ihrem eigenen Rechner oder indem Sie eine fertige Anfrage in das KI-Abo kopieren, das Sie schon haben. Mehrere Personen können sich einen Server teilen, jede mit eigenem Konto und eigenen Daten. Sicherungen entstehen automatisch und lassen sich in der App herunterladen und wiederherstellen.</Overview>
+  <Requires>English: a folder for the data on a local drive of the server (cache or a pool, not a network share); a browser. The first account is created in the browser with a one-time setup code from the container log. AI help needs an API key, a local model or an AI subscription of your own, and is optional. If you open the app by a server name (for example http://tower:8080) instead of an IP address, enter that name under "Allowed host names". Deutsch: ein Ordner für die Daten auf einem lokalen Laufwerk des Servers (Cache oder Pool, keine Netzfreigabe); ein Browser. Das erste Konto legen Sie im Browser mit einem einmaligen Einrichtungscode aus dem Protokoll des Containers an. KI-Hilfe braucht einen eigenen API-Key, ein lokales Modell oder ein eigenes KI-Abo und ist freiwillig. Wenn Sie die App unter einem Servernamen aufrufen (zum Beispiel http://tower:8080) statt unter einer IP-Adresse, tragen Sie diesen Namen bei „Allowed host names“ ein.</Requires>
   <Category>Productivity: Office: Other:</Category>
   <WebUI>http://[IP]:[PORT:8080]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/SushifluxDevelop/Vitafolio/main/unraid/vitafolio.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/SushifluxDevelop/Vitafolio/main/branding/logo.svg</Icon>
-  <ExtraParams>--restart=unless-stopped --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID --security-opt no-new-privileges:true --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m</ExtraParams>
+  <TemplateURL>https://raw.githubusercontent.com/__REPOSITORY__/__BRANCH__/unraid/vitafolio.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/__REPOSITORY__/__BRANCH__/branding/logo.svg</Icon>
+  <!-- Hardening: no extra privileges, only the five capabilities the entrypoint needs while it hands /data to PUID/PGID (the app itself runs without any),
+       read-only root file system with a small RAM disk for /tmp. The stop timeout of 40 seconds: the app makes a backup when it is stopped and
+       needs up to 30 seconds for that (its own shutdown limit); Docker would kill it after 10 seconds without it. -->
+  <ExtraParams>--restart=unless-stopped --stop-timeout 40 --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID --security-opt no-new-privileges:true --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m</ExtraParams>
   <DateInstalled></DateInstalled>
 
-  <!-- Web-Port -->
+  <!-- Web port -->
   <Config
-    Name="Web UI Port"
+    Name="Web UI port"
     Target="8080"
     Default="8080"
     Mode="tcp"
-    Description="Port über den Vitafolio im Browser erreichbar ist."
+    Description="Port the app is reached on in the browser. / Port, unter dem die App im Browser erreichbar ist."
     Type="Port"
     Display="always"
     Required="true"
     Mask="false">8080</Config>
 
-  <!-- Datenordner -->
+  <!-- Data folder -->
   <Config
-    Name="App-Datenordner"
+    Name="Data folder"
     Target="/data"
-    Default="/mnt/user/appdata/vitafolio"
-    Description="Speicherort für SQLite-Datenbank, Verschlüsselungsschlüssel, Dokument-Snapshots und automatische Sicherungen. Muss persistent erhalten bleiben."
+    Default="/mnt/cache/appdata/vitafolio"
+    Description="Holds the database, the keys, the documents and the automatic backups. Must be kept. Use a path on the cache or a pool (not /mnt/user, not a network share): the database is a single file that needs reliable file locks. / Enthält Datenbank, Schlüssel, Dokumente und die automatischen Sicherungen. Muss erhalten bleiben. Nehmen Sie einen Pfad auf dem Cache oder einem Pool (nicht /mnt/user, keine Netzfreigabe): Die Datenbank ist eine einzelne Datei und braucht verlässliche Dateisperren."
     Type="Path"
     Display="always"
     Required="true"
-    Mode="rw">/mnt/user/appdata/vitafolio</Config>
+    Mode="rw">/mnt/cache/appdata/vitafolio</Config>
 
-  <!-- Berechtigungen -->
+  <!-- Permissions -->
   <Config
     Name="PUID"
     Target="PUID"
     Default="99"
-    Description="Benutzer-ID für Dateirechte (Standard für Unraid: 99)."
+    Description="User ID the app runs as and that owns the data folder (Unraid: 99, nobody). 0 is refused. / Benutzernummer, unter der die App läuft und der der Datenordner gehört (Unraid: 99, nobody). 0 wird abgelehnt."
     Type="Variable"
     Display="advanced"
     Required="false"
@@ -62,31 +79,40 @@
     Name="PGID"
     Target="PGID"
     Default="100"
-    Description="Gruppen-ID für Dateirechte (Standard für Unraid: 100)."
+    Description="Group ID the app runs as (Unraid: 100, users). 0 is refused. / Gruppennummer, unter der die App läuft (Unraid: 100, users). 0 wird abgelehnt."
     Type="Variable"
     Display="advanced"
     Required="false"
     Mask="false">100</Config>
 
   <Config
-    Name="Zeitzone"
+    Name="Time zone"
     Target="TZ"
     Default="Europe/Berlin"
-    Description="Zeitzone für Sicherungszeitpläne und Protokollstempel."
+    Description="Time zone for the backup schedule and the times in the activity log. / Zeitzone für den Sicherungs-Zeitplan und die Zeiten im Aktivitätsprotokoll."
     Type="Variable"
     Display="advanced"
     Required="false"
     Mask="false">Europe/Berlin</Config>
 
-  <!-- Sicherheit / Host-Schutz -->
+  <!-- Reachability and host protection -->
   <Config
-    Name="Erlaubte Hosts (ALLOWED_HOSTS)"
+    Name="Allowed host names"
     Target="ALLOWED_HOSTS"
     Default=""
-    Description="Optional für Zugriff über Domain/Reverse-Proxy (z.B. vitafolio.meinedomain.de). Mehrere Hostnamen kommagetrennt. Lokale IPs und localhost sind immer erlaubt."
+    Description="Names the app may be opened under, separated by commas (for example vitafolio.example.com, *.example.com, or the server name tower). Needed for a reverse proxy and whenever you open the app by a name instead of an IP address; IP addresses and localhost always work. No http:// and no port. / Namen, unter denen die App aufgerufen werden darf, durch Kommas getrennt (zum Beispiel vitafolio.example.com, *.example.com oder der Servername tower). Nötig hinter einem Reverse-Proxy und immer, wenn Sie die App mit einem Namen statt einer IP-Adresse aufrufen; IP-Adressen und localhost gehen immer. Ohne http:// und ohne Port."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"></Config>
+
+  <Config
+    Name="Trusted proxies"
+    Target="TRUSTED_PROXIES"
+    Default=""
+    Description="Only behind a reverse proxy: its IP address or network (for example 172.18.0.0/16), separated by commas. Then the app sees the visitors' real addresses and knows the connection is encrypted. Leave empty without a proxy. / Nur hinter einem Reverse-Proxy: dessen IP-Adresse oder Netz (zum Beispiel 172.18.0.0/16), durch Kommas getrennt. Dann sieht die App die echten Adressen der Besucher und weiß, dass die Verbindung verschlüsselt ist. Ohne Proxy leer lassen."
     Type="Variable"
     Display="advanced"
     Required="false"
     Mask="false"></Config>
 </Container>
-

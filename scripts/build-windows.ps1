@@ -10,20 +10,23 @@
   The product name is read from branding.json - it is never typed here. The version comes from version.txt (written by the pre-commit hook);
   without it (before the first commit) 0.0.1 is used and a warning is printed.
 
-  Switches: -Beta     channel "beta"     (version 2026.11.12-beta.13.557)
-            -Nightly  channel "nightly"  (version 2026.11.12-nightly.13.557)
-            -Dev      channel "dev"      (version 2026.11.12-dev.13.557; the program shows "-dev" and never checks for updates)
+  Switches: -Beta     channel "beta"     (package version 2026.11.12-beta.13.557, release tag v2026.11.12.13.557-beta)
+            -Nightly  channel "nightly"  (package version 2026.11.12-alpha.13.557, release tag v2026.11.12.13.557-nightly)
             -SkipFrontend  do not run "npm run build" first (frontend\dist must exist then)
+  Without a switch the channel is "release" (package version 2026.11.12, release tag v2026.11.12). There is no installer for a development build:
+  that runs from the source folder. "alpha" is the package label of a nightly on purpose: the package version is compared as a SemVer, which sorts
+  pre-release labels alphabetically (alpha < beta < none), and the program's own update rule ranks a nightly below the beta and the release of the
+  same commit in the same way.
+  The program folder carries LICENSE, THIRD-PARTY-NOTICES.md and CHANGELOG.md (checked below), so every installer contains the licence texts.
   Not signed: the exe and the installer carry no code signature, so Windows SmartScreen warns on first start. Signing needs a certificate
   and is a separate step of the release process.
 
   Windows PowerShell 5.1 compatible. Console output is German and ASCII-only.
-  Aufruf:  .\scripts\build-windows.ps1 [-Beta | -Nightly | -Dev] [-SkipFrontend]
+  Aufruf:  .\scripts\build-windows.ps1 [-Beta | -Nightly] [-SkipFrontend]
 #>
 param(
     [switch]$Beta,
     [switch]$Nightly,
-    [switch]$Dev,
     [switch]$SkipFrontend
 )
 
@@ -38,17 +41,15 @@ function Invoke-Native([string]$File, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "$File $($Arguments -join ' ') ist fehlgeschlagen (Exitcode $LASTEXITCODE)." }
 }
 
-$modesCount = 0
-if ($Beta) { $modesCount++ }
-if ($Nightly) { $modesCount++ }
-if ($Dev) { $modesCount++ }
-if ($modesCount -gt 1) { throw 'Nur einer der Schalter -Beta, -Nightly oder -Dev darf gesetzt sein.' }
-$channel = if ($Beta) { 'beta' } elseif ($Nightly) { 'nightly' } elseif ($Dev) { 'dev' } else { 'release' }
+if ($Beta -and $Nightly) { throw 'Nur einer der Schalter -Beta oder -Nightly darf gesetzt sein.' }
+$channel = if ($Beta) { 'beta' } elseif ($Nightly) { 'nightly' } else { 'release' }
 
 # ---- product name (branding.json is the only place) -----------------------------------------------------------------------------
 $branding = Get-Content -LiteralPath (Join-Path $root 'branding.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $product = $branding.name
 if (-not $product) { throw 'branding.json enthaelt keinen Namen.' }
+$company = $branding.company
+if (-not $company) { throw 'branding.json enthaelt keine Firma.' }
 
 # ---- version: version.txt line 1 = vYear.Month.Commit, line 2 = vYear.Month.Commit.Prompts.Lines --------------------------------
 $versionFile = Join-Path $root 'version.txt'
@@ -60,7 +61,10 @@ if (Test-Path -LiteralPath $versionFile) {
         if ($channel -ne 'release') {
             $counters = ''
             if ($lines.Count -gt 1 -and $lines[1] -match ('^v?' + [regex]::Escape($semver) + '\.(\d+)\.(\d+)$')) { $counters = ".$($Matches[1]).$($Matches[2])" }
-            $semver = "$semver-$channel$counters"
+            # SemVer sorts pre-release labels alphabetically: "alpha" makes a nightly older than the beta of the same commit, as the app's update rule says.
+            # (The Velopack channel stays "nightly": only the package version carries the label.)
+            $label = if ($channel -eq 'nightly') { 'alpha' } else { $channel }
+            $semver = "$semver-$label$counters"
         }
     }
     else { Write-Warning "version.txt Zeile 1 hat nicht die Form vJahr.Monat.Commit - es wird $semver verwendet." }
@@ -91,7 +95,11 @@ $exeName = "$product.exe"
 if (-not (Test-Path -LiteralPath (Join-Path $publish $exeName))) { throw "$exeName wurde nicht erzeugt." }
 # Development settings of the server are not part of the program
 Remove-Item -LiteralPath (Join-Path $publish 'appsettings.Development.json') -Force -ErrorAction SilentlyContinue
-# The channel marker the program reads (release / beta / dev)
+# Every installer carries the licence texts and the changelog of this version
+foreach ($legal in @('LICENSE', 'THIRD-PARTY-NOTICES.md', 'CHANGELOG.md', 'version.txt')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $publish $legal))) { throw "$legal fehlt im Programmordner (der Installer muss die Lizenztexte enthalten)." }
+}
+# The channel marker the program reads (release / beta / nightly)
 [IO.File]::WriteAllText((Join-Path $publish 'release-channel.txt'), $channel, (New-Object System.Text.UTF8Encoding($false)))
 
 # ---- 3. installer -----------------------------------------------------------------------------------------------------------------
@@ -101,7 +109,7 @@ try {
     Invoke-Native 'dotnet' @('tool', 'restore')
     New-Item -ItemType Directory -Force -Path $out | Out-Null
     $pack = @('tool', 'run', 'vpk', 'pack',
-        '--packId', $product, '--packTitle', $product, '--packAuthors', 'SushiFlux Develop',
+        '--packId', $product, '--packTitle', $product, '--packAuthors', $company,
         '--packVersion', $semver, '--packDir', $publish, '--mainExe', $exeName,
         '--icon', (Join-Path $root 'src\Cv.Desktop\Assets\app.ico'), '--outputDir', $out, '--runtime', 'win-x64')
     if ($channel -ne 'release') { $pack += @('--channel', $channel) }

@@ -23,6 +23,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     // The narrowest supported window is 1024 px; the layout tests resize where they need to.
     viewport: { width: 1280, height: 800 },
+    // Chromium in its new headless mode: the same browser a user has, including the built-in PDF viewer. The default headless shell has
+    // none, and would turn every PDF frame of the app into a download. Where a test needs the shell on purpose it asks for it itself.
+    channel: 'chromium',
     ...(wsEndpoint ? { connectOptions: { wsEndpoint, exposeNetwork: '<loopback>' } } : {}),
   },
   projects: capture

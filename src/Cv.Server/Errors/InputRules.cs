@@ -79,6 +79,37 @@ public static partial class InputRules
         }
     }
 
+    /// <summary>
+    /// A link the user types (website, profile, posting): length, no control characters and - when it names a scheme at all - only http or
+    /// https. A bare address ("example.org/me", "example.org:8080") stays allowed; "javascript:..." or "file:..." never gets stored.
+    /// </summary>
+    public static void Link(FieldErrors errors, string field, string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        var trimmed = value.Trim();
+        if (trimmed.Length > max) { errors.Add(field, "validation.max_length", new() { ["max"] = max, ["actual"] = trimmed.Length }); return; }
+        if (!IsAllowedLink(trimmed)) errors.Add(field, "validation.url");
+    }
+
+    /// <summary>The check behind <see cref="Link"/>, for importers that report differently.</summary>
+    public static bool IsAllowedLink(string value)
+    {
+        if (value.Any(char.IsControl)) return false;
+        var match = LinkSchemeRegex().Match(value);
+        if (!match.Success) return true;
+        var scheme = match.Groups[1].Value;
+        if (scheme.Equals("http", StringComparison.OrdinalIgnoreCase) || scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
+        {
+            return Uri.TryCreate(value, UriKind.Absolute, out _);
+        }
+        // "example.org:8080/path" reads like a scheme to the regex; a real scheme has no dot and is not followed by a port number
+        var rest = value[match.Length..];
+        return scheme.Contains('.', StringComparison.Ordinal) && rest.Length > 0 && char.IsAsciiDigit(rest[0]);
+    }
+
+    [GeneratedRegex(@"^([A-Za-z][A-Za-z0-9+.\-]*):")]
+    private static partial Regex LinkSchemeRegex();
+
     public static void Range(FieldErrors errors, string field, int value, int min, int max)
     {
         if (value < min || value > max)
@@ -94,6 +125,15 @@ public sealed class FieldErrors
     private readonly Dictionary<string, List<FieldError>> _errors = new(StringComparer.Ordinal);
 
     public bool Any => _errors.Count > 0;
+
+    /// <summary>Takes over the errors of another collection, under other field names (a file import reports the names of the file's own fields).</summary>
+    public void MergeFrom(FieldErrors other, Func<string, string> rename)
+    {
+        foreach (var (field, list) in other._errors)
+        {
+            foreach (var error in list) Add(rename(field), error.Code, error.Params.ToDictionary(p => p.Key, p => p.Value));
+        }
+    }
 
     public void Add(string field, string code, Dictionary<string, object?>? parameters = null)
     {

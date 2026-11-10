@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using System.Net;

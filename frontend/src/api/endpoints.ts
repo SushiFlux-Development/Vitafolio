@@ -1,13 +1,16 @@
 import { api, apiResponse, del, get, patch, post, put } from './client'
-import { downloadPost } from './download'
+import type { RequestOptions } from './client'
+import { downloadPost, fileFromResponse } from './download'
 import type {
   ActivityPage,
   AdminSettings,
   AdminUser,
+  AdminAiConfig,
   AiConfig,
   AiParsePayload,
   AiPromptPayload,
   AiPromptResult,
+  AboutInfo,
   Application,
   ApplicationEvent,
   ApplicationEventPayload,
@@ -21,19 +24,25 @@ import type {
   BackupSettingsInfo,
   Bootstrap,
   Certificate,
+  CvContentSettings,
+  ContentSuggestion,
   CoverLetter,
   CoverLetterListItem,
   CoverLetterPayload,
+  GuideAnswers,
   CoverLetterRenderOptions,
   CoverSheetOptions,
   CustomSection,
   CustomSectionItem,
   CvRenderOptions,
+  DossierPreview,
+  DossierSource,
   Education,
   Experience,
   Interest,
   LanguageCode,
   LanguageSkill,
+  PreviewOptions,
   LoginResult,
   PersonalDataPayload,
   Profile,
@@ -43,16 +52,47 @@ import type {
   TestAiConnectionResult,
   ThemePreference,
   TotpSetup,
+  UpdateAdminAiConfigPayload,
   UpdateAiConfigPayload,
+  UpdateChannel,
+  UpdateStatusDto,
   UserEnvelope,
   VersionInfo,
+  WhatsNew,
 } from './types'
+import type { DateFormatPreference } from '../validation/dates'
 
 /** Thin typed wrappers around the endpoints of the API contract; no logic lives here. */
 
 export const publicApi = {
   bootstrap: () => get<Bootstrap>('/api/bootstrap'),
   version: () => get<VersionInfo>('/api/version'),
+  /** Licence and source code: public, also before signing in. */
+  about: () => get<AboutInfo>('/api/about'),
+}
+
+export const updatesApi = {
+  status: () => get<UpdateStatusDto>('/api/updates/status'),
+  check: () => post<UpdateStatusDto>('/api/admin/updates/check'),
+  setChannel: (channel: UpdateChannel) => put<UpdateStatusDto>('/api/admin/updates/channel', { channel }),
+  /** Starts the one-click update of the Windows program; the run is followed through `install` in the status. */
+  install: () => post<UpdateStatusDto>('/api/admin/updates/install'),
+}
+
+export const whatsNewApi = {
+  /** After a restart: `show` says whether the notes of the running version are due for this person. */
+  pending: (lang: LanguageCode) => get<WhatsNew>(`/api/whats-new?lang=${encodeURIComponent(lang)}`),
+  /** The same notes for reading later; 404 `whats_new.not_available` when there are none. */
+  current: (lang: LanguageCode) => get<WhatsNew>(`/api/whats-new/current?lang=${encodeURIComponent(lang)}`),
+  markSeen: () => post('/api/whats-new/seen'),
+}
+
+export const docsApi = {
+  /** The manual as PDF (signed in); 404 `handbook.not_available` until it is part of the build. Availability per language: `publicApi.about`. */
+  handbookPdf: async (lang: LanguageCode, signal?: AbortSignal): Promise<Blob> => {
+    const res = await apiResponse('GET', `/api/docs/handbook?lang=${encodeURIComponent(lang)}`, undefined, signal)
+    return res.blob()
+  },
 }
 
 export interface NewAccount {
@@ -76,7 +116,7 @@ export const authApi = {
 }
 
 export const accountApi = {
-  savePreferences: (body: { language?: LanguageCode; theme?: ThemePreference }) => put('/api/account/preferences', body),
+  savePreferences: (body: { language?: LanguageCode; theme?: ThemePreference; dateFormat?: DateFormatPreference }) => put('/api/account/preferences', body),
   changePassword: (body: { currentPassword: string; newPassword: string }) => post('/api/account/password', body),
   totpSetup: () => post<TotpSetup>('/api/account/2fa/totp/setup'),
   /** The current password is required except right after a fresh sign-in during the forced setup (the server says so). */
@@ -102,7 +142,7 @@ export const adminApi = {
   setPassword: (id: string, body: { newPassword: string }) => post(`/api/admin/users/${encodeURIComponent(id)}/password`, body),
   deleteUser: (id: string) => del(`/api/admin/users/${encodeURIComponent(id)}`),
   settings: () => get<AdminSettings>('/api/admin/settings'),
-  saveSettings: (body: AdminSettings) => put<AdminSettings>('/api/admin/settings', body),
+  saveSettings: (body: AdminSettings & Reauth) => put<AdminSettings>('/api/admin/settings', body),
   activity: (query: ActivityQuery) => {
     const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) })
     if (query.action) params.set('action', query.action)
@@ -137,13 +177,17 @@ export interface Reauth {
 
 export const profileApi = {
   get: () => get<Profile>('/api/profile'),
-  update: (body: PersonalDataPayload) => put<Profile>('/api/profile', body),
+  update: (body: PersonalDataPayload, options?: RequestOptions) => put<Profile>('/api/profile', body, options),
   uploadPhoto: (file: File) => {
     const form = new FormData()
     form.append('photo', file)
     return post<Profile>('/api/profile/photo', form)
   },
   deletePhoto: () => del('/api/profile/photo'),
+
+  // Answers of the guide (Ratgeber): null until the wizard has been completed once
+  getGuideAnswers: () => get<GuideAnswers | null>('/api/profile/guide-answers'),
+  saveGuideAnswers: (body: GuideAnswers) => put<GuideAnswers>('/api/profile/guide-answers', body),
 
   // Experiences
   addExperience: (body: Omit<Experience, 'id' | 'createdAt' | 'updatedAt'>) => post<Experience>('/api/profile/experiences', body),
@@ -197,50 +241,26 @@ export const profileApi = {
     put(`/api/profile/custom-sections/${encodeURIComponent(sectionId)}/items/reorder`, { ids }),
 
   // PDF Preview & Export
-  getPreviewPdf: async (options: CvRenderOptions): Promise<Blob> => {
-    const res = await apiResponse('POST', '/api/profile/preview/pdf', options)
+  /** Saves what the master profile shows in its own CV; the answer is the normalised settings. */
+  saveCvContentSettings: (body: CvContentSettings) => put<CvContentSettings>('/api/profile/cv-content-settings', body),
+  savePreviewOptions: (body: PreviewOptions, options?: RequestOptions) => put<PreviewOptions>('/api/profile/preview-options', body, options),
+  getPreviewPdf: async (options: CvRenderOptions, signal?: AbortSignal): Promise<Blob> => {
+    const res = await apiResponse('POST', '/api/profile/preview/pdf', options, signal)
     return res.blob()
   },
-  exportPdf: async (options: CvRenderOptions): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('POST', '/api/profile/export/pdf', options)
-    const blob = await res.blob()
-    const disposition = res.headers.get('content-disposition')
-    let filename = options.language === 'en' ? 'Resume.pdf' : 'Lebenslauf.pdf'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    return { blob, filename }
-  },
+  exportPdf: async (options: CvRenderOptions) =>
+    fileFromResponse(await apiResponse('POST', '/api/profile/export/pdf', options), options.language === 'en' ? 'Resume.pdf' : 'Lebenslauf.pdf'),
 
-  exportDocx: async (options: CvRenderOptions): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('POST', '/api/profile/export/docx', options)
-    const blob = await res.blob()
-    const disposition = res.headers.get('content-disposition')
-    let filename = options.language === 'en' ? 'Resume.docx' : 'Lebenslauf.docx'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    return { blob, filename }
-  },
+  exportDocx: async (options: CvRenderOptions) =>
+    fileFromResponse(await apiResponse('POST', '/api/profile/export/docx', options), options.language === 'en' ? 'Resume.docx' : 'Lebenslauf.docx'),
 
-  getPreviewCoverSheetPdf: async (options: CoverSheetOptions): Promise<Blob> => {
-    const res = await apiResponse('POST', '/api/profile/preview/cover-sheet/pdf', options)
+  getPreviewCoverSheetPdf: async (options: CoverSheetOptions, signal?: AbortSignal): Promise<Blob> => {
+    const res = await apiResponse('POST', '/api/profile/preview/cover-sheet/pdf', options, signal)
     return res.blob()
   },
 
-  exportCoverSheetPdf: async (options: CoverSheetOptions): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('POST', '/api/profile/export/cover-sheet/pdf', options)
-    const blob = await res.blob()
-    const disposition = res.headers.get('content-disposition')
-    let filename = options.language === 'en' ? 'CoverSheet.pdf' : 'Deckblatt.pdf'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    return { blob, filename }
-  },
+  exportCoverSheetPdf: async (options: CoverSheetOptions) =>
+    fileFromResponse(await apiResponse('POST', '/api/profile/export/cover-sheet/pdf', options), options.language === 'en' ? 'CoverSheet.pdf' : 'Deckblatt.pdf'),
 
   // JSON Resume Standard (Import & Export - v1.0.0)
   getJsonResume: () => get<Record<string, unknown>>('/api/profile/json-resume'),
@@ -252,7 +272,7 @@ export const coverLettersApi = {
   list: () => get<CoverLetterListItem[]>('/api/cover-letters'),
   get: (id: string) => get<CoverLetter>(`/api/cover-letters/${encodeURIComponent(id)}`),
   create: (body: CoverLetterPayload) => post<CoverLetter>('/api/cover-letters', body),
-  update: (id: string, body: CoverLetterPayload) => put<CoverLetter>(`/api/cover-letters/${encodeURIComponent(id)}`, body),
+  update: (id: string, body: CoverLetterPayload, options?: RequestOptions) => put<CoverLetter>(`/api/cover-letters/${encodeURIComponent(id)}`, body, options),
   delete: (id: string) => del(`/api/cover-letters/${encodeURIComponent(id)}`),
 
   uploadSignature: (id: string, file: File) => {
@@ -262,34 +282,42 @@ export const coverLettersApi = {
   },
   deleteSignature: (id: string) => del<CoverLetter>(`/api/cover-letters/${encodeURIComponent(id)}/signature`),
 
-  getPreviewPdf: async (id: string, options: CoverLetterRenderOptions): Promise<Blob> => {
-    const res = await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/preview/pdf`, options)
+  getPreviewPdf: async (id: string, options: CoverLetterRenderOptions, signal?: AbortSignal): Promise<Blob> => {
+    const res = await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/preview/pdf`, options, signal)
     return res.blob()
   },
 
-  exportPdf: async (id: string, options: CoverLetterRenderOptions): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/export/pdf`, options)
-    const blob = await res.blob()
-    const disposition = res.headers.get('content-disposition')
-    let filename = options.language === 'en' ? 'Cover_Letter.pdf' : 'Anschreiben.pdf'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    return { blob, filename }
-  },
+  exportPdf: async (id: string, options: CoverLetterRenderOptions) =>
+    fileFromResponse(
+      await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/export/pdf`, options),
+      options.language === 'en' ? 'Cover_Letter.pdf' : 'Anschreiben.pdf',
+    ),
 
-  exportDocx: async (id: string, options: CoverLetterRenderOptions): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/export/docx`, options)
-    const blob = await res.blob()
-    const disposition = res.headers.get('content-disposition')
-    let filename = options.language === 'en' ? 'Cover_Letter.docx' : 'Anschreiben.docx'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    return { blob, filename }
-  },
+  exportDocx: async (id: string, options: CoverLetterRenderOptions) =>
+    fileFromResponse(
+      await apiResponse('POST', `/api/cover-letters/${encodeURIComponent(id)}/export/docx`, options),
+      options.language === 'en' ? 'Cover_Letter.docx' : 'Anschreiben.docx',
+    ),
+}
+
+/** The header that tells which version a dossier preview is (see `ApplicationsController.DossierSourceHeader`). */
+export const DOSSIER_SOURCE_HEADER = 'X-Dossier-Source'
+
+/** Reads which version a preview answer is; an answer without the header is a fresh render. */
+export function dossierSourceFrom(headers: Headers): DossierSource {
+  return headers.get(DOSSIER_SOURCE_HEADER)?.trim().toLowerCase() === 'archived' ? 'archived' : 'current'
+}
+
+/** The header that tells how many dossiers of a ZIP could not be built (see `ApplicationsController`, route `dossiers/archive`). */
+export const DOSSIERS_FAILED_HEADER = 'X-Dossiers-Failed'
+
+/** The most applications one ZIP request takes; the server refuses more. */
+export const DOSSIER_ARCHIVE_LIMIT = 100
+
+/** Reads the number of dossiers that were not built; a missing or unreadable header means none. */
+export function dossiersFailedFrom(headers: Headers): number {
+  const count = Number.parseInt(headers.get(DOSSIERS_FAILED_HEADER)?.trim() ?? '', 10)
+  return Number.isFinite(count) && count > 0 ? count : 0
 }
 
 export const applicationsApi = {
@@ -301,6 +329,8 @@ export const applicationsApi = {
     return get<ApplicationListItem[]>(`/api/applications${qs ? `?${qs}` : ''}`)
   },
   stats: () => get<ApplicationStats>('/api/applications/stats'),
+  /** What an application of this person should contain, by their career (a suggestion; the user decides). */
+  contentSuggestion: () => get<ContentSuggestion>('/api/applications/content-suggestion'),
   get: (id: string) => get<Application>(`/api/applications/${encodeURIComponent(id)}`),
   create: (body: ApplicationPayload) => post<Application>('/api/applications', body),
   update: (id: string, body: ApplicationPayload) => put<Application>(`/api/applications/${encodeURIComponent(id)}`, body),
@@ -311,28 +341,42 @@ export const applicationsApi = {
     post<ApplicationEvent>(`/api/applications/${encodeURIComponent(id)}/events`, body),
   deleteEvent: (id: string, eventId: string) =>
     del(`/api/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`),
-  getPreviewPdf: async (id: string): Promise<Blob> => {
-    const res = await apiResponse('GET', `/api/applications/${encodeURIComponent(id)}/dossier/preview`)
+  getPreviewPdf: async (id: string, signal?: AbortSignal): Promise<Blob> => {
+    const res = await apiResponse('GET', `/api/applications/${encodeURIComponent(id)}/dossier/preview`, undefined, signal)
     return res.blob()
   },
-  downloadDossier: async (id: string): Promise<{ blob: Blob; filename: string }> => {
-    const res = await apiResponse('GET', `/api/applications/${encodeURIComponent(id)}/dossier/download`)
-    const disposition = res.headers.get('content-disposition')
-    let filename = 'Bewerbung.pdf'
-    if (disposition) {
-      const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition)
-      if (match?.[1]) filename = decodeURIComponent(match[1])
-    }
-    const blob = await res.blob()
-    return { blob, filename }
+  /**
+   * The dossier preview together with the version it shows. With a filed snapshot the default is that snapshot (what was sent), otherwise
+   * the current state; `version: 'current'` asks for the current state on purpose. A filed snapshot whose file is lost answers 409
+   * `archive.missing` (as the download does) - `version: 'current'` still works then.
+   */
+  getPreview: async (id: string, options: { version?: 'auto' | 'current'; signal?: AbortSignal } = {}): Promise<DossierPreview> => {
+    const query = options.version === 'current' ? '?version=current' : ''
+    const res = await apiResponse('GET', `/api/applications/${encodeURIComponent(id)}/dossier/preview${query}`, undefined, options.signal)
+    return { blob: await res.blob(), source: dossierSourceFrom(res.headers) }
   },
-  archiveSnapshot: (id: string) =>
-    post<Application>(`/api/applications/${encodeURIComponent(id)}/dossier/archive`),
+  downloadDossier: async (id: string) =>
+    fileFromResponse(await apiResponse('GET', `/api/applications/${encodeURIComponent(id)}/dossier/download`), 'Bewerbung.pdf'),
+  /**
+   * The dossiers of several applications as one ZIP (at most {@link DOSSIER_ARCHIVE_LIMIT} ids). `failed` is the number of dossiers the
+   * server could not build (header `X-Dossiers-Failed`; the reasons are in a text file inside the ZIP) - the ZIP holds all the others.
+   */
+  downloadDossierArchive: async (ids: readonly string[], language: 'de' | 'en') => {
+    const response = await apiResponse('POST', '/api/applications/dossiers/archive', { ids, language })
+    const { blob, filename } = await fileFromResponse(response, language === 'en' ? 'Applications.zip' : 'Bewerbungen.zip')
+    return { blob, filename, failed: dossiersFailedFrom(response.headers) }
+  },
+  /** Freezes the dossier. An existing snapshot is only replaced with `replace` (the page asks the user first). */
+  archiveSnapshot: (id: string, replace = false) =>
+    post<Application>(`/api/applications/${encodeURIComponent(id)}/dossier/archive${replace ? '?replace=true' : ''}`),
 }
 
 export const aiApi = {
   getConfig: () => get<AiConfig>('/api/ai/config'),
   saveConfig: (body: UpdateAiConfigPayload) => put<AiConfig>('/api/ai/config', body),
+  /** The AI service of the whole server (administrators); saving asks for the password again. */
+  getAdminConfig: () => get<AdminAiConfig>('/api/ai/admin-config'),
+  saveAdminConfig: (body: UpdateAdminAiConfigPayload) => put<AdminAiConfig>('/api/ai/admin-config', body),
   testConnection: () => post<TestAiConnectionResult>('/api/ai/test-connection', {}),
   buildPrompt: (body: AiPromptPayload) => post<AiPromptResult>('/api/ai/prompt', body),
   parseResponse: <T>(body: AiParsePayload) => post<T>('/api/ai/parse', body),

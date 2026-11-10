@@ -11,7 +11,47 @@
     "loading": "Wird geladen …",
     "on": "Ein",
     "off": "Aus",
-    "language": "Sprache"
+    "language": "Sprache",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "deleteFailed": "Löschen fehlgeschlagen.",
+    "loadFailed": "Laden fehlgeschlagen.",
+    "actions": "Aktionen",
+    "add": "Hinzufügen",
+    "edit": "Bearbeiten",
+    "yes": "Ja",
+    "no": "Nein",
+    "moveUp": "Nach oben verschieben",
+    "moveDown": "Nach unten verschieben",
+    "back": "Zurück",
+    "discardTitle": "Änderungen verwerfen?",
+    "discardMessage": "Ihre Eingaben sind noch nicht gespeichert. Wenn Sie jetzt schließen, gehen sie verloren."
+  },
+  "autoSave": {
+    "saved": "Gespeichert",
+    "saving": "Wird gespeichert …",
+    "retrying": "Nicht gespeichert, neuer Versuch läuft",
+    "rejected": "Nicht gespeichert: Der Server lehnt die Eingabe ab",
+    "signedOut": "Nicht gespeichert: Sitzung abgelaufen, Eingaben bleiben erhalten",
+    "showError": "Fehler anzeigen",
+    "restored": "Eingaben vom {{time}} wiederhergestellt",
+    "invalid": "Noch nicht gespeichert: Markierte Felder korrigieren",
+    "unfinished": "Noch nicht gespeichert: Eingabe unvollständig",
+    "leave": {
+      "title": "Eingaben nicht gespeichert",
+      "message": "Ihre letzten Eingaben konnten nicht gespeichert werden. Sie bleiben als Kopie in diesem Browser erhalten und werden Ihnen beim nächsten Öffnen angeboten, sind aber nicht auf dem Server gespeichert.",
+      "confirm": "Trotzdem verlassen"
+    },
+    "signOut": {
+      "title": "Eingaben nicht gespeichert",
+      "message": "Ihre letzten Eingaben konnten nicht gespeichert werden. Beim Abmelden wird auch die Kopie in diesem Browser gelöscht, die Eingaben gehen dann verloren.",
+      "confirm": "Abmelden und verwerfen"
+    },
+    "restore": {
+      "askTitle": "Eingaben vom {{time}} übernehmen?",
+      "askMessage": "In diesem Browser liegen Eingaben vom {{time}}, die nicht mehr auf dem Server gespeichert werden konnten. Seitdem wurde der Stand auf dem Server geändert, zum Beispiel auf einem anderen Gerät. Übernehmen Sie Ihre Eingaben, ersetzen sie den Stand auf dem Server. Behalten Sie den Serverstand, werden die Eingaben gelöscht.",
+      "take": "Meine Eingaben übernehmen",
+      "drop": "Serverstand behalten"
+    }
   },
   "brand": {
     "panelLabel": "Was {{product}} kann",
@@ -20,7 +60,7 @@
     "features": {
       "cv": {
         "title": "Lebenslauf aus Bausteinen",
-        "text": "Einmal im Stammprofil pflegen, pro Bewerbung auswählen."
+        "text": "Einmal im Stammprofil pflegen, für jede Bewerbung nutzen."
       },
       "letter": {
         "title": "Anschreiben und Deckblatt",
@@ -40,7 +80,7 @@
       }
     },
     "ai": "KI-Hilfe ist freiwillig: mit eigenem Schlüssel, lokalem Modell oder per Kopieren und Einfügen.",
-    "copyright": "© {{year}} SushiFlux Develop"
+    "copyright": "© {{year}} SushiFlux Development"
   },
   "fields": {
     "username": "Benutzername",
@@ -83,6 +123,62 @@
       "characters": "Der Einrichtungscode besteht nur aus Buchstaben und Ziffern, ohne die leicht verwechselbaren 0, 1, I, L und O.",
       "tooLong": "Zu lang: Der Einrichtungscode hat genau {{count}} Zeichen.",
       "incomplete": "Noch nicht vollständig: Der Einrichtungscode hat genau {{count}} Zeichen."
+    },
+    "color": {
+      "required": "Bitte eine Farbe eingeben, zum Beispiel #14213D.",
+      "characters": "Nur die Zeichen 0 bis 9 und A bis F sind erlaubt.",
+      "tooLong": "Zu lang: {{length}} von höchstens {{max}} Ziffern.",
+      "incomplete": "Unvollständig: {{length}} Ziffern, erlaubt sind 3, 4, 6 oder 8."
+    },
+    "aiHost": {
+      "required": "Bitte einen Rechnernamen oder eine IP-Adresse eingeben.",
+      "invalid": "Nur der Name oder die IP-Adresse, ohne http://, Port und Pfad."
+    },
+    "field": {
+      "required": "Bitte ausfüllen."
+    },
+    "email": {
+      "invalid": "Bitte eine gültige E-Mail-Adresse eingeben, z. B. name@beispiel.de."
+    },
+    "url": {
+      "invalid": "Bitte einen Link mit http:// oder https:// eingeben."
+    },
+    "education": {
+      "periodRequired": "Bitte Beginn oder Ende angeben oder „Laufende Ausbildung“ einschalten. Bei der Schule genügt das Abschlussjahr."
+    },
+    "date": {
+      "required": {
+        "day": {
+          "dmy": "Bitte das Datum angeben, z. B. 23.04.1990.",
+          "ymd_slash": "Bitte das Datum angeben, z. B. 1990/04/23.",
+          "iso": "Bitte das Datum angeben, z. B. 1990-04-23."
+        },
+        "month": {
+          "dmy": "Bitte den Monat angeben, z. B. 03.2024.",
+          "ymd_slash": "Bitte den Monat angeben, z. B. 2024/03.",
+          "iso": "Bitte den Monat angeben, z. B. 2024-03."
+        }
+      },
+      "invalid": {
+        "day": {
+          "dmy": "Bitte als TT.MM.JJJJ angeben, z. B. 23.04.1990.",
+          "ymd_slash": "Bitte als JJJJ/MM/TT angeben, z. B. 1990/04/23.",
+          "iso": "Bitte als JJJJ-MM-TT angeben, z. B. 1990-04-23."
+        },
+        "month": {
+          "dmy": "Bitte als MM.JJJJ angeben, z. B. 03.2024 (oder nur das Jahr).",
+          "ymd_slash": "Bitte als JJJJ/MM angeben, z. B. 2024/03 (oder nur das Jahr).",
+          "iso": "Bitte als JJJJ-MM angeben, z. B. 2024-03 (oder nur das Jahr)."
+        }
+      },
+      "nonexistent": "Diesen Tag gibt es im Kalender nicht.",
+      "range": "Bitte ein Jahr zwischen {{min}} und {{max}} angeben."
+    },
+    "model": {
+      "required": "Bitte den Modellnamen eingeben."
+    },
+    "json": {
+      "invalid": "Das ist kein gültiges JSON-Objekt. Bitte den Inhalt prüfen."
     }
   },
   "setup": {
@@ -90,7 +186,7 @@
     "intro": "Legen Sie das erste Konto an, um zu beginnen.",
     "adminHint": "Dieses erste Konto wird automatisch Administrator. Weitere Konten legen Sie später selbst an.",
     "submit": "Konto anlegen",
-    "tokenHint": "Steht beim ersten Start im Protokoll des Servers – auf Unraid unter Docker → Vitafolio → Logs."
+    "tokenHint": "Steht beim ersten Start im Protokoll des Servers – auf Unraid unter Docker → {{product}} → Logs."
   },
   "login": {
     "title": "Anmelden",
@@ -115,11 +211,11 @@
     "intro": "Wenn Sie der einzige Administrator sind und Ihr Passwort oder den Zugriff auf Ihre Authenticator-App verloren haben, können Sie hier Ihr Passwort und die Zwei-Faktor-Authentifizierung zurücksetzen.",
     "adminOnlyNotice": "Dieser Notfall-Weg steht nur zur Verfügung, wenn es keinen anderen aktiven Administrator gibt.",
     "step1Title": "1. Notfall-Code anfordern",
-    "step1Hint": "Klicken Sie auf den Knopf, um einen Notfall-Code im Server-Protokoll zu erzeugen (auf Unraid unter Docker → Vitafolio → Logs oder in der Datei emergency-token im Datenordner).",
-    "requestCode": "Notfall-Code im Server-Log erzeugen",
-    "codeGeneratedNotice": "Der Notfall-Code wurde erzeugt! Schauen Sie in die Server-Logs oder in die Datei 'emergency-token' im Datenordner.",
+    "step1Hint": "Klicken Sie auf den Knopf, um einen Notfall-Code zu erzeugen. Er steht danach nur in der Datei emergency-token im Datenordner des Servers und gilt 15 Minuten. Im Server-Log steht nur der Hinweis, wo die Datei liegt.",
+    "requestCode": "Notfall-Code erzeugen",
+    "codeGeneratedNotice": "Falls dieses Konto den Notfall-Zugang nutzen darf, steht der Code jetzt in der Datei emergency-token im Datenordner. Er gilt 15 Minuten und nur einmal.",
     "step2Title": "2. Code und neues Passwort eingeben",
-    "codeLabel": "Notfall-Code aus den Logs",
+    "codeLabel": "Notfall-Code aus der Datei emergency-token",
     "codeHint": "Format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (28 Zeichen).",
     "submit": "Passwort zurücksetzen und 2FA deaktivieren",
     "successTitle": "Passwort erfolgreich zurückgesetzt!",
@@ -138,53 +234,107 @@
     "profile": "Stammprofil",
     "coverLetters": "Anschreiben",
     "applications": "Bewerbungen",
+    "export": "Export",
+    "guide": "Ratgeber",
     "aiSettings": "KI-Einstellungen",
     "admin": "App-Administration",
     "settings": "Einstellungen",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "handbook": "Handbuch",
+    "backTo": "Zurück zu: {{page}}"
   },
   "shell": {
     "theme": "Darstellung wechseln",
     "localAccount": "Lokales Konto",
-    "signOutFailed": "Abmelden hat nicht geklappt."
+    "signOutFailed": "Abmelden hat nicht geklappt.",
+    "versionLink": "Über {{product}}: Lizenz, Quellcode und Neuerungen dieser Version"
   },
   "roles": {
     "admin": "Administrator",
     "user": "Benutzer"
   },
+  "export": {
+    "title": "Export",
+    "subtitle": "Die fertigen PDFs an einem Ort. „Abgelegte Fassung“ gibt den Stand aus, der beim Versenden galt, „Heutiger Stand“ den aktuellen Stand Ihrer Unterlagen.",
+    "tabs": {
+      "applications": "Bewerbungen",
+      "cv": "Nur Lebenslauf"
+    },
+    "selectAll": "Alle auswählen",
+    "selected": "({{chosen}} von {{total}} ausgewählt)",
+    "selectRow": "{{name}} auswählen",
+    "columns": {
+      "select": "Auswahl",
+      "fileName": "Dateiname",
+      "version": "Stand"
+    },
+    "preview": "Ansehen",
+    "previewRow": "Ansehen: {{name}}",
+    "pdf": "PDF",
+    "downloadRow": "PDF herunterladen: {{name}}",
+    "creating": "Wird erstellt …",
+    "bulk": {
+      "download": "Ausgewählte herunterladen ({{number}})",
+      "hint": "Eine gewählte Bewerbung ergibt ein PDF, mehrere ein ZIP mit je einem PDF. Die Dateien heißen nach Unternehmen und Stelle.",
+      "tooMany": "Zu viele ausgewählt: {{count}} Bewerbungen, erlaubt sind höchstens {{limit}} auf einmal. Wählen Sie einige wieder ab."
+    },
+    "empty": {
+      "title": "Noch keine Bewerbungen zum Exportieren",
+      "text": "Sobald Sie eine Bewerbung angelegt haben, erscheint sie hier mit ihrem Dateinamen, zum Ansehen und Herunterladen."
+    },
+    "partial": {
+      "title": "Das ZIP ist unvollständig."
+    },
+    "errors": {
+      "download": "Der Download konnte nicht erstellt werden."
+    }
+  },
   "overview": {
     "welcomeLabel": "Willkommen",
     "welcome": "Willkommen, {{name}}",
-    "account": {
-      "title": "Ihr Konto"
-    },
     "twoFactor": {
-      "title": "Zwei-Faktor-Anmeldung",
       "on": "Aktiv",
-      "off": "Nicht aktiv",
-      "onText": "Beim Anmelden wird zusätzlich ein Code aus Ihrer Authenticator-App verlangt.",
-      "offText": "Ein zweiter Faktor schützt Ihr Konto, falls das Passwort in falsche Hände gerät.",
-      "manage": "In den Einstellungen verwalten"
+      "notice": "Die Zwei-Faktor-Anmeldung ist nicht aktiv. Sie schützt Ihr Konto, falls das Passwort in falsche Hände gerät.",
+      "setUp": "Jetzt einrichten"
     },
-    "mode": {
-      "title": "Betrieb",
-      "server": "Server-Version: Anmeldung mit Konto, erreichbar im Browser.",
-      "desktop": "Windows-Programm: Ihre Daten liegen lokal auf diesem Computer, eine Anmeldung ist nicht nötig."
+    "board": {
+      "title": "Ihre Bewerbungen",
+      "open": "Zum Bewerbungs-Tracker"
     },
-    "backup": {
-      "title": "Datensicherung",
-      "last": "Letzte Sicherung: {{when}}",
-      "none": "Noch keine Sicherung vorhanden.",
-      "manage": "Datensicherung öffnen"
+    "next": {
+      "title": "Nachfassen fällig",
+      "followUp": "Nachfassen fällig seit {{date}}",
+      "followUpNoDate": "Nachfassen fällig",
+      "all": "Alle anzeigen"
+    },
+    "start": {
+      "title": "So fangen Sie an",
+      "text": "Drei Schritte bis zur ersten Bewerbung. Die Übersicht füllt sich, sobald sie angelegt ist.",
+      "step": "Schritt {{number}}",
+      "steps": {
+        "profile": {
+          "title": "Stammprofil ausfüllen",
+          "text": "Ihre Angaben einmal pflegen. Daraus entstehen Lebenslauf, Anschreiben und Mappe."
+        },
+        "guide": {
+          "title": "Ratgeber durchgehen",
+          "text": "In wenigen Klicks erfahren Sie, was in Ihrer Situation in die Bewerbung gehört."
+        },
+        "application": {
+          "title": "Erste Bewerbung anlegen",
+          "text": "Stelle, Firma und passendes Anschreiben eintragen. Danach können Sie sie ansehen und herunterladen."
+        }
+      }
     }
   },
   "profile": {
     "title": "Stammprofil",
+    "sections": "Bereiche des Stammprofils",
     "description": "Ihre vollständige Lebensakte: Pflegen Sie Ihre persönlichen Daten und Bausteine einmalig hier. Für einzelne Bewerbungen wählen Sie später flexibel aus, welche Stationen und Kenntnisse erscheinen.",
     "tabs": {
       "personal": "Persönliches",
       "experiences": "Berufserfahrung",
-      "educations": "Ausbildung",
+      "educations": "Ausbildung, Studium & Schule",
       "skills": "Kenntnisse",
       "languages": "Sprachen",
       "certificates": "Zertifikate",
@@ -220,11 +370,24 @@
       "photoChange": "Foto ändern",
       "photoDelete": "Foto entfernen",
       "photoHint": "JPEG, PNG oder WebP, maximal 5 MB. Ein Foto ist im Lebenslauf freiwillig.",
-      "saveSuccess": "Persönliche Daten gespeichert."
+      "academicTitlePlaceholder": "Dr. / Prof.",
+      "professionalTitlePlaceholder": "z. B. Software-Architektin",
+      "nameHeading": "Name und Titel",
+      "contactHeading": "E-Mail & Anschrift",
+      "personHeading": "Zur Person",
+      "linksHeading": "Webseite & Profile",
+      "photoUploadFailed": "Das Foto konnte nicht hochgeladen werden.",
+      "photoDeleteFailed": "Das Foto konnte nicht entfernt werden.",
+      "photoDeleteConfirm": "Das Foto wird aus Ihrem Profil entfernt. Lebensläufe zeigen danach kein Bild mehr, bis Sie ein neues hochladen.",
+      "autoSave": {
+        "namesMissing": "Noch nicht gespeichert: Vorname und Nachname fehlen",
+        "firstNameMissing": "Noch nicht gespeichert: Der Vorname fehlt",
+        "lastNameMissing": "Noch nicht gespeichert: Der Nachname fehlt"
+      }
     },
     "experiences": {
       "title": "Berufserfahrung",
-      "subtitle": "Berufliche Stationen, Praktika und Projekte. Das Neueste steht im Lebenslauf automatisch oben.",
+      "subtitle": "Berufliche Stationen, Praktika und Projekte. Die Reihenfolge bestimmen Sie selbst mit den Pfeilen an den Stationen.",
       "add": "Station hinzufügen",
       "edit": "Station bearbeiten",
       "delete": "Station löschen",
@@ -241,11 +404,13 @@
       "isCurrent": "Aktuelle Position (bis heute)",
       "description": "Aufgaben, Erfolge & Schwerpunkte",
       "moveUp": "Nach oben verschieben",
-      "moveDown": "Nach unten verschieben"
+      "moveDown": "Nach unten verschieben",
+      "at": "bei {{employer}}"
     },
     "educations": {
-      "title": "Ausbildung & Studium",
+      "title": "Ausbildung, Studium & Schule",
       "subtitle": "Schulbildung, Berufsausbildung, akademische Grade und Abschlüsse.",
+      "schoolHint": "Tragen Sie hier auch Ihre Schulabschlüsse ein, zum Beispiel Realschulabschluss oder Abitur. Bei der Schule genügt das Abschlussjahr (nur die Jahreszahl).",
       "add": "Ausbildung hinzufügen",
       "edit": "Ausbildung bearbeiten",
       "delete": "Ausbildung löschen",
@@ -260,8 +425,13 @@
       "startDate": "Beginn",
       "endDate": "Ende",
       "isCurrent": "Laufende Ausbildung",
+      "ongoing": "laufend",
+      "periodHint": "Beginn oder Ende genügt. Bei der Schule reicht das Abschlussjahr.",
       "grade": "Abschlussnote",
-      "description": "Schwerpunkte, Abschlussarbeit, Details"
+      "description": "Schwerpunkte, Abschlussarbeit, Details",
+      "at": "an der {{institution}}",
+      "gradeBadge": "Note {{grade}}",
+      "gradePlaceholder": "1,3"
     },
     "skills": {
       "title": "Kenntnisse & Fähigkeiten",
@@ -284,7 +454,9 @@
         "3": "Fortgeschritten (3/5)",
         "4": "Sehr gut (4/5)",
         "5": "Experte (5/5)"
-      }
+      },
+      "general": "Allgemein",
+      "levelOf": "Stufe {{level}} von 5"
     },
     "languages": {
       "title": "Sprachkenntnisse",
@@ -304,7 +476,8 @@
         "B2": "B2 – Selbstständige Sprachverwendung",
         "C1": "C1 – Fachkundige Sprachkenntnisse",
         "C2": "C2 – Annähernd muttersprachliche Kenntnisse"
-      }
+      },
+      "languagePlaceholder": "z. B. Englisch, Spanisch, Französisch"
     },
     "certificates": {
       "title": "Weiterbildung & Zertifikate",
@@ -319,7 +492,13 @@
       "issueDate": "Ausstellungsdatum",
       "expiryDate": "Gültig bis",
       "credentialUrl": "Nachweis-Link / URL",
-      "credentialId": "Zertifikatsnummer / ID"
+      "credentialId": "Zertifikatsnummer / ID",
+      "titlePlaceholder": "z. B. AWS Certified Solutions Architect",
+      "issuerPlaceholder": "z. B. Amazon Web Services, TÜV, IHK",
+      "credentialIdPlaceholder": "Zertifikats-ID",
+      "issuedOn": "Ausgestellt: {{date}}",
+      "validUntil": "Gültig bis: {{date}}",
+      "idLine": "ID: {{id}}"
     },
     "interests": {
       "title": "Interessen & Aktivitäten",
@@ -331,7 +510,9 @@
       "empty": "Noch keine Interessen eingetragen.",
       "name": "Bezeichnung / Aktivität",
       "category": "Kategorie (z. B. Hobby, Ehrenamt, Führerschein)",
-      "description": "Ergänzende Beschreibung"
+      "description": "Ergänzende Beschreibung",
+      "namePlaceholder": "z. B. Fotografie, Freie Software, Wandern, Führerschein B",
+      "categoryPlaceholder": "z. B. Hobby, Ehrenamt, Sport, Führerschein"
     },
     "customSections": {
       "title": "Eigene Abschnitte",
@@ -347,7 +528,12 @@
       "itemTitle": "Titel",
       "itemSubtitle": "Untertitel / Herausgeber",
       "itemDate": "Datum / Zeitraum",
-      "itemDescription": "Beschreibung"
+      "itemDescription": "Beschreibung",
+      "deleteSectionConfirm": "Möchten Sie diesen Abschnitt und alle darin enthaltenen Einträge wirklich löschen?",
+      "deleteItemConfirm": "Möchten Sie diesen Eintrag wirklich löschen?",
+      "emptyItems": "Noch keine Einträge in diesem Abschnitt.",
+      "sectionPlaceholder": "z. B. Publikationen, Patente, Auszeichnungen",
+      "itemDatePlaceholder": "z. B. 2024 oder 03/2023 – 09/2023"
     },
     "preview": {
       "title": "Lebenslauf-Vorschau",
@@ -355,12 +541,49 @@
       "design": "Design-Vorlage",
       "designs": {
         "classic": "Klassisch",
-        "classicDesc": "Tabellarisch, einspaltig – übersichtlich und traditionell",
+        "classicDesc": "Datumsspalte links und klare Linien, übersichtlich und traditionell.",
         "modern": "Modern",
-        "modernDesc": "Mit Seitenleiste für Kontakt und Kenntnisse sowie Akzentfarbe",
+        "modernDesc": "Helle Karte links mit Kontakt und Kenntnissen, Name in der Hauptspalte.",
         "plain": "Schlicht",
-        "plainDesc": "Einspaltig, ohne Grafik – ideal für Bewerberportale (ATS)"
+        "plainDesc": "Nur Text in Schwarz, ohne Linien. Gut für Bewerberportale, die automatisch einlesen.",
+        "sidebar": "Farbspalte",
+        "sidebarDesc": "Volle Spalte in Ihrer Akzentfarbe mit Name, Foto und Kenntnissen.",
+        "rail": "Randspalte",
+        "railDesc": "Großer Name, rechts eine zart getönte Spalte für Kontakt und Kenntnisse.",
+        "banner": "Kopfband",
+        "bannerDesc": "Farbiges Band über die ganze Breite der ersten Seite.",
+        "timeline": "Zeitleiste",
+        "timelineDesc": "Stationen entlang einer Linie mit Punkten, das Datum über dem Titel.",
+        "elegant": "Elegant",
+        "elegantDesc": "Alles auf der Mittelachse, gesperrter Name und feine Linien.",
+        "compact": "Kompakt",
+        "compactDesc": "Enge Ränder und zwei Spalten unten, für lange Laufbahnen.",
+        "edge": "Kante",
+        "edgeDesc": "Schmale Farbkante am Seitenrand und ein sehr großer Name.",
+        "grid": "Raster",
+        "gridDesc": "Überschriften in eigener Spalte, über jedem Abschnitt eine feine Linie.",
+        "executive": "Führung",
+        "executiveDesc": "Kurzprofil als farbiger Block, darunter die Kernkompetenzen.",
+        "wave": "Welle",
+        "waveDesc": "Fließende Farbfläche im Kopf, das Foto sitzt auf der Kante. Eher für kreative Bewerbungen.",
+        "diagonal": "Diagonale",
+        "diagonalDesc": "Schräg angeschnittene Farbfläche mit dem Namen darauf. Eher für kreative Bewerbungen.",
+        "arc": "Bogen",
+        "arcDesc": "Kreissegmente und feine Ringe in der oberen Ecke. Eher für kreative Bewerbungen.",
+        "facet": "Facette",
+        "facetDesc": "Zarte Dreiecke in Abtönungen entlang der Seite. Eher für kreative Bewerbungen.",
+        "monogram": "Monogramm",
+        "monogramDesc": "Große Initialen im feinen Ring und Haarlinien, sehr ruhig. Eher für weniger förmliche Bewerbungen.",
+        "aurora": "Aurora",
+        "auroraDesc": "Weicher Verlauf aus der Ecke, Abschnitte als gerundete Flächen. Eher für kreative Bewerbungen."
       },
+      "designGroups": {
+        "standard": "Ruhig",
+        "expressive": "Ausdrucksstark",
+        "expressiveHint": "Für kreative oder weniger förmliche Bewerbungen. In klassischen Branchen ist eine ruhige Vorlage meist die sicherere Wahl."
+      },
+      "chooseDesign": "Design wählen",
+      "closeDesigns": "Zuklappen",
       "color": "Akzentfarbe",
       "font": "Schriftart",
       "language": "Dokument-Sprache",
@@ -375,25 +598,132 @@
         "rect": "Eckig"
       },
       "download": "PDF herunterladen",
-      "downloading": "Wird erzeugt …",
       "downloadDocx": "Word herunterladen (.docx)",
-      "downloadingDocx": "Word wird erzeugt …",
       "refresh": "Vorschau aktualisieren",
       "loading": "Vorschau wird erzeugt …",
-      "noPdf": "Die Vorschau konnte nicht geladen werden.",
-      "openNewTab": "In neuem Tab öffnen"
+      "openNewTab": "In neuem Tab öffnen",
+      "options": "Optionen",
+      "frameTitle": "Lebenslauf-Vorschau als PDF",
+      "exportFailed": "Der Export ist fehlgeschlagen.",
+      "saveOptionsFailed": "Die Auswahl konnte nicht gespeichert werden und gilt nur, bis Sie den Bereich wechseln.",
+      "content": {
+        "title": "Inhalt",
+        "collapse": "Zuklappen",
+        "expand": "Aufklappen",
+        "adjust": "Anpassen",
+        "showAll": "Alles einblenden",
+        "applySuggestion": "Empfehlung anwenden",
+        "show": "Einblenden",
+        "follow": "Wieder der Empfehlung folgen",
+        "nothingListed": "Nichts ausgeblendet oder gekürzt. Alles, was Sie eingetragen haben, steht im Lebenslauf.",
+        "saveFailed": "Die Auswahl des Inhalts konnte nicht gespeichert werden.",
+        "dialogIntro": "Hier legen Sie fest, was Ihr Lebenslauf aus dem Stammprofil zeigt (Vorschau, Export und neue Bewerbungen). Die App schlägt nach Ihrem Werdegang vor und nennt den Grund, Sie entscheiden. Das Stammprofil selbst bleibt unverändert.",
+        "summary": {
+          "hidden_one": "{{count}} Eintrag ausgeblendet",
+          "hidden_other": "{{count}} Einträge ausgeblendet",
+          "short_one": "{{count}} gekürzt",
+          "short_other": "{{count}} gekürzt",
+          "allShown": "Alles wird gezeigt.",
+          "suggestionOff": "Die Empfehlung ist aus.",
+          "ownSelection": "Eigene Auswahl: {{summary}}"
+        },
+        "row": {
+          "hidden": "Ausgeblendet. {{reason}}",
+          "short": "Gekürzt. {{reason}}",
+          "own": "Von Ihnen gesetzt: {{level}}. Empfehlung: {{suggested}}",
+          "shownAgainst": "Von Ihnen eingeblendet. Empfehlung: {{suggested}}. {{reason}}",
+          "sectionHidden": "Von Ihnen ausgeblendet."
+        }
+      },
+      "staleNotice": "Ihre letzten Eingaben unter „Persönliches“ sind noch nicht gespeichert. Die Vorschau zeigt den zuletzt gespeicherten Stand."
+    },
+    "classicView": "Klassische Ansicht",
+    "wizardMode": "Assistenten-Modus",
+    "loadFailed": "Das Profil konnte nicht geladen werden.",
+    "jsonResume": {
+      "button": "JSON Resume",
+      "title": "JSON Resume Standard (v1.0.0)",
+      "intro": "Der offene Standard „JSON Resume“ (jsonresume.org) ermöglicht den Austausch Ihrer Profildaten mit anderen Werkzeugen, Portalen und Open-Source-Generatoren.",
+      "modeLabel": "Austausch",
+      "exportMode": "Exportieren",
+      "importMode": "Importieren",
+      "exportText": "Laden Sie Ihr gesamtes Profil (Stammdaten, Werdegang, Ausbildung, Kenntnisse, Sprachen, Zertifikate, Interessen) im standardisierten JSON-Resume-Format herunter.",
+      "exportButton": "resume.json herunterladen",
+      "fileLabel": "JSON-Resume-Datei (.json)",
+      "chooseFile": "Datei auswählen",
+      "pasteLabel": "Oder den JSON-Inhalt direkt einfügen",
+      "replaceLabel": "Bestehende Stationen und Kenntnisse ersetzen",
+      "replaceHint": "Aus: Die Einträge der Datei werden angefügt. Ein: Was bisher im Profil steht, wird ersetzt.",
+      "importButton": "Importieren",
+      "confirmTitle": "Profil aus der Datei übernehmen?",
+      "confirmReplace": "Die vorhandenen Stationen, Ausbildungen, Kenntnisse und weiteren Einträge werden durch den Inhalt der Datei ersetzt.",
+      "confirmUnsaved": "Ihre ungespeicherten Änderungen bei den persönlichen Daten gehen dabei verloren.",
+      "exportSuccess": "Das Profil wurde als resume.json heruntergeladen.",
+      "importSuccess": "Das Profil wurde aus der Datei übernommen.",
+      "errors": {
+        "export": "Der Export ist fehlgeschlagen.",
+        "import": "Der Import ist fehlgeschlagen.",
+        "file": "Die Datei konnte nicht gelesen werden."
+      }
+    },
+    "wizard": {
+      "label": "Schritt-für-Schritt-Assistent",
+      "stepOf": "Schritt {{current}} von {{total}}: {{title}}",
+      "step": "Schritt {{number}}",
+      "skillsHeading": "Fachliche Kompetenzen",
+      "languagesHeading": "Sprachkenntnisse",
+      "next": "Weiter zum nächsten Schritt",
+      "finish": "Assistent abschließen",
+      "steps": {
+        "1": {
+          "title": "Stammdaten & Kontakt",
+          "description": "Name, Kontaktdaten, Anschrift und Kurzprofil"
+        },
+        "2": {
+          "title": "Berufserfahrung",
+          "description": "Berufliche Stationen und Praxiserfahrung"
+        },
+        "3": {
+          "title": "Ausbildung, Studium & Schule",
+          "description": "Schulbildung, Berufsausbildung und Hochschulabschlüsse"
+        },
+        "4": {
+          "title": "Kenntnisse & Sprachen",
+          "description": "Fachliche Kernkompetenzen und Fremdsprachen"
+        },
+        "5": {
+          "title": "Vorschau & Fertigstellung",
+          "description": "PDF-Vorschau und Export"
+        }
+      }
+    },
+    "gaps": {
+      "continuous": "Lücken-Check bestanden: Ihr Werdegang ist lückenlos dokumentiert.",
+      "found_one": "Lücken-Analyse: {{count}} Lücke im zeitlichen Ablauf gefunden.",
+      "found_other": "Lücken-Analyse: {{count}} Lücken im zeitlichen Ablauf gefunden.",
+      "show": "Details & Tipps anzeigen",
+      "hide": "Details verbergen",
+      "advice": "Personalverantwortliche achten im Lebenslauf auf zeitliche Kontinuität. Ab etwa ein bis zwei Monaten Unterbrechung empfiehlt sich eine kurze, offene Angabe, damit Nachfragen im Gespräch nicht überraschen.",
+      "months_one": "{{count}} Monat",
+      "months_other": "{{count}} Monate",
+      "between": "Zwischen",
+      "orientation": "Berufliche Neuorientierung",
+      "training": "Weiterbildung & Qualifizierung",
+      "employer": "Selbststudium / Orientierung",
+      "unnamedTitle": "Station",
+      "unnamedOrganisation": "ohne Angabe"
     }
   },
   "coverLetters": {
     "title": "Anschreiben",
-    "subtitle": "Verfassen Sie normgerechte Anschreiben nach DIN 5008 für Ihre Bewerbungen.",
+    "subtitle": "Verfassen Sie Anschreiben, angelehnt an DIN 5008, für Ihre Bewerbungen.",
     "newLetter": "Neues Anschreiben",
     "createTitle": "Neues Anschreiben erstellen",
     "editTitle": "Anschreiben bearbeiten",
     "empty": "Noch keine Anschreiben vorhanden. Erstellen Sie Ihr erstes Anschreiben!",
     "deleteConfirm": "Möchten Sie das Anschreiben \"{{title}}\" wirklich löschen?",
     "tabs": {
-      "editor": "Inhalt & DIN 5008",
+      "editor": "Inhalt",
       "preview": "PDF-Vorschau",
       "options": "Design & Formatierung"
     },
@@ -408,7 +738,7 @@
       "senderCity": "Wohnort",
       "senderPhone": "Telefonnummer",
       "senderEmail": "E-Mail-Adresse",
-      "recipientSection": "Empfänger (nach DIN 5008)",
+      "recipientSection": "Empfänger",
       "recipientCompany": "Unternehmensname / Organisation",
       "recipientDepartment": "Abteilung / z. Hd.",
       "recipientContactPerson": "Ansprechpartner (z. B. Frau Dr. Schmidt)",
@@ -420,7 +750,7 @@
       "place": "Ort der Unterzeichnung (z. B. Berlin)",
       "date": "Datum (z. B. 06.11.2026 oder 6. November 2026)",
       "contentSection": "Briefinhalt",
-      "subject": "Betreffzeile (DIN 5008: Fettgedruckt, ohne das Wort 'Betreff')",
+      "subject": "Betreffzeile (fettgedruckt, ohne das Wort 'Betreff')",
       "salutation": "Anrede (z. B. Sehr geehrte Damen und Herren,)",
       "body": "Brieftext",
       "bodyPlaceholder": "Formulieren Sie hier Ihr Anschreiben. Absätze trennen Sie einfach mit einer Leerzeile...",
@@ -438,7 +768,8 @@
       "font": "Schriftart",
       "accentColor": "Akzentfarbe",
       "foldMarks": "DIN-Falz- und Lochmarken",
-      "foldMarksHint": "Druckt unauffällige Hilfslinien am linken Rand für DIN-Lang-Fensterumschläge"
+      "foldMarksHint": "Druckt unauffällige Hilfslinien am linken Rand für DIN-Lang-Fensterumschläge",
+      "attachmentsNotePlaceholder": "z. B. Lebenslauf, Arbeitszeugnisse"
     },
     "actions": {
       "save": "Anschreiben speichern",
@@ -448,6 +779,37 @@
       "refreshPreview": "Vorschau aktualisieren",
       "backToList": "Zurück zur Übersicht",
       "openNewTab": "PDF im neuen Tab öffnen"
+    },
+    "defaults": {
+      "title": "Neues Anschreiben",
+      "recipientCompany": "Musterfirma GmbH",
+      "recipientCity": "Musterstadt",
+      "subject": "Bewerbung als …",
+      "salutation": "Sehr geehrte Damen und Herren,",
+      "body": "mit großem Interesse bewerbe ich mich bei Ihnen für die ausgeschriebene Position als …\n\nIn meiner bisherigen beruflichen Laufbahn konnte ich fundierte Erfahrungen sammeln in …\n\nÜber eine Einladung zu einem persönlichen Gespräch freue ich mich sehr.",
+      "closing": "Mit freundlichen Grüßen",
+      "attachmentsNote": "Lebenslauf, Zeugnisse, Zertifikate"
+    },
+    "languages": {
+      "de": "Deutsch",
+      "en": "English (Business Letter)"
+    },
+    "previewTitle": "Live-Vorschau",
+    "previewFrame": "Vorschau des Anschreibens als PDF",
+    "signatureDeleteConfirm": "Die hinterlegte Unterschrift wird aus diesem Anschreiben entfernt. Die Bilddatei selbst haben Sie weiterhin bei sich.",
+    "errors": {
+      "save": "Das Anschreiben konnte nicht gespeichert werden.",
+      "create": "Das Anschreiben konnte nicht angelegt werden.",
+      "load": "Das Anschreiben konnte nicht geöffnet werden.",
+      "loadList": "Die Anschreiben konnten nicht geladen werden.",
+      "delete": "Das Anschreiben konnte nicht gelöscht werden.",
+      "download": "Der Export ist fehlgeschlagen.",
+      "signatureUpload": "Die Unterschrift konnte nicht hochgeladen werden.",
+      "signatureDelete": "Die Unterschrift konnte nicht entfernt werden."
+    },
+    "autoSave": {
+      "missing_one": "Noch nicht gespeichert: {{count}} Pflichtfeld ist leer",
+      "missing_other": "Noch nicht gespeichert: {{count}} Pflichtfelder sind leer"
     }
   },
   "applications": {
@@ -460,14 +822,18 @@
     "empty": "Noch keine Bewerbungen vorhanden. Legen Sie Ihre erste Bewerbung an!",
     "noResults": "Keine Bewerbungen gefunden, die den Kriterien entsprechen.",
     "deleteConfirm": "Möchten Sie die Bewerbung bei \"{{company}}\" als \"{{jobTitle}}\" wirklich löschen?",
-    "followUpAlert": "Bei {{count}} Bewerbung(en) ist ein Nachfassen fällig (keine Rückmeldung > 14 Tage).",
     "views": {
       "kanban": "Kanban-Board",
-      "list": "Listenansicht"
+      "list": "Listenansicht",
+      "label": "Ansicht"
     },
     "filter": {
       "all": "Alle Status",
-      "searchPlaceholder": "Unternehmen, Stelle oder Ort suchen..."
+      "searchPlaceholder": "Unternehmen, Stelle oder Ort suchen...",
+      "search": "Bewerbungen durchsuchen",
+      "status": "Nach Status filtern",
+      "showAll": "Alle anzeigen",
+      "onlyFollowUp": "Nur Nachfassen anzeigen"
     },
     "stats": {
       "total": "Gesamt",
@@ -478,7 +844,10 @@
       "offer": "Angebot",
       "rejected": "Absage",
       "withdrawn": "Zurückgezogen",
-      "followUpsDue": "Nachfassen fällig"
+      "followUpsDue": "Nachfassen fällig",
+      "closed": "Abgeschlossen",
+      "closedDetail": "{{rejected}} Absage(n) · {{withdrawn}} zurückgezogen",
+      "ofWhichAcknowledged": "davon {{count}} bestätigt"
     },
     "statuses": {
       "draft": "Entwurf",
@@ -501,6 +870,7 @@
       "status": "Aktueller Status",
       "appliedAt": "Beworben am",
       "followUpAt": "Nachfassen geplant am",
+      "followUpHint": "Ohne Datum erinnert die App nach {{days}} Tagen im Status „Beworben“.",
       "coverLetter": "Zugeordnetes Anschreiben",
       "noCoverLetter": "Kein Anschreiben",
       "includeCoverSheet": "Deckblatt ins Dossier einbinden",
@@ -517,28 +887,275 @@
       "title": "Verlauf & Ereignisse",
       "addEvent": "Ereignis hinzufügen",
       "date": "Datum",
-      "eventTitle": "Titel (z. B. 1. Vorstellungsgespräch)",
       "note": "Notiz (optional)",
       "status": "Zugehöriger Status",
-      "noEvents": "Noch keine Ereignisse dokumentiert."
+      "noEvents": "Noch keine Ereignisse dokumentiert.",
+      "eventTitle": "Titel des Ereignisses",
+      "eventTitlePlaceholder": "z. B. 1. Vorstellungsgespräch",
+      "deleteTitle": "Ereignis löschen",
+      "deleteConfirm": "Möchten Sie das Ereignis „{{title}}“ wirklich löschen?"
     },
     "dossier": {
       "title": "Bewerbungs-Dossier",
       "frozenBadge": "Archivierter Snapshot",
-      "liveBadge": "Live-Vorschau",
       "frozenHint": "Dieser Stand wurde beim Einreichen der Bewerbung eingefroren.",
       "download": "Dossier herunterladen (PDF)",
       "preview": "Dossier ansehen",
-      "archiveNow": "Snapshot aktualisieren"
+      "archiveNow": "Snapshot aktualisieren",
+      "replaceTitle": "Archivierten Stand ersetzen?",
+      "replaceMessage": "Für „{{jobTitle}}“ bei {{company}} ist der Stand gespeichert, der beim Versenden galt. Wenn Sie ihn ersetzen, gilt ab jetzt der aktuelle Stand Ihrer Unterlagen; der alte Stand ist danach nicht mehr abrufbar.",
+      "replaceConfirm": "Ersetzen",
+      "previewFrame": "Vorschau des Bewerbungs-Dossiers",
+      "snapshotBadge": "Snapshot",
+      "liveHint": "Fasst Deckblatt, Anschreiben, Lebenslauf und Anlagen in einem Dokument zusammen.",
+      "liveBadge": "Live-Vorschau",
+      "sourceArchivedBadge": "Abgelegte Fassung",
+      "sourceCurrentBadge": "Heutiger Stand",
+      "sourceArchivedText": "Das ist die abgelegte Fassung: so sahen die Unterlagen aus, als sie abgelegt wurden (beim Einreichen oder beim letzten „Snapshot aktualisieren“).",
+      "sourceCurrentText": "Das ist der heutige Stand Ihrer Unterlagen, jetzt neu erzeugt. Er kann von der abgelegten Fassung abweichen.",
+      "sourceNoArchiveText": "Für diese Bewerbung ist noch keine Fassung abgelegt. Das ist der heutige Stand Ihrer Unterlagen.",
+      "viewCurrent": "Heutigen Stand ansehen",
+      "viewArchived": "Zurück zur abgelegten Fassung"
     },
     "actions": {
       "changeStatus": "Status ändern",
       "viewDetails": "Details anzeigen",
       "downloadDossier": "Dossier",
+      "edit": "Bearbeiten",
       "delete": "Löschen",
       "save": "Speichern",
       "saving": "Wird gespeichert…",
       "cancel": "Abbrechen"
+    },
+    "followUpAlert_one": "Bei {{count}} Bewerbung ist ein Nachfassen fällig (keine Rückmeldung seit mehr als 14 Tagen).",
+    "followUpAlert_other": "Bei {{count}} Bewerbungen ist ein Nachfassen fällig (keine Rückmeldung seit mehr als 14 Tagen).",
+    "columnCount_one": "{{count}} Bewerbung in dieser Spalte",
+    "columnCount_other": "{{count}} Bewerbungen in dieser Spalte",
+    "notSentYet": "Noch nicht gesendet",
+    "columns": {
+      "draft": "Entwurf",
+      "applied": "Beworben",
+      "acknowledged": "Eingangsbestätigung",
+      "interview": "Gespräch",
+      "offer": "Angebot",
+      "closed": "Abgeschlossen",
+      "closedHint": "Absagen und zurückgezogene Bewerbungen"
+    },
+    "placeholders": {
+      "jobTitle": "z. B. Senior Cloud Architect",
+      "company": "z. B. Acme Corp GmbH",
+      "location": "z. B. Berlin / Remote",
+      "salary": "z. B. 85.000 EUR",
+      "contactPerson": "z. B. Frau Dr. Schmidt",
+      "contactEmail": "jobs@acme.example",
+      "contactPhone": "+49 30 12345678",
+      "jobPostingUrl": "https://acme.example/careers/job-123",
+      "notes": "Persönliche Notizen zur Bewerbung …"
+    },
+    "contact": {
+      "email": "E-Mail",
+      "phone": "Telefon"
+    },
+    "attachments": {
+      "manage": "Anlagen & Zeugnisse",
+      "choose_one": "Anlagen anhängen ({{count}} ausgewählt)",
+      "choose_other": "Anlagen anhängen ({{count}} ausgewählt)",
+      "none": "Noch keine Dokumente hochgeladen. Nutzen Sie „Anlagen & Zeugnisse“ in der Kopfzeile.",
+      "loadFailed": "Die Anlagen konnten nicht geladen werden.",
+      "label": "Anlagen & Nachweise",
+      "count_one": "{{count}} Dokument angehängt",
+      "count_other": "{{count}} Dokumente angehängt",
+      "noneAttached": "Keine",
+      "suggestionIntro": "Die App schlägt vor, welche Anlagen zu Ihrer Lage passen. Sie wählen frei.",
+      "suggestionLine": "Empfehlung: {{advice}}. {{reason}}",
+      "include": "beilegen",
+      "omit": "eher weglassen",
+      "reasons": {
+        "recent_reference": "Eines der drei neuesten Arbeitszeugnisse",
+        "older_reference": "Älter als Ihre drei neuesten Arbeitszeugnisse",
+        "highest_degree": "Zeugnis des höchsten Abschlusses",
+        "lower_degree": "Früherer Abschluss neben einem höheren",
+        "school_report": "Schulzeugnis; mit Berufserfahrung meist nicht nötig",
+        "older_school_report": "Älteres Schulzeugnis",
+        "degree": "Abschlusszeugnis",
+        "certificate": "Zertifikat, nur wenn es zur Stelle passt",
+        "unknown": "Empfehlung der App"
+      }
+    },
+    "content": {
+      "title": "Inhalt des Lebenslaufs",
+      "open": "Anpassen",
+      "done": "Fertig",
+      "intro": "Standardmäßig kommt Ihr ganzes Stammprofil in den Lebenslauf. Hier legen Sie fest, was in diese Bewerbung gehört. Die App schlägt aus den Daten mit Datum vor (Stationen, Ausbildung, Zertifikate, Anlagen) und nennt den Grund, Sie entscheiden. Nichts wird ohne Ihren Klick weggelassen, und Ihr Stammprofil bleibt unverändert.",
+      "guideLink": "Angaben im Ratgeber anpassen",
+      "years_one": "Laut Stammprofil etwa {{count}} Jahr Berufserfahrung.",
+      "years_other": "Laut Stammprofil etwa {{count}} Jahre Berufserfahrung.",
+      "yearsNone": "Im Stammprofil sind noch keine Berufsjahre erfasst.",
+      "stage": {
+        "entry": "Empfehlung für den Berufseinstieg: Ausbildung, Praktika und Projekte stehen im Mittelpunkt.",
+        "some": "Empfehlung für einige Jahre Erfahrung: die letzten Stationen ausführlich, frühere kürzer.",
+        "long": "Empfehlung für lange Berufserfahrung: ältere Stationen und frühe Abschlüsse dürfen kürzer ausfallen."
+      },
+      "now": "heute",
+      "auto": "{{product}} hat einen Vorschlag zusammengestellt: {{summary}}",
+      "noSuggestion": "Es gibt keinen Vorschlag. Der Lebenslauf bleibt vollständig.",
+      "certificateChoice": {
+        "full": "Im Lebenslauf",
+        "hidden": "Weglassen"
+      },
+      "differs": "Weicht ab",
+      "suggestionLine": "Vorschlag: {{level}}. {{reason}}",
+      "levelFor": "Darstellung von {{title}}",
+      "levels": {
+        "full": "Ausführlich",
+        "short": "Kurz",
+        "hidden": "Weglassen"
+      },
+      "reasons": {
+        "experience": {
+          "recent": "Gehört zu Ihren aktuellen Stationen",
+          "older_than_10_years": "Endete vor über 10 Jahren",
+          "old_internship": "Älteres Praktikum",
+          "entry": "Praktikum oder Nebenjob, wichtig für den Einstieg",
+          "new_field": "Hilft beim Wechsel in ein neues Feld",
+          "before_break": "Lag vor Ihrer Auszeit und zählt wie eine aktuelle Station",
+          "unknown": "Empfehlung der App"
+        },
+        "education": {
+          "highest": "Ihr höchster Abschluss",
+          "school": "Schulzeit; bei Berufserfahrung genügt meist der Abschluss",
+          "school_entry": "Schulzeit; bei Berufserfahrung genügt meist der Abschluss",
+          "earlier_degree": "Früherer Abschluss neben einem höheren",
+          "other": "Weiterer Abschluss",
+          "below_highest_degree": "Liegt unter Ihrem höchsten Abschluss",
+          "older_earlier_degree": "Früherer Abschluss, älter als Ihr höchster",
+          "unknown": "Empfehlung der App"
+        },
+        "certificate": {
+          "recent": "Aktuelles Zertifikat",
+          "older_than_10_years": "Ausgestellt vor über 10 Jahren",
+          "no_date": "Ohne Datum, das Alter lässt sich nicht beurteilen",
+          "unknown": "Empfehlung der App"
+        }
+      },
+      "groups": {
+        "experiences": "Berufserfahrung",
+        "educations": "Ausbildung",
+        "certificates": "Zertifikate",
+        "sections": "Abschnitte",
+        "levelHint": "Ausführlich zeigt alles, Kurz lässt die Beschreibung weg, Weglassen nimmt den Eintrag heraus.",
+        "switchHint": "Ein = steht im Lebenslauf, Aus = wird weggelassen.",
+        "empty": "Im Stammprofil gibt es dazu noch keine Einträge."
+      },
+      "sections": {
+        "summary": "Kurzprofil",
+        "skills": "Kenntnisse",
+        "languages": "Sprachen",
+        "interests": "Interessen & Aktivitäten"
+      },
+      "actions": {
+        "take": "Vorschlag übernehmen",
+        "reset": "Alles vollständig"
+      },
+      "summary": {
+        "complete": "Vollständig: das ganze Stammprofil",
+        "experiencesShort_one": "{{count}} Station gekürzt",
+        "experiencesShort_other": "{{count}} Stationen gekürzt",
+        "experiencesHidden_one": "{{count}} Station weggelassen",
+        "experiencesHidden_other": "{{count}} Stationen weggelassen",
+        "educationsShort_one": "{{count}} Ausbildung gekürzt",
+        "educationsShort_other": "{{count}} Ausbildungen gekürzt",
+        "educationsHidden_one": "{{count}} Ausbildung weggelassen",
+        "educationsHidden_other": "{{count}} Ausbildungen weggelassen",
+        "certificatesHidden_one": "{{count}} Zertifikat weggelassen",
+        "certificatesHidden_other": "{{count}} Zertifikate weggelassen",
+        "sectionsHidden_one": "{{count}} Abschnitt weggelassen",
+        "sectionsHidden_other": "{{count}} Abschnitte weggelassen",
+        "attachments_one": "{{count}} Anlage",
+        "attachments_other": "{{count}} Anlagen"
+      },
+      "errors": {
+        "suggestion": "Der Vorschlag konnte nicht geladen werden.",
+        "suggestionShort": "Der Vorschlag konnte nicht geladen werden. „Vorschlag übernehmen“ versucht es erneut.",
+        "profile": "Das Stammprofil konnte nicht geladen werden."
+      },
+      "checklist": {
+        "title": "Was in diese Bewerbung gehört",
+        "note": "Eine Empfehlung nach gängigen Ratgebern für Ihre Lage, keine Vorgabe. Sie entscheiden.",
+        "manual": "Mehr dazu im Handbuch, Kapitel 22 „Ratgeber: So bauen Sie eine Bewerbung auf“.",
+        "items": {
+          "cover_letter": "Anschreiben",
+          "cv": "Lebenslauf",
+          "work_references": "Arbeitszeugnisse",
+          "highest_degree": "Zeugnis des höchsten Abschlusses",
+          "certificates": "Zertifikate",
+          "photo": "Foto"
+        },
+        "states": {
+          "ok": "Vorhanden",
+          "missing": "Fehlt",
+          "optional": "Freiwillig",
+          "not_needed": "Nicht nötig"
+        },
+        "fallback": {
+          "ok": "Das passt.",
+          "missing": "Das fehlt noch.",
+          "optional": "Das ist freiwillig.",
+          "not_needed": "Das brauchen Sie hier nach der Empfehlung nicht."
+        },
+        "hints": {
+          "cover_letter": {
+            "ok": "Ein Anschreiben liegt bereit. Ordnen Sie es oben dieser Bewerbung zu.",
+            "missing": "Ein Anschreiben gehört in der Regel dazu. Legen Sie es unter „Anschreiben“ an.",
+            "optional": "Manche Arbeitgeber wünschen kein Anschreiben. Die Anzeige sagt es meist.",
+            "not_needed": "Hier ist nach der Empfehlung kein eigenes Anschreiben nötig."
+          },
+          "cv": {
+            "ok": "Ihr Lebenslauf entsteht aus dem Stammprofil, und es ist Inhalt vorhanden.",
+            "missing": "Der Lebenslauf braucht Inhalt. Tragen Sie im Stammprofil Ihre Stationen ein."
+          },
+          "work_references": {
+            "ok": "Arbeitszeugnisse der letzten Stationen sind üblich. Wählen Sie unten die passenden aus.",
+            "missing": "Haben Sie Arbeitszeugnisse, laden Sie sie unter „Anlagen & Zeugnisse“ hoch.",
+            "optional": "Arbeitszeugnisse sind möglich, aber nicht zwingend.",
+            "not_needed": "Arbeitszeugnisse brauchen Sie hier nach der Empfehlung nicht."
+          },
+          "highest_degree": {
+            "ok": "Das Zeugnis Ihres höchsten Abschlusses liegt bereit. Es gehört in der Regel dazu.",
+            "missing": "Das Zeugnis Ihres höchsten Abschlusses gehört in der Regel dazu. Laden Sie es unter „Anlagen & Zeugnisse“ hoch.",
+            "optional": "Das Zeugnis Ihres höchsten Abschlusses ist hier freiwillig.",
+            "not_needed": "Das Zeugnis des höchsten Abschlusses brauchen Sie hier nach der Empfehlung nicht."
+          },
+          "certificates": {
+            "ok": "Zertifikate, die zur Stelle passen, sind ein Pluspunkt.",
+            "missing": "Haben Sie passende Zertifikate oder Weiterbildungen, nehmen Sie sie auf.",
+            "optional": "Zertifikate sind freiwillig. Nehmen Sie auf, was zur Stelle passt.",
+            "not_needed": "Ältere oder fachfremde Zertifikate können Sie weglassen."
+          },
+          "photo": {
+            "ok": "Ein Foto ist hinterlegt. Ob es erscheint, entscheiden Sie.",
+            "missing": "Ein Foto ist freiwillig. Sie können auch ohne Foto bewerben.",
+            "optional": "Ein Foto ist freiwillig, in Deutschland aber weit verbreitet. Sie entscheiden.",
+            "not_needed": "Ein Foto brauchen Sie hier nach der Empfehlung nicht."
+          }
+        }
+      }
+    },
+    "ai": {
+      "analyze": "Analysieren",
+      "analyzeText": "Gleichen Sie die Anforderungen mit Ihrem Stammprofil ab und erhalten Sie einen Passungs-Score."
+    },
+    "errors": {
+      "load": "Die Bewerbungen konnten nicht geladen werden.",
+      "stats": "Die Kennzahlen konnten nicht geladen werden.",
+      "create": "Die Bewerbung konnte nicht angelegt werden.",
+      "update": "Die Bewerbung konnte nicht gespeichert werden.",
+      "delete": "Die Bewerbung konnte nicht gelöscht werden.",
+      "status": "Der Status konnte nicht geändert werden.",
+      "addEvent": "Das Ereignis konnte nicht hinzugefügt werden.",
+      "deleteEvent": "Das Ereignis konnte nicht gelöscht werden.",
+      "archive": "Der Snapshot konnte nicht erstellt werden.",
+      "download": "Das Dossier konnte nicht heruntergeladen werden."
     }
   },
   "ai": {
@@ -551,12 +1168,13 @@
       "anthropic": "Anthropic (Claude)",
       "gemini": "Google Gemini",
       "ollama": "Ollama (Lokal auf diesem PC / Server)",
-      "custom": "Benutzerdefinierter Endpunkt (LM Studio / vLLM)"
+      "custom": "Eigener Endpunkt (OpenAI-kompatibel, z. B. vLLM)",
+      "lmstudio": "LM Studio (lokal auf diesem PC / Server)"
     },
     "model": "Modell",
-    "modelPlaceholder": "z. B. gpt-4o-mini, claude-3-5-haiku-20241022, gemini-2.5-flash, llama3.2",
+    "modelPlaceholder": "Name des Modells laut Anbieter",
     "baseUrl": "Basis-URL / Server-Adresse",
-    "baseUrlPlaceholder": "http://localhost:11434 für Ollama oder http://localhost:1234/v1 für LM Studio",
+    "baseUrlPlaceholder": "z. B. http://localhost:1234/v1",
     "apiKey": "API-Schlüssel",
     "apiKeyPlaceholder": "Neuen Schlüssel eingeben (leer lassen, um vorhandenen beizubehalten)...",
     "apiKeyStored": "Schlüssel ist sicher verschlüsselt hinterlegt",
@@ -564,16 +1182,14 @@
     "pseudonymize": "Persönliche Daten durch Platzhalter schützen (Datenschutz)",
     "pseudonymizeHint": "Ersetzt Name, Kontaktdaten und Adresse vor dem Senden durch Tokens und fügt sie erst in der App wieder ein.",
     "testConnection": "Verbindung testen",
-    "testing": "Verbindung wird geprüft...",
     "testSuccess": "Verbindung erfolgreich hergestellt!",
     "save": "Einstellungen speichern",
-    "saving": "Wird gespeichert...",
-    "saved": "KI-Einstellungen erfolgreich gespeichert.",
     "tasks": {
       "coverLetter": "Anschreiben formulieren",
       "analyzeJob": "Stellenanzeige analysieren",
       "summary": "Kurzprofil formulieren",
-      "improveBullet": "Stichpunkt optimieren"
+      "improveBullet": "Stichpunkt optimieren",
+      "translate": "Text übersetzen"
     },
     "assistant": {
       "title": "KI-Assistent",
@@ -605,7 +1221,70 @@
       "missingRequirements": "Offene Punkte & Tipps zum Ausgleich",
       "tips": "Strategische Bewerbungstipps",
       "keyMatches": "Hervorgehobene Stärken",
-      "openSettings": "KI-Einstellungen anpassen"
+      "openSettings": "KI-Einstellungen anpassen",
+      "changeProvider": "Ändern",
+      "jobTitlePlaceholder": "z. B. Senior Cloud Engineer",
+      "companyPlaceholder": "z. B. CloudScale AG",
+      "recipientPlaceholder": "z. B. Frau Dr. Schmidt",
+      "jobDescriptionPlaceholder": "Kopieren Sie hier den Text der Stellenanzeige oder die wichtigsten Anforderungen hinein …",
+      "bulletInput": "Zu optimierender Stichpunkt",
+      "bulletPlaceholder": "z. B. Zuständig für Cloud-Migrationen",
+      "summaryInput": "Fokus / Schwerpunkt (optional)",
+      "summaryPlaceholder": "z. B. Fokus auf Cloud-Architektur und Teamleitung",
+      "directHint": "Erzeugt den Vorschlag direkt über Ihren eingerichteten Anbieter ({{model}}).",
+      "copyPasteHint": "Kopieren Sie den vorbereiteten Prompt und fügen Sie ihn in ChatGPT, Claude oder Gemini im Browser ein.",
+      "copied": "Kopiert",
+      "copyFailed": "Das Kopieren in die Zwischenablage hat nicht funktioniert. Markieren Sie den Text unten und kopieren Sie ihn von Hand.",
+      "promptLabel": "Vorbereiteter Prompt",
+      "actionFailed": "Die KI-Anfrage ist fehlgeschlagen.",
+      "parseFailed": "Die Antwort konnte nicht ausgewertet werden.",
+      "close": "Schließen",
+      "result": {
+        "letterPreview": "Vorschau Anschreiben",
+        "subject": "Betreff",
+        "salutation": "Anrede",
+        "bodyParts": "Einleitung & Hauptteil",
+        "closing": "Schluss",
+        "summaryTitle": "Kurzprofil & Elevator Pitch",
+        "bulletTitle": "Optimierter Stichpunkt",
+        "alternatives": "Alternative Formulierungen",
+        "tip": "Tipp",
+        "scoreHigh": "Gute Passung",
+        "scoreMedium": "Teilweise Passung",
+        "scoreLow": "Geringe Passung",
+        "translationTitle": "Übersetzung nach {{language}}"
+      },
+      "way": "Weg zum Ergebnis",
+      "languages": {
+        "de": "Deutsch",
+        "en": "Englisch"
+      },
+      "applyToSummary": "In Kurzprofil übernehmen",
+      "applyToDescription": "In Beschreibung übernehmen",
+      "applyTranslation": "Übersetzung übernehmen",
+      "bulletContext": "Position (für den Zusammenhang)",
+      "pickLine": "Welche Zeile verbessern?",
+      "pickLineHint": "Die Beschreibung hat mehrere Zeilen. Wählen Sie eine oder alle zusammen.",
+      "pickAll": "Alles zusammen ({{count}} Zeilen)",
+      "translateInput": "Zu übersetzender Text",
+      "translatePlaceholder": "Der Text, der übersetzt werden soll …",
+      "targetLanguage": "Übersetzen nach"
+    },
+    "modelHint": "Leer lassen = Standardmodell des Anbieters.",
+    "testFailed": "Der Verbindungstest ist fehlgeschlagen.",
+    "testSavesFirst": "Der Test prüft die gespeicherten Einstellungen. Geänderte Angaben werden vorher gespeichert.",
+    "errors": {
+      "load": "Die KI-Einstellungen konnten nicht geladen werden."
+    },
+    "copyPasteNotice": {
+      "title": "Kostenlos & 100% datenschutzfreundlich",
+      "text": "Im Modus „Kopieren & Einfügen“ bereitet {{product}} den fertigen Prompt für Sie vor. Sie kopieren ihn mit einem Klick in Ihren bevorzugten KI-Chat (z. B. ChatGPT, Claude oder Gemini im Browser) und fügen die Antwort zurück in die App ein. Es wird kein eigener API-Schlüssel benötigt und es fallen keine Kosten an."
+    },
+    "entry": {
+      "summary": "Kurzprofil mit KI formulieren",
+      "translate": "Mit KI übersetzen",
+      "improveBullets": "Stichpunkte mit KI verbessern",
+      "translateLetter": "Text übersetzen"
     }
   },
   "settings": {
@@ -614,18 +1293,30 @@
     "tabs": {
       "appearance": "Darstellung",
       "security": "Sicherheit",
-      "backups": "Datensicherung"
+      "backups": "Datensicherung",
+      "updates": "Updates",
+      "about": "Über"
     },
     "theme": {
       "title": "Farbschema",
-      "text": "Hell, dunkel oder automatisch nach der Einstellung Ihres Systems.",
-      "system": "System",
+      "text": "Hell oder dunkel. Beim ersten Start entscheidet Ihr System, danach gilt Ihre Wahl.",
       "light": "Hell",
       "dark": "Dunkel"
     },
     "language": {
       "title": "Sprache",
       "text": "Die Sprache der Oberfläche."
+    },
+    "dateFormat": {
+      "title": "Datumsformat",
+      "text": "So geben Sie Datumsangaben ein und so zeigt die App sie an. Getippt werden nur die Ziffern, die Trennzeichen setzt die App selbst.",
+      "auto": "Automatisch (nach Sprache)",
+      "formats": {
+        "dmy": "TT.MM.JJJJ",
+        "ymd_slash": "JJJJ/MM/TT",
+        "iso": "JJJJ-MM-TT"
+      },
+      "preview": "Beispiel: heute ist der {{date}} (Monat: {{month}})."
     },
     "password": {
       "title": "Passwort ändern",
@@ -679,6 +1370,7 @@
     "tabs": {
       "users": "Benutzer",
       "settings": "Einstellungen",
+      "updates": "Updates",
       "activity": "Aktivitätsprotokoll",
       "backups": "Datensicherung"
     },
@@ -731,7 +1423,30 @@
       "confirm2faText": "Alle Konten ohne zweiten Faktor müssen ihn beim nächsten Anmelden einrichten; vorher ist nichts anderes möglich.",
       "confirm2faAction": "Verlangen",
       "saveFailed": "Die Einstellung konnte nicht gespeichert werden:",
-      "loadFailed": "Die Einstellungen konnten nicht geladen werden:"
+      "loadFailed": "Die Einstellungen konnten nicht geladen werden:",
+      "aiHostsTitle": "Freigegebene KI-Server",
+      "aiHostsText": "Eigene KI-Adressen (zum Beispiel ein lokales Ollama) sind auf diesem Server nur für Rechner erlaubt, die hier eingetragen sind. Ohne Eintrag sind nur die öffentlichen Adressen der KI-Anbieter erreichbar.",
+      "aiHostsField": "Rechnername oder IP-Adresse",
+      "aiHostsHint": "Nur der Name, ohne http:// und ohne Port, zum Beispiel ollama.lan.",
+      "aiHostsAdd": "Hinzufügen",
+      "aiHostsRemove": "{{host}} entfernen",
+      "aiHostsEmpty": "Noch kein Rechner freigegeben.",
+      "stepUpTitle": "Änderung bestätigen",
+      "stepUpText": "Diese Änderung öffnet die Instanz weiter. Bestätigen Sie sie mit Ihrem Passwort.",
+      "stepUpAction": "Bestätigen"
+    },
+    "ai": {
+      "title": "KI-Zugang des Servers",
+      "text": "Hier richten Sie einen KI-Dienst für alle Konten ein. Wer keinen eigenen eingerichtet hat, kann dann direkt damit arbeiten. Kopieren und Einfügen geht immer.",
+      "loadFailed": "Der KI-Zugang des Servers konnte nicht geladen werden.",
+      "enabled": "KI-Zugang des Servers verwenden",
+      "enabledHint": "Aus: Jeder braucht einen eigenen Dienst oder nutzt Kopieren und Einfügen. Ein eigener Dienst eines Kontos hat immer Vorrang.",
+      "baseUrlHint": "Der Rechner muss unten bei den freigegebenen Rechnern stehen, sonst lehnt der Server die Adresse ab.",
+      "save": "KI-Zugang speichern",
+      "saved": "Der KI-Zugang des Servers wurde gespeichert.",
+      "stepUpTitle": "KI-Zugang des Servers ändern?",
+      "stepUpAction": "Speichern",
+      "stepUpText": "Diese Einstellung bestimmt, wohin die Bewerbungsdaten aller Konten geschickt werden und über wessen Schlüssel das läuft. Bestätigen Sie sie deshalb mit Ihrem Passwort."
     }
   },
   "activity": {
@@ -858,9 +1573,9 @@
     "retention": {
       "title": "Aufbewahrung",
       "recent": "Letzte Sicherungen behalten",
-      "recentHint": "Die neuesten {{min}} bis {{max}} bleiben.",
+      "recentHint": "Die neuesten {{min}} bis {{max}} bleiben. Standard: 2 (die neueste und die davor).",
       "daily": "Eine pro Tag behalten (Tage)",
-      "dailyHint": "{{min}} bis {{max}} Tage; 0 = keine.",
+      "dailyHint": "{{min}} bis {{max}} Tage; 0 = keine (Standard).",
       "problemRecent": "Bitte eine ganze Zahl von {{min}} bis {{max}} eingeben.",
       "problemDaily": "Bitte eine ganze Zahl von {{min}} bis {{max}} eingeben."
     },
@@ -908,7 +1623,8 @@
       "scheduled": "Nach Zeitplan",
       "manual": "Von Hand",
       "pre-restore": "Vor Wiederherstellung",
-      "uploaded": "Hochgeladen"
+      "uploaded": "Hochgeladen",
+      "pre-update": "Vor Update"
     },
     "result": {
       "created": "Sicherung erstellt: {{file}}",
@@ -938,10 +1654,12 @@
       "restoreSignOut": "Alle werden abgemeldet und müssen sich neu anmelden.",
       "restoreReloadDesktop": "Das Programm lädt danach neu und zeigt den wiederhergestellten Stand.",
       "restoreReplace": "Alle Daten, die nach dieser Sicherung entstanden sind, sind danach nicht mehr in der laufenden App.",
+      "restoreDatabaseOnly": "Diese ältere Sicherung enthält nur die Datenbank: Fotos, Unterschriften, Anlagen und gespeicherte Mappen bleiben, wie sie jetzt sind.",
       "deleteTitle": "Sicherung löschen",
       "deleteText": "Die Sicherung vom {{date}} ({{kind}}) wird gelöscht.",
       "deleteIrreversible": "Das lässt sich nicht rückgängig machen. Die laufende App ist davon nicht betroffen."
     },
+    "databaseOnly": "Nur Datenbank",
     "deleteFailed": "Die Sicherung konnte nicht gelöscht werden:"
   },
   "errorScreen": {
@@ -969,6 +1687,7 @@
       "title": "Nicht erreichbar",
       "text": "Der Server antwortet gerade nicht oder wird gewartet. Bitte versuchen Sie es gleich noch einmal."
     },
+    "noAnswer": "Offline",
     "retry": "Noch einmal versuchen",
     "home": "Zur Übersicht",
     "signIn": "Zur Anmeldung"
@@ -1005,7 +1724,8 @@
         "404": "Das wurde nicht gefunden.",
         "429": "Zu viele Anfragen. Bitte einen Moment warten.",
         "500": "Auf dem Server ist ein Fehler aufgetreten.",
-        "503": "Der Server ist gerade nicht verfügbar."
+        "503": "Der Server ist gerade nicht verfügbar.",
+        "invalid": "Dieser Bewerbungsstatus ist ungültig."
       },
       "validation": {
         "failed": "Die Eingaben sind nicht gültig.",
@@ -1018,10 +1738,14 @@
         "pattern": "Das Format stimmt nicht.",
         "invalid_characters": "Enthält nicht erlaubte Zeichen.",
         "invalid_value": "Dieser Wert ist nicht gültig.",
+        "period_required": "Bitte Beginn oder Ende angeben oder die Ausbildung als laufend markieren.",
         "duplicates": "Ein Wert steht doppelt in der Liste.",
         "file_too_large": "Die Datei ist zu groß.",
         "max_items": "Es sind zu viele Einträge (höchstens {{max}}).",
-        "time_format": "Die Uhrzeit hat kein gültiges Format (HH:mm)."
+        "time_format": "Die Uhrzeit hat kein gültiges Format (HH:mm).",
+        "url": "Bitte eine vollständige Adresse mit http:// oder https:// eingeben.",
+        "color": "Bitte eine Farbe im Format #RGB, #RRGGBB oder #RRGGBBAA eingeben, zum Beispiel #14213D.",
+        "host": "„{{value}}“ ist kein gültiger Rechnername und keine IP-Adresse."
       },
       "auth": {
         "invalid_credentials": "Benutzername oder Passwort ist falsch.",
@@ -1042,10 +1766,6 @@
       },
       "password": {
         "current_invalid": "Das aktuelle Passwort ist falsch."
-      },
-      "admin": {
-        "emergency_reset_other_admins_exist": "Es gibt weitere aktive Administratoren. Bitte wenden Sie sich an einen anderen Administrator, um Ihr Passwort zurückzusetzen.",
-        "emergency_reset_no_admin": "Es wurde kein aktives Administrator-Konto gefunden."
       },
       "emergency_reset": {
         "code_invalid": "Der Notfall-Code ist falsch, abgelaufen oder wurde bereits verwendet."
@@ -1083,7 +1803,8 @@
         "too_new": "Diese Sicherung stammt aus einer neueren Version der App und kann hier nicht wiederhergestellt werden.",
         "not_found": "Diese Sicherung gibt es nicht (mehr).",
         "invalid": "Die Datei ist keine gültige Sicherung dieser App.",
-        "too_large": "Die Datei ist zu groß.",
+        "too_large": "Die Sicherung ist zu groß für diesen Server (höchstens {{maxMegabytes}} MB und {{maxFiles}} Dateien). Die Grenze legt der Betreiber fest.",
+        "no_space": "Auf dem Datenträger ist nicht genug Platz, um diese Sicherung auszupacken. Es wurde nichts verändert.",
         "restore_failed": "Die Wiederherstellung ist fehlgeschlagen. Der vorherige Stand wurde automatisch zurückgeholt; er ist außerdem als Sicherung {{safetyBackup}} gespeichert. Einzelheiten stehen im Protokoll des Servers.",
         "upload_limit": "Höchstens {{max}} hochgeladene Sicherungen – bitte erst eine löschen.",
         "restore_failed_not_rolled_back": "Die Wiederherstellung ist fehlgeschlagen und der vorherige Stand konnte nicht automatisch zurückgeholt werden. Er ist als Sicherung {{safetyBackup}} gespeichert: Stellen Sie diese Sicherung wieder her. Einzelheiten stehen im Protokoll des Servers.",
@@ -1127,7 +1848,8 @@
       "photo": {
         "required": "Bitte eine Bilddatei auswählen.",
         "too_large": "Das Bild ist größer als die maximal erlaubten 5 MB.",
-        "invalid_format": "Es werden nur JPEG-, PNG- und WebP-Bilder akzeptiert."
+        "invalid_format": "Es werden nur JPEG-, PNG- und WebP-Bilder akzeptiert.",
+        "too_many_pixels": "Das Bild hat zu viele Bildpunkte (höchstens 8000 Pixel je Seite und 40 Megapixel)."
       },
       "ai": {
         "invalid_json": "Die KI-Antwort enthielt kein gültiges JSON. Bitte fordern Sie die KI auf, ausschließlich JSON auszugeben.",
@@ -1136,9 +1858,496 @@
         "copy_paste_only": "Es ist der Modus 'Kopieren & Einfügen' aktiv. Bitte nutzen Sie 'Prompt kopieren' oder hinterlegen Sie einen API-Key.",
         "api_error": "Fehler bei der Kommunikation mit dem KI-Dienst.",
         "missing_key": "Für diesen Anbieter wird ein API-Key benötigt.",
-        "invalid_url": "Die angegebene Basis-URL ist ungültig."
+        "key_unavailable": "Der gespeicherte API-Key lässt sich nicht mehr entschlüsseln, zum Beispiel nach dem Einspielen einer Sicherung in einen neuen Datenordner. Tragen Sie ihn in den KI-Einstellungen neu ein; einen Schlüssel des Servers trägt der Administrator neu ein.",
+        "invalid_url": "Die angegebene Basis-URL ist ungültig.",
+        "host_not_allowed": "Diese Adresse ist auf diesem Server nicht freigegeben. Ein Administrator kann den Rechner unter App-Administration → Einstellungen eintragen.",
+        "connection_failed": "Der KI-Dienst ist nicht erreichbar.",
+        "timeout": "Der KI-Dienst hat nicht rechtzeitig geantwortet.",
+        "daily_limit": "Das Tageslimit für den KI-Schlüssel des Servers ist aufgebraucht ({{limit}} Anfragen). Morgen geht es weiter, oder hinterlegen Sie einen eigenen Schlüssel.",
+        "empty_response": "Der KI-Dienst hat keine Antwort geliefert.",
+        "invalid_provider": "Dieser Anbieter unterstützt keine direkte Verbindung.",
+        "invalid_task": "Diese KI-Aufgabe ist ungültig.",
+        "unsupported_task": "Diese KI-Aufgabe ist unbekannt."
       },
-      "rate_limited_account": "Zu viele Versuche für dieses Konto – bitte 15 Minuten warten."
+      "attachment": {
+        "not_found": "Eine der gewählten Anlagen gibt es nicht (mehr). Prüfen Sie die Auswahl der Anlagen und speichern Sie noch einmal."
+      },
+      "coverLetter": {
+        "not_found": "Das gewählte Anschreiben gibt es nicht (mehr). Wählen Sie ein anderes Anschreiben oder keines aus."
+      },
+      "rate_limited_account": "Zu viele Versuche für dieses Konto – bitte 15 Minuten warten.",
+      "render": {
+        "busy": "Gerade werden zu viele Dokumente erzeugt. Bitte gleich noch einmal versuchen.",
+        "timeout": "Das Erzeugen des Dokuments hat zu lange gedauert."
+      },
+      "dossiers": {
+        "partial_failed": "{{failed}} von {{total}} Bewerbungen konnten nicht erstellt werden. Die übrigen liegen im ZIP, die Gründe stehen darin in der Datei „Nicht-erstellt.txt“.",
+        "failed": "Keine der gewählten Bewerbungen konnte als PDF erstellt werden. Prüfen Sie die Anlagen und den gespeicherten Stand der Bewerbungen und versuchen Sie es noch einmal."
+      },
+      "archive": {
+        "exists": "Für diese Bewerbung ist schon ein Stand archiviert. Bestätigen Sie, dass er ersetzt werden soll.",
+        "missing": "Der archivierte Stand dieser Bewerbung ist nicht mehr vorhanden. Mit „Snapshot aktualisieren“ lässt sich ein neuer anlegen.",
+        "failed": "Der Stand der Unterlagen konnte nicht archiviert werden. Die Bewerbung selbst ist gespeichert; versuchen Sie es mit „Snapshot aktualisieren“ erneut.",
+        "attachments_unavailable": "Der Stand wurde nicht archiviert, weil mindestens eine Anlage fehlt oder nicht lesbar ist. Prüfen Sie die Anlagen und legen Sie den Stand mit „Snapshot aktualisieren“ an."
+      },
+      "file": {
+        "required": "Bitte wählen Sie eine Datei aus.",
+        "missing": "Es wurde keine Datei übertragen. Bitte wählen Sie eine Datei aus.",
+        "too_large": "Die Datei ist zu groß (Anlagen: höchstens 20 MB, Unterschrift: höchstens 2 MB).",
+        "invalid_format": "Dieses Dateiformat wird nicht unterstützt. Erlaubt sind PDF-, PNG-, JPEG- und WebP-Dateien.",
+        "invalid_type": "Für die Unterschrift sind nur PNG- und JPEG-Bilder erlaubt.",
+        "unreadable_pdf": "Diese PDF-Datei lässt sich nicht lesen. Sie ist beschädigt oder mit einem Passwort geschützt.",
+        "too_many_pages": "Diese PDF-Datei hat {{pages}} Seiten. Erlaubt sind höchstens {{max}} Seiten je Anlage.",
+        "not_renderable": "Diese Datei lässt sich nicht in eine Bewerbungsmappe einbinden. Bitte speichern Sie sie neu (zum Beispiel über „Als PDF drucken“) und laden Sie sie erneut hoch.",
+        "quota_exceeded": "Der Speicherplatz für Anlagen dieses Kontos ist aufgebraucht (höchstens {{quotaMegabytes}} MB). Bitte zuerst eine Anlage löschen."
+      },
+      "updates": {
+        "busy": "Gerade läuft eine Sicherung oder Wiederherstellung. Installieren Sie das Update danach.",
+        "busy_backup": "Gerade läuft eine Sicherung. Warten Sie, bis sie fertig ist, und installieren Sie das Update dann.",
+        "busy_restore": "Gerade wird eine Sicherung wiederhergestellt. Installieren Sie das Update danach.",
+        "none": "Es gibt kein Update zum Installieren. Suchen Sie zuerst nach Updates.",
+        "in_progress": "Ein Update wird bereits installiert.",
+        "not_supported": "Dieses Programm kann sich nicht selbst aktualisieren. Die Schritte für Ihre Installation stehen auf der Update-Seite.",
+        "dev_build": "Ein Entwicklungsstand installiert keine Updates.",
+        "download_failed": "Das Update konnte nicht heruntergeladen werden. Prüfen Sie die Internetverbindung und versuchen Sie es noch einmal. Ihre Version und Ihre Daten sind unverändert.",
+        "checksum_failed": "Das heruntergeladene Update ist nicht in Ordnung (die Prüfsumme stimmt nicht) und wurde deshalb nicht installiert. Versuchen Sie es noch einmal. Ihre Version und Ihre Daten sind unverändert.",
+        "backup_failed": "Die Sicherung vor dem Update ist fehlgeschlagen, deshalb wurde nicht installiert. Ihre Version und Ihre Daten sind unverändert.",
+        "no_package": "Zu dieser Version gibt es kein Installationspaket für den gewählten Kanal. Ihre Version und Ihre Daten sind unverändert.",
+        "failed": "Das Update ist fehlgeschlagen. Ihre Version und Ihre Daten sind unverändert. Die technischen Einzelheiten helfen bei der Fehlersuche."
+      },
+      "whats_new": {
+        "not_available": "Für diese Version gibt es keine Versionshinweise."
+      },
+      "handbook": {
+        "not_available": "Das Handbuch ist in diesem Programm nicht enthalten."
+      }
+    }
+  },
+  "updates": {
+    "title": "System-Updates",
+    "description": "Prüfen Sie auf neue Versionen und verwalten Sie Aktualisierungen Ihrer {{product}}-Instanz.",
+    "loadFailed": "Update-Status konnte nicht geladen werden:",
+    "currentVersionTitle": "Installierte Version",
+    "checkNow": "Nach Updates suchen",
+    "lastCheckedAt": "Zuletzt geprüft: {{time}}",
+    "throttledHint": "Die letzte manuelle Prüfung erfolgte vor weniger als 30 Sekunden. Ergebnis stammt aus dem Zwischenspeicher.",
+    "availableBadge": "Neues Update verfügbar",
+    "viewOnGitHub": "Versionshinweise auf GitHub ansehen",
+    "publishedAt": "Veröffentlicht am {{date}}",
+    "instructionsServerTitle": "Aktualisierung des Docker-Containers (Unraid / Server)",
+    "instructionsServerStep1": "Öffnen Sie in der Unraid-Verwaltung den Reiter „Docker“.",
+    "instructionsServerStep2": "Klicken Sie ganz unten auf der Seite auf „Check for Updates“.",
+    "instructionsServerStep3": "Klicken Sie neben dem {{product}}-Container auf „Update“. Der Container wird mit dem neuesten Image aktualisiert; alle Daten und Einstellungen bleiben erhalten.",
+    "instructionsDesktopTitle": "Aktualisierung des Windows Desktop-Programms",
+    "openReleases": "Zu den GitHub Releases",
+    "updateAvailablePill": "Update verfügbar",
+    "checkFailed": "Die Update-Prüfung ist fehlgeschlagen.",
+    "tabBadge": "Neu",
+    "neverChecked": "Noch nicht nach Updates gesucht.",
+    "state": {
+      "devBuild": "Dies ist ein Entwicklungsstand. Er sucht nicht selbst nach Updates und bietet keine an.",
+      "unknownVersion": "Die laufende Version lässt sich nicht mit den veröffentlichten Versionen vergleichen. Deshalb wird kein Update angeboten. Die neuesten Versionen finden Sie auf der Seite der Veröffentlichungen.",
+      "upToDate": "Sie nutzen die neueste Version dieses Kanals."
+    },
+    "install": {
+      "button": "Update installieren",
+      "running": "Das Update wird gerade installiert.",
+      "confirmTitle": "Update auf {{version}} installieren?",
+      "confirmText": "Das Programm lädt die neue Version herunter und prüft sie. Danach legt es eine Sicherung Ihrer Daten an, schließt sich und startet in der neuen Version neu. Das dauert einen Moment.",
+      "unsavedWarning": "Achtung: Es gibt noch Eingaben, die nicht gespeichert sind. Eingaben in einem offenen Fenster gehen beim Neustart verloren. Eingaben, bei denen „Nicht gespeichert“ steht, bleiben als Kopie auf diesem Rechner und sind nach dem Neustart wieder da.",
+      "confirmAction": "Installieren",
+      "confirmAnyway": "Trotzdem installieren",
+      "startFailed": "Das Update konnte nicht gestartet werden."
+    },
+    "progress": {
+      "title": "Update auf {{version}}",
+      "failedTitle": "Update fehlgeschlagen",
+      "failedNotice": "Das Update wurde nicht installiert.",
+      "retry": "Noch einmal versuchen",
+      "untouched": "Ihre installierte Version und Ihre Daten sind unverändert.",
+      "untouchedWithBackup": "Ihre installierte Version und Ihre Daten sind unverändert. Die Sicherung vor dem Update heißt {{file}}.",
+      "steps": {
+        "downloading": "Update herunterladen und prüfen",
+        "backingUp": "Sicherung der Daten anlegen",
+        "restarting": "Programm schließen und neu starten"
+      },
+      "backingUpText": "Ihre Daten werden gesichert. Bitte schließen Sie das Programm nicht selbst.",
+      "restartingText": "Das Programm schließt sich jetzt und startet gleich in der neuen Version."
+    },
+    "instructionsServerIntro": "Auf einem Server aktualisieren Sie den Container, nicht die App selbst. Für den gewählten Kanal muss der Container das Image-Tag „{{tag}}“ verwenden.",
+    "instructionsServerCompose": "Mit Docker Compose: „docker compose pull“ und danach „docker compose up -d“. Auf einem anderen Server genügt der Befehl oben, danach den Container neu erstellen.",
+    "instructionsDesktopOneClick": "Ist ein Update da, erscheint in der Navigation ein Hinweis. Ein Klick darauf lädt die neue Version, legt eine Sicherung an und startet das Programm neu. Ohne Ihren Klick wird nichts installiert.",
+    "instructionsDesktopManual": "Dieses Programm wurde nicht mit dem Setup-Programm installiert und kann sich deshalb nicht selbst aktualisieren. Laden Sie die neueste Version von der Seite der Veröffentlichungen und führen Sie das Setup aus.",
+    "channel": {
+      "title": "Update-Kanal",
+      "text": "Der Kanal bestimmt, welche Versionen Ihnen als Update angeboten werden. Es wird nie auf eine ältere Version zurückgestellt.",
+      "none": "Standard",
+      "beta": "Beta",
+      "nightly": "Nightly",
+      "noneText": "Standard: Sie bekommen nur fertige Versionen (Releases). Das ist die sicherste Wahl.",
+      "betaText": "Beta-Kanal: Sie bekommen Beta-Versionen zum Ausprobieren und außerdem alle fertigen Versionen. Betas können noch Fehler enthalten.",
+      "nightlyText": "Nightly-Kanal: Sie bekommen jede Änderung so schnell wie möglich und außerdem alle fertigen Versionen. Nightlies sind kaum getestet und können Fehler enthalten.",
+      "notSaved": "Noch kein Kanal gewählt: Es gilt der Standard.",
+      "dockerNote": "Docker und Unraid: Dafür muss der Container das Image „{{image}}“ verwenden. Tragen Sie es in Unraid unter „Edit“ im Feld „Repository“ ein. Die Wahl hier allein ändert nicht, was Docker herunterlädt.",
+      "desktopNote": "Das Windows-Programm lädt das Paket des gewählten Kanals selbst.",
+      "saveFailed": "Der Update-Kanal konnte nicht gespeichert werden."
+    },
+    "whatsNewButton": "Neuerungen dieser Version",
+    "allReleases": "Alle Veröffentlichungen"
+  },
+  "colorPicker": {
+    "custom": "Eigene Farbe",
+    "customChosen": "Eigene Farbe {{hex}}",
+    "dialog": "Eigene Farbe wählen",
+    "area": "Sättigung und Helligkeit",
+    "areaValue": "Sättigung {{saturation}} %, Helligkeit {{brightness}} %",
+    "hue": "Farbton",
+    "hueValue": "{{hue}} Grad",
+    "hex": "Farbwert (Hex)",
+    "tooLight": "Diese Farbe ist hell (Kontrast {{ratio}} zu 1 auf Weiß, empfohlen sind mindestens {{min}} zu 1). Überschriften sind auf dem Papier schwer zu lesen. Sie können die Farbe trotzdem verwenden.",
+    "tooLightShort": "Helle Farbe: Überschriften sind auf Weiß schwer zu lesen",
+    "transparent": "Mit Transparenz: Im PDF scheint das Papier durch, in Word wird die Farbe deckend dargestellt."
+  },
+  "preview": {
+    "loading": "Vorschau wird erzeugt …",
+    "failed": "Die Vorschau konnte nicht erzeugt werden.",
+    "retry": "Erneut versuchen"
+  },
+  "attachments": {
+    "title": "Anlagen & Zeugnisse verwalten",
+    "intro": "Laden Sie Arbeitszeugnisse, Diplome, Zertifikate oder Arbeitsproben hoch. Danach können Sie sie jedem Bewerbungsdossier anhängen.",
+    "addTitle": "Neues Dokument hinzufügen (PDF, PNG, JPG oder WebP, bis 20 MB)",
+    "fields": {
+      "title": "Bezeichnung",
+      "titlePlaceholder": "z. B. Arbeitszeugnis Tech GmbH 2025",
+      "category": "Kategorie"
+    },
+    "categories": {
+      "workReference": "Arbeitszeugnis",
+      "degree": "Abschluss / Diplom",
+      "certificate": "Zertifikat / Schulung",
+      "recommendation": "Referenzschreiben",
+      "sample": "Arbeitsprobe",
+      "other": "Sonstiges"
+    },
+    "chooseFile": "Datei auswählen",
+    "noFile": "Noch keine Datei gewählt",
+    "save": "Dokument speichern",
+    "listTitle": "Gespeicherte Dokumente",
+    "listCount": "Gespeicherte Dokumente ({{count}})",
+    "empty": "Noch keine Anlagen hinterlegt. Laden Sie oben ein erstes Zeugnis oder Zertifikat hoch.",
+    "view": "Ansehen",
+    "deleteTitle": "Anlage löschen",
+    "deleteConfirm": "Möchten Sie „{{title}}“ wirklich löschen? Bewerbungen, denen sie angehängt war, enthalten sie danach nicht mehr.",
+    "errors": {
+      "upload": "Das Dokument konnte nicht hochgeladen werden.",
+      "delete": "Die Anlage konnte nicht gelöscht werden.",
+      "load": "Die Anlagen konnten nicht geladen werden."
+    }
+  },
+  "whatsNew": {
+    "title": "Neu in {{version}}",
+    "titleNoVersion": "Neuerungen",
+    "close": "Verstanden",
+    "empty": "Zu dieser Version gibt es keine Einträge.",
+    "notAvailable": "Für diese Version gibt es keine Versionshinweise.",
+    "loadFailed": "Die Versionshinweise konnten nicht geladen werden."
+  },
+  "dragWindow": {
+    "handle": "Fenster verschieben: Mit den Pfeiltasten bewegen Sie es, mit gedrückter Umschalttaste in größeren Schritten. Mit der Maus ziehen Sie an der Kopfzeile.",
+    "reset": "Position zurücksetzen"
+  },
+  "liveHelper": {
+    "helpButton": "Hilfe zu dieser Seite",
+    "settings": {
+      "title": "Einführung und Hinweise",
+      "text": "Zeigt die kurze Einführung noch einmal und holt die Hinweise auf allen Seiten zurück.",
+      "restart": "Einführung und Hinweise neu starten"
+    },
+    "intro": {
+      "title": "Willkommen bei {{product}}",
+      "stepOf": "Schritt {{current}} von {{total}}",
+      "announce": "Schritt {{current}} von {{total}}: {{title}}",
+      "skip": "Überspringen",
+      "back": "Zurück",
+      "next": "Weiter",
+      "finish": "Fertig",
+      "dots": "Schritte der Einführung",
+      "dot": "Schritt {{n}}: {{title}}",
+      "where": "So finden Sie es",
+      "toProfile": "Zum Stammprofil",
+      "openHandbook": "Handbuch öffnen",
+      "steps": {
+        "welcome": {
+          "title": "Bewerbungen, die gut aussehen",
+          "text": "{{product}} macht aus Ihren Angaben Lebenslauf, Anschreiben und Bewerbungsmappe. Sie schreiben alles nur einmal auf und nutzen es für jede Bewerbung wieder.",
+          "point1": "Ein Stammprofil statt vieler einzelner Dateien.",
+          "point2": "Lebenslauf, Anschreiben und Mappe als PDF, Lebenslauf und Anschreiben auch als Word-Datei.",
+          "point3": "Die KI-Hilfe ist freiwillig. Ohne sie geht alles genauso."
+        },
+        "profile": {
+          "title": "Das Stammprofil: einmal pflegen",
+          "text": "Hier steht alles über Sie: Kontaktdaten, Berufserfahrung, Ausbildung, Kenntnisse. Ihre Eingaben werden von selbst gespeichert, einen Speichern-Knopf gibt es nicht.",
+          "point1": "Die Bereiche wechseln Sie in der Seitenleiste, der Assistenten-Modus führt Schritt für Schritt hindurch.",
+          "point2": "Unter „Vorschau & Export“ sehen Sie den Lebenslauf als PDF und wählen Design, Farbe und Schrift.",
+          "point3": "Die Lücken-Analyse zeigt Zeiten ohne Station im Werdegang."
+        },
+        "letter": {
+          "title": "Das Anschreiben",
+          "text": "Für jede Stelle ein eigenes Anschreiben. Absender und Datum trägt {{product}} aus Ihrem Stammprofil ein, das Layout ist angelehnt an DIN 5008.",
+          "point1": "Es wird von selbst gespeichert, die PDF-Vorschau zeigt das fertige Blatt.",
+          "point2": "Herunterladen können Sie es als PDF oder als Word-Datei.",
+          "point3": "Der KI-Assistent kann einen Entwurf vorschlagen. Übernommen wird nur, was Sie bestätigen."
+        },
+        "applications": {
+          "title": "Bewerbungen und Mappe",
+          "text": "Im Bewerbungs-Tracker behalten Sie den Überblick: Jede Bewerbung hat einen Status, vom Entwurf bis zum Angebot oder zur Absage.",
+          "point1": "Als Kanban-Board mit Spalten oder als Liste ansehen.",
+          "point2": "Die Mappe fasst Deckblatt, Anschreiben, Lebenslauf und Anlagen in einem PDF zusammen.",
+          "point3": "Zeugnisse und andere Anlagen laden Sie einmal hoch und hängen sie an jede Bewerbung."
+        },
+        "guide": {
+          "title": "Ratgeber: Was gehört in die Bewerbung?",
+          "text": "In wenigen Klicks erfahren Sie, was in Ihrer Situation in die Bewerbung gehört.",
+          "point1": "Fünf kurze Fragen, etwa eine Minute, jederzeit abbrechbar.",
+          "point2": "Sie bekommen einen Plan: was hineingehört, wie der Lebenslauf aufgebaut ist, was Sie kürzen können.",
+          "point3": "Unter „Alle Situationen“ lesen Sie die Pläne für typische Lagen auch ohne Fragen. Orientierung, keine Rechtsberatung."
+        },
+        "help": {
+          "title": "Hilfe, wenn Sie sie brauchen",
+          "text": "Auf jeder Seite zeigt „Hilfe zu dieser Seite“ unten in der Seitenleiste kurze Hinweise direkt an den Bedienelementen.",
+          "point1": "Das Handbuch erklärt alles ausführlich und lässt sich als PDF herunterladen.",
+          "point2": "In den Einstellungen starten Sie diese Einführung und alle Hinweise jederzeit neu.",
+          "point3": "Die KI richten Sie unter „KI-Einstellungen“ ein: eigener Schlüssel, lokales Modell oder Kopieren und Einfügen."
+        }
+      }
+    },
+    "hints": {
+      "meta": "Hinweis {{current}} von {{total}}",
+      "next": "Weiter",
+      "done": "Fertig",
+      "skip": "Ausblenden",
+      "intro": "Einführung zeigen",
+      "handbook": "Handbuch öffnen",
+      "overviewActions": {
+        "title": "Neue Bewerbung und Export",
+        "text": "Mit dem goldenen Knopf legen Sie eine Bewerbung an, mit „Export“ laden Sie die fertigen PDFs herunter."
+      },
+      "overviewBoard": {
+        "title": "Ihr Bewerbungs-Board",
+        "text": "Jede Spalte ist ein Stand Ihrer Bewerbungen. Ein Klick auf eine Karte öffnet sie, dort ändern Sie auch den Status."
+      },
+      "overviewNext": {
+        "title": "Nachfassen fällig",
+        "text": "Hier stehen die Bewerbungen, bei denen das Nachfassen fällig ist. Ein Klick öffnet die Bewerbung."
+      },
+      "navProfile": {
+        "title": "Hier beginnen Sie",
+        "text": "Im Stammprofil pflegen Sie Ihre Angaben einmal. Daraus entstehen Lebenslauf, Anschreiben und Mappe."
+      },
+      "navExport": {
+        "title": "Export",
+        "text": "Hier laden Sie die fertigen PDFs Ihrer Bewerbungen herunter, einzeln oder viele auf einmal."
+      },
+      "exportTabs": {
+        "title": "Bewerbungen oder nur Lebenslauf",
+        "text": "Im ersten Reiter liegen die PDFs Ihrer Bewerbungen, im zweiten nur der Lebenslauf mit Vorschau, Design und Download."
+      },
+      "exportBulk": {
+        "title": "Mehrere auf einmal",
+        "text": "Haken Sie Bewerbungen an. Eine ergibt ein PDF, mehrere ein ZIP. Es sind höchstens 100 auf einmal möglich."
+      },
+      "exportList": {
+        "title": "Ihre Bewerbungen",
+        "text": "Jede Zeile zeigt den Dateinamen, der aus Unternehmen und Stelle entsteht. „Ansehen“ zeigt die Mappe, „PDF“ lädt sie herunter."
+      },
+      "navGuide": {
+        "title": "Ratgeber",
+        "text": "Ein Klick-Assistent: In wenigen Klicks erfahren Sie, was in Ihrer Situation in die Bewerbung gehört."
+      },
+      "shellAi": {
+        "title": "KI-Einstellungen",
+        "text": "Die KI-Hilfe ist freiwillig. Hier richten Sie ein, wie sie arbeitet: mit eigenem Schlüssel, mit einem lokalen Modell oder per Kopieren und Einfügen."
+      },
+      "shellHandbook": {
+        "title": "Handbuch",
+        "text": "Das ausführliche Handbuch, in Deutsch und Englisch. Sie lesen es in der App oder laden es als PDF herunter."
+      },
+      "shellHelp": {
+        "title": "Hilfe zu dieser Seite",
+        "text": "Zeigt die Hinweise der Seite, auf der Sie gerade sind. Auf Seiten ohne Hinweise startet die Einführung."
+      },
+      "profileSections": {
+        "title": "Die Bereiche des Stammprofils",
+        "text": "Hier wechseln Sie zwischen Persönlichem, Berufserfahrung, Ausbildung, Kenntnissen und den weiteren Bereichen. „Vorschau & Export“ steht ganz unten."
+      },
+      "profileAutosave": {
+        "title": "Von selbst gespeichert",
+        "text": "Sie müssen nichts speichern. Was Sie eintippen, wird von selbst gesichert; hier steht, wie es gerade damit aussieht."
+      },
+      "profileAssistant": {
+        "title": "Assistenten-Modus",
+        "text": "Lieber Schritt für Schritt? Der Assistent führt Sie der Reihe nach durch alle Angaben. Mit „Klassische Ansicht“ kommen Sie zurück."
+      },
+      "profileAi": {
+        "title": "KI-Hilfe für das Kurzprofil",
+        "text": "Die KI kann ein Kurzprofil vorschlagen oder Ihren Text übersetzen. Das ist freiwillig, und übernommen wird nur, was Sie bestätigen."
+      },
+      "experiencesAdd": {
+        "title": "Station hinzufügen",
+        "text": "Tragen Sie hier Ihre Arbeitsstellen ein. Sie erscheinen in Ihrem Lebenslauf."
+      },
+      "profileGaps": {
+        "title": "Lücken-Analyse",
+        "text": "Hier meldet {{product}} Zeiten ohne Station in Ihrem Werdegang. Unter „Details & Tipps anzeigen“ füllen Sie eine Lücke mit einem Klick, zum Beispiel mit einer Weiterbildung."
+      },
+      "previewDesign": {
+        "title": "Design",
+        "text": "So sieht Ihr Lebenslauf aus. Mit „Design wählen“ vergleichen Sie alle Vorlagen mit Vorschaubild."
+      },
+      "previewColor": {
+        "title": "Akzentfarbe",
+        "text": "Die Farbe für Linien, Flächen und Überschriften. Eine eigene Farbe können Sie ebenfalls wählen."
+      },
+      "previewFont": {
+        "title": "Schriftart",
+        "text": "Die Schrift für das ganze Dokument. Die Vorschau passt sich sofort an."
+      },
+      "previewExport": {
+        "title": "Herunterladen",
+        "text": "Hier laden Sie den Lebenslauf als PDF oder als Word-Datei herunter. „Vorschau aktualisieren“ zeichnet die Vorschau neu."
+      },
+      "previewPane": {
+        "title": "Die Vorschau",
+        "text": "So sieht der fertige Lebenslauf aus. Sie ändert sich, sobald Sie Design, Farbe oder Schrift wechseln."
+      },
+      "lettersNew": {
+        "title": "Neues Anschreiben",
+        "text": "Legt ein Anschreiben an. Absender und Datum sind schon eingetragen, Sie ergänzen Empfänger und Text."
+      },
+      "lettersList": {
+        "title": "Ihre Anschreiben",
+        "text": "Ein Klick öffnet ein Anschreiben zum Bearbeiten. Es wird von selbst gespeichert."
+      },
+      "letterTabs": {
+        "title": "Inhalt und Vorschau",
+        "text": "Unter „Inhalt“ schreiben Sie das Anschreiben, unter „PDF-Vorschau“ sehen Sie das fertige Blatt."
+      },
+      "letterAutosave": {
+        "title": "Von selbst gespeichert",
+        "text": "Das Anschreiben speichert sich selbst. Hier sehen Sie, ob alles gesichert ist oder was noch fehlt."
+      },
+      "letterAi": {
+        "title": "KI-Assistent",
+        "text": "Lässt einen Entwurf für das Anschreiben vorschlagen. Die KI ist freiwillig, und Sie entscheiden, was übernommen wird."
+      },
+      "letterExport": {
+        "title": "Herunterladen",
+        "text": "Das fertige Anschreiben als PDF oder Word-Datei. Mit „Löschen“ entfernen Sie es."
+      },
+      "applicationsNew": {
+        "title": "Neue Bewerbung",
+        "text": "Hier legen Sie eine Bewerbung an: Stelle, Firma, Status und das passende Anschreiben."
+      },
+      "applicationsAttachments": {
+        "title": "Anlagen & Zeugnisse",
+        "text": "Laden Sie Zeugnisse und andere Dokumente einmal hoch. Dann hängen Sie sie an jede Bewerbung, die sie braucht."
+      },
+      "applicationsViews": {
+        "title": "Ansicht",
+        "text": "Wechseln Sie zwischen dem Kanban-Board mit Spalten und der Listenansicht."
+      },
+      "applicationsBoard": {
+        "title": "Ihre Bewerbungen",
+        "text": "Ein Klick auf eine Bewerbung öffnet die Einzelheiten. Die Mappe aus Deckblatt, Anschreiben, Lebenslauf und Anlagen sehen und laden Sie über die Symbole an der Bewerbung."
+      },
+      "settingsTabs": {
+        "title": "Einstellungen nach Themen",
+        "text": "Wählen Sie oben den Bereich, den Sie ändern möchten."
+      },
+      "guideStart": {
+        "title": "Ratgeber starten",
+        "text": "Fünf kurze Fragen per Klick, das dauert etwa eine Minute. Danach bekommen Sie Ihren Bewerbungsplan. Abbrechen können Sie jederzeit."
+      },
+      "guideAnswers": {
+        "title": "Ihre Antworten",
+        "text": "Auf diesen Angaben beruht Ihr Plan. Sie bleiben in Ihrem Konto gespeichert, beim nächsten Besuch sehen Sie den Plan gleich."
+      },
+      "guidePlan": {
+        "title": "Ihr Bewerbungsplan",
+        "text": "Karten zu den Themen der Bewerbung: was hineingehört, wie der Lebenslauf aufgebaut ist, was Sie kürzen können. Die Knöpfe am Ende jeder Karte führen direkt an die passende Stelle der App."
+      },
+      "guideChange": {
+        "title": "Antworten ändern",
+        "text": "Hat sich Ihre Lage geändert? Beantworten Sie die Fragen neu, der Plan passt sich an."
+      },
+      "guideOverviewButton": {
+        "title": "Alle Situationen",
+        "text": "Zum Nachlesen: der Plan für typische Lagen, ohne dass Sie etwas beantworten müssen."
+      },
+      "guideSituations": {
+        "title": "Eine Situation wählen",
+        "text": "Vom Schulabschluss bis zum Wiedereinstieg: Wählen Sie eine Lage, darunter steht der Plan für typische Antworten."
+      },
+      "guideSituationPlan": {
+        "title": "Der Plan zur Situation",
+        "text": "So sieht der Plan für diese Lage aus. Die angenommenen Antworten stehen darüber; es sind Beispiele und nicht Ihre."
+      },
+      "guideLegend": {
+        "title": "So lesen Sie die Markierungen",
+        "text": "Hier steht, was „Faustregel“, „Empfehlung“ und die anderen Markierungen bedeuten. Es ist Orientierung, keine Rechtsberatung."
+      },
+      "settingsHelper": {
+        "title": "Einführung und Hinweise",
+        "text": "Mit diesem Knopf sehen Sie die Einführung und alle Hinweise noch einmal."
+      }
+    }
+  },
+  "handbook": {
+    "title": "Handbuch",
+    "frame": "Handbuch als PDF",
+    "language": "Sprache des Handbuchs",
+    "languages": {
+      "de": "Deutsch",
+      "en": "English"
+    },
+    "openInTab": "In neuem Tab öffnen",
+    "download": "Herunterladen",
+    "notAvailableTitle": "Das Handbuch ist in diesem Programm nicht enthalten",
+    "notAvailableText": "In dieser Version liegt das Handbuch in der gewählten Sprache nicht bei. Sie finden es auf der Seite der Veröffentlichungen."
+  },
+  "about": {
+    "title": "Über {{product}}",
+    "description": "Version, Lizenz und Quellcode dieses Programms.",
+    "product": "Programm",
+    "version": "Version",
+    "license": "Lizenz",
+    "licenseText": "Freie Software: Sie dürfen den Quellcode lesen, ändern und weitergeben. Gibt jemand eine geänderte Fassung als Dienst weiter, muss er auch deren Quellcode anbieten.",
+    "source": "Quellcode",
+    "whatsNew": "Neuerungen dieser Version",
+    "handbook": "Handbuch öffnen",
+    "loadFailed": "Die Angaben zum Programm konnten nicht geladen werden.",
+    "licensesTitle": "Verwendete Komponenten",
+    "licensesText": "Dieses Programm enthält Software anderer. Hier steht, wie sie heißt und unter welcher Lizenz sie steht.",
+    "noLicenseText": "Der Lizenztext liegt der Komponente selbst bei: Siehe den Link.",
+    "licensesLoadFailed": "Die Liste der Komponenten konnte nicht geladen werden.",
+    "search": "Komponenten durchsuchen",
+    "searchPlaceholder": "Name, Lizenz oder Teil des Programms",
+    "licensesCount": "{{shown}} von {{total}} Komponenten",
+    "licensesNone": "Keine Komponente passt zu dieser Suche."
+  },
+  "dates": {
+    "placeholder": {
+      "day": {
+        "dmy": "TT.MM.JJJJ",
+        "ymd_slash": "JJJJ/MM/TT",
+        "iso": "JJJJ-MM-TT"
+      },
+      "month": {
+        "dmy": "MM.JJJJ",
+        "ymd_slash": "JJJJ/MM",
+        "iso": "JJJJ-MM"
+      }
     }
   }
 }

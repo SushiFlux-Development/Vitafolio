@@ -30,6 +30,16 @@ export function errorKindOf(error: unknown): ErrorKind {
   return '500'
 }
 
+/**
+ * The big figure of a status screen: the real HTTP status of the failure when one is known, so headline and detail
+ * cannot disagree (502 stays 502 although it shares the 503 screen). Without any answer (status 0) there is no number
+ * to show, so the caller shows a word instead. Without an error (the /error/xxx routes) it is the screen's own number.
+ */
+export function errorFigureOf(kind: ErrorKind, error?: unknown): number | null {
+  if (error instanceof ApiError) return error.status > 0 ? error.status : null
+  return Number(kind)
+}
+
 interface ErrorScreenProps {
   kind: ErrorKind
   /** The failure behind the screen, shown as a complete, copyable notice below the text. */
@@ -48,6 +58,7 @@ interface ErrorScreenProps {
 export function ErrorScreen({ kind, error, onRetry, signInPath }: ErrorScreenProps) {
   const { t } = useTranslation()
   const reduce = useReducedMotion() ?? false
+  const figure = errorFigureOf(kind, error)
   const seconds = error instanceof ApiError ? error.retryAfter : undefined
 
   const fade = (delay: number) => ({
@@ -72,7 +83,9 @@ export function ErrorScreen({ kind, error, onRetry, signInPath }: ErrorScreenPro
         </motion.div>
 
         <motion.div {...fade(0.08)}>
-          <p className="font-display text-7xl leading-none tracking-tight text-gold-text">{kind}</p>
+          <p className="font-display text-7xl leading-none tracking-tight text-gold-text" data-testid="error-figure">
+            {figure ?? t('errorScreen.noAnswer')}
+          </p>
           <h1 className="mt-4 text-2xl">{t(`errorScreen.${kind}.title`)}</h1>
           <p className="mx-auto mt-2 max-w-md leading-relaxed text-ink-muted">
             {t(`errorScreen.${kind}.text`, { seconds: seconds ?? 60 })}

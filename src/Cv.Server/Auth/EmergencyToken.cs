@@ -5,23 +5,25 @@ using Cv.Server.Configuration;
 namespace Cv.Server.Auth;
 
 /// <summary>
-/// One-time emergency token for resetting the password and two-factor authentication of the sole administrator.
-/// When the only admin account is locked out or loses its credentials, the operator with access to the server
-/// data directory or container logs can request or trigger an emergency reset. The token is generated and logged prominently
-/// in the container logs, stored with owner-only permissions in &lt;data&gt;/emergency-token, and consumed on use.
+/// One-time emergency code for resetting the password and two-factor authentication of the sole administrator. The code lives only in the
+/// owner-only file &lt;data&gt;/emergency-token (whoever can read the data folder administers the server anyway); the log only says that one
+/// was requested and where it is. It expires after <see cref="Lifetime"/> (the file's write time, so a restart does not extend it). A valid
+/// code is never replaced by a new request, otherwise anybody could invalidate the operator's code by requesting another one.
 /// </summary>
-public sealed class EmergencyToken(ServerSettings settings, ILogger<EmergencyToken> logger)
+public sealed class EmergencyToken(ServerSettings settings, TimeProvider time, ILogger<EmergencyToken> logger)
 {
+    public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(15);
+
     private const string Alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private const int Length = 28;
 
     private readonly Lock _gate = new();
-    private string? _code;
+    private bool _inUse;
 
     private string File => Path.Combine(settings.DataDirectory, "emergency-token");
     private string TriggerFile => Path.Combine(settings.DataDirectory, "emergency-reset");
 
-    /// <summary>Checks if a trigger file &lt;data&gt;/emergency-reset exists on startup. If so, consumes it and creates a token.</summary>
+    /// <summary>Checks if a trigger file &lt;data&gt;/emergency-reset exists on startup. If so, consumes it and creates a code.</summary>
     public void CheckTriggerFile()
     {
         lock (_gate)
@@ -36,62 +38,65 @@ public sealed class EmergencyToken(ServerSettings settings, ILogger<EmergencyTok
             {
                 logger.LogWarning("Notfall-Triggerdatei '{TriggerFile}' konnte nicht gelöscht werden: {Message}", TriggerFile, ex.Message);
             }
-            GenerateAndAnnounce();
+            EnsureAndAnnounce();
         }
     }
 
-    /// <summary>Creates a new random code, writes it to disk, and logs it with a clear banner in operator logs.</summary>
-    public string GenerateAndAnnounce()
+    /// <summary>Creates a code unless a valid one exists, and tells the operator where it is. The code itself never reaches the log.</summary>
+    public void EnsureAndAnnounce()
     {
-        string code;
         lock (_gate)
         {
+            if (LoadValid() is not null) return;
             var chars = new char[Length];
             for (var i = 0; i < chars.Length; i++) chars[i] = Alphabet[RandomNumberGenerator.GetInt32(Alphabet.Length)];
-            code = _code = new string(chars);
             if (System.IO.File.Exists(File)) System.IO.File.Delete(File);
-            KeyStorage.WritePrivateFile(File, Format(code));
+            KeyStorage.WritePrivateFile(File, Format(new string(chars)));
+            System.IO.File.SetLastWriteTimeUtc(File, time.GetUtcNow().UtcDateTime);
         }
 
-        var line = new string('=', 78);
         logger.LogWarning(
-            "{Line}\nADMINISTRATOR-NOTFALL-CODE: {Code}\n" +
-            "Ein Notfall-Passwort-Reset für den Administrator in {Product} wurde angefordert.\n" +
-            "Geben Sie diesen Einmal-Code in der Anmeldemaske unter 'Notfall-Zugang' ein.\n" +
-            "Der Code gilt nur einmal und setzt bei Erfolg auch die Zwei-Faktor-Authentifizierung zurück.\n{Line}",
-            line, Format(code), Branding.ProductName, line);
-
-        return code;
+            "Ein Notfall-Code für das Administrator-Konto von {Product} wurde angefordert. Er steht in der Datei {File}, gilt {Minutes} Minuten und nur einmal.",
+            Branding.ProductName, File, (int)Lifetime.TotalMinutes);
     }
 
-    /// <summary>Constant-time check of an entered code (dashes, spaces and case do not matter).</summary>
-    public bool Matches(string? entered)
+    /// <summary>
+    /// Constant-time check of an entered code (dashes, spaces and case do not matter). A match reserves the code: a second request with the
+    /// same code is refused until <see cref="Complete"/> or <see cref="Release"/>, so it can only ever be redeemed once.
+    /// </summary>
+    public bool TryReserve(string? entered)
     {
-        string? expected;
+        if (string.IsNullOrEmpty(entered) || entered.Length > 128) return false;
+        var normalized = Encoding.ASCII.GetBytes(Normalize(entered));
         lock (_gate)
         {
-            expected = _code ??= Load();
+            if (_inUse || LoadValid() is not { } expected) return false;
+            if (!CryptographicOperations.FixedTimeEquals(normalized, Encoding.ASCII.GetBytes(expected))) return false;
+            _inUse = true;
+            return true;
         }
-        if (expected is null || string.IsNullOrEmpty(entered) || entered.Length > 128) return false;
-        var normalized = Normalize(entered);
-        return CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(normalized), Encoding.ASCII.GetBytes(expected));
     }
 
-    /// <summary>Deletes the emergency token file and clears the in-memory code.</summary>
+    /// <summary>The reset failed before it was saved: the code stays valid for another try.</summary>
+    public void Release()
+    {
+        lock (_gate) _inUse = false;
+    }
+
+    /// <summary>The reset is saved: the code is gone for good.</summary>
+    public void Complete()
+    {
+        lock (_gate)
+        {
+            _inUse = false;
+            Delete();
+        }
+    }
+
+    /// <summary>Removes the code without it having been used.</summary>
     public void Consume()
     {
-        lock (_gate)
-        {
-            _code = null;
-            try
-            {
-                if (System.IO.File.Exists(File)) System.IO.File.Delete(File);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                logger.LogWarning("Notfall-Code-Datei {File} konnte nicht gelöscht werden: {Message}", File, ex.Message);
-            }
-        }
+        lock (_gate) Delete();
     }
 
     internal static string Normalize(string code) =>
@@ -100,11 +105,29 @@ public sealed class EmergencyToken(ServerSettings settings, ILogger<EmergencyTok
     internal static string Format(string code) =>
         string.Join('-', Enumerable.Range(0, (code.Length + 3) / 4).Select(i => code.Substring(i * 4, Math.Min(4, code.Length - i * 4))));
 
-    private string? Load()
+    /// <summary>The current code; an expired one is removed. Caller holds the lock.</summary>
+    private string? LoadValid()
     {
         if (!System.IO.File.Exists(File)) return null;
+        var age = time.GetUtcNow().UtcDateTime - System.IO.File.GetLastWriteTimeUtc(File);
+        if (age >= Lifetime || age < TimeSpan.FromMinutes(-1))
+        {
+            Delete();
+            return null;
+        }
         var code = Normalize(System.IO.File.ReadAllText(File).Trim());
         return code.Length == Length && code.All(c => Alphabet.Contains(c, StringComparison.Ordinal)) ? code : null;
     }
-}
 
+    private void Delete()
+    {
+        try
+        {
+            if (System.IO.File.Exists(File)) System.IO.File.Delete(File);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning("Notfall-Code-Datei {File} konnte nicht gelöscht werden: {Message}", File, ex.Message);
+        }
+    }
+}

@@ -21,6 +21,14 @@ function Get-ProductName {
     return [string]$name
 }
 
+# Any other value of branding.json ("company", "repository", "branch"); empty when the field is missing
+function Get-BrandingValue([string]$Key) {
+    $file = Join-Path $script:RootDir 'branding.json'
+    if (-not (Test-Path -LiteralPath $file)) { throw 'branding.json fehlt.' }
+    $value = (Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json).$Key
+    return [string]$value
+}
+
 $script:ProductName = Get-ProductName
 $script:ProjectKey = $script:ProductName.ToLowerInvariant()
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using System.Net;
@@ -243,7 +243,8 @@ public class AiTests(ServerFixture fixture) : IClassFixture<ServerFixture>
             enabled = true,
             provider = "ollama",
             model = "llama3:latest",
-            baseUrl = "http://localhost:11434"
+            baseUrl = "http://localhost:11434",
+            password = ServerFixture.AdminPassword
         });
         Assert.Equal(HttpStatusCode.OK, saveAdminRes.StatusCode);
         var savedAdminCfg = await saveAdminRes.JsonAsync();
@@ -256,6 +257,12 @@ public class AiTests(ServerFixture fixture) : IClassFixture<ServerFixture>
         var userCfg = await userCfgRes.JsonAsync();
         Assert.True(userCfg.GetProperty("hasServerFallback").GetBoolean());
         Assert.Equal("ollama", userCfg.GetProperty("serverFallbackProvider").GetString());
+
+        // The server config is shared by every test of this class: leave it switched off as it was found, otherwise a test that expects
+        // an account without own AI settings to be in copy-and-paste mode fails whenever it runs after this one
+        var off = await admin.PutAsync("/api/ai/admin-config", new { enabled = false, provider = "ollama", model = "llama3:latest", baseUrl = "http://localhost:11434", password = ServerFixture.AdminPassword });
+        Assert.Equal(HttpStatusCode.OK, off.StatusCode);
+        Assert.False((await off.JsonAsync()).GetProperty("enabled").GetBoolean());
     }
 }
 

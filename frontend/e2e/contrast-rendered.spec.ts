@@ -33,6 +33,8 @@ for (const theme of THEMES) {
     test('sign-in page, a failed sign-in and the 404 screen', async ({ page }) => {
       await useColorScheme(page, theme)
       await page.goto('/login')
+      // The app asks the server what to show first: measure only once the form is there (otherwise the page is still empty)
+      await expect(field(page, 'username')).toBeVisible()
       await expectReadable(page, theme, 'sign-in page')
       await field(page, 'username').fill('nobody-here')
       await field(page, 'password').fill('whatever whatever whatever')

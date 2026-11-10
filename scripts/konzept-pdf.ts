@@ -303,7 +303,7 @@ const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><t
     ${meta.tagline ? `<p class="cover-tagline">${escape(meta.tagline)}</p>` : ''}
     <div class="cover-meta">${coverRows}</div>
   </div>
-  <div class="cover-footer"><span>${escape(meta.copyright ?? '© SushiFlux Develop')}</span><span>${en ? 'Made with <span class="heart">♥</span>' : 'Mit <span class="heart">♥</span> gemacht'}</span></div>
+  <div class="cover-footer"><span>${escape(meta.copyright ?? '© SushiFlux Development')}</span><span>${en ? 'Made with <span class="heart">♥</span>' : 'Mit <span class="heart">♥</span> gemacht'}</span></div>
 </section>
 <nav class="toc"><h1 class="toc-title">${en ? 'Contents' : 'Inhalt'}</h1><div class="toc-rule"></div><ol>${tocHtml}</ol></nav>
 <main class="content">${content}</main>

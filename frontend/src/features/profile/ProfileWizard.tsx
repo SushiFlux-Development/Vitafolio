@@ -1,146 +1,117 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { Profile } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
-import { PersonalTab } from '../../pages/profile/PersonalTab'
-import { ExperiencesTab } from '../../pages/profile/ExperiencesTab'
 import { EducationsTab } from '../../pages/profile/EducationsTab'
-import { SkillsTab } from '../../pages/profile/SkillsTab'
+import { ExperiencesTab } from '../../pages/profile/ExperiencesTab'
 import { LanguagesTab } from '../../pages/profile/LanguagesTab'
+import { PersonalTab } from '../../pages/profile/PersonalTab'
+import { PreviewGate } from '../../pages/profile/PreviewGate'
 import { PreviewTab } from '../../pages/profile/PreviewTab'
-import type { Profile } from '../../api/types'
+import type { PersonalForm } from '../../pages/profile/usePersonalForm'
+import { SkillsTab } from '../../pages/profile/SkillsTab'
 
 interface ProfileWizardProps {
   profile: Profile
+  /** The personal data lives in the page, so it survives leaving and re-entering the wizard. */
+  personalForm: PersonalForm
   onExitWizard: () => void
 }
 
-const STEPS = [
-  { id: 1, title: 'Stammdaten & Kontakt', description: 'Name, Kontaktdaten, Anschrift und Kurzprofil' },
-  { id: 2, title: 'Berufserfahrung', description: 'Berufliche Stationen und Praxiserfahrung' },
-  { id: 3, title: 'Ausbildung & Studium', description: 'Schulbildung, Berufsausbildung und Hochschulabschlüsse' },
-  { id: 4, title: 'Kenntnisse & Sprachen', description: 'Fachliche Kernkompetenzen und Fremdsprachen' },
-  { id: 5, title: 'Vorschau & Fertigstellung', description: 'PDF-Vorschau und Export' },
-]
+const STEPS = [1, 2, 3, 4, 5] as const
 
-export function ProfileWizard({ profile, onExitWizard }: ProfileWizardProps) {
-  const [currentStep, setCurrentStep] = useState(1)
+export function ProfileWizard({ profile, personalForm, onExitWizard }: ProfileWizardProps) {
+  const { t } = useTranslation()
+  const [currentStep, setCurrentStep] = useState<(typeof STEPS)[number]>(1)
 
-  const handleNext = () => {
-    if (currentStep < STEPS.length) {
-      setCurrentStep((prev) => prev + 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      onExitWizard()
-    }
+  const go = (step: (typeof STEPS)[number]) => {
+    setCurrentStep(step)
+    window.scrollTo({ top: 0 })
   }
 
-  const handlePrev = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+  const handleNext = () => {
+    if (currentStep < STEPS.length) go((currentStep + 1) as (typeof STEPS)[number])
+    else onExitWizard()
   }
 
   return (
     <div className="space-y-6">
       {/* Wizard Header Bar */}
-      <div className="card p-5 border-l-4 border-l-primary flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="card flex flex-col justify-between gap-4 border-l-4 border-l-indicator p-5 md:flex-row md:items-center">
         <div>
-          <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wider uppercase">
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-gold-text uppercase">
             <Icon name="sparkles" size={16} />
-            Schritt-für-Schritt Assistent
+            {t('profile.wizard.label')}
           </div>
-          <h2 className="text-xl font-bold text-ink mt-0.5">
-            Schritt {currentStep} von {STEPS.length}: {STEPS[currentStep - 1]?.title}
-          </h2>
-          <p className="text-sm text-ink-muted">
-            {STEPS[currentStep - 1]?.description}
-          </p>
+          <h2 className="mt-0.5 text-xl font-bold text-ink">{t('profile.wizard.stepOf', { current: currentStep, total: STEPS.length, title: t(`profile.wizard.steps.${currentStep}.title`) })}</h2>
+          <p className="text-sm text-ink-muted">{t(`profile.wizard.steps.${currentStep}.description`)}</p>
         </div>
 
-        <Button variant="secondary" onClick={onExitWizard} small>
-          <Icon name="layoutBoard" className="mr-1.5" size={15} />
-          Klassische Ansicht
+        <Button small icon="layoutBoard" onClick={onExitWizard}>
+          {t('profile.classicView')}
         </Button>
       </div>
 
       {/* Step Stepper Progress */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5" aria-label={t('profile.wizard.label')}>
         {STEPS.map((step) => {
-          const isActive = step.id === currentStep
-          const isDone = step.id < currentStep
+          const isActive = step === currentStep
+          const isDone = step < currentStep
           return (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => setCurrentStep(step.id)}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                isActive
-                  ? 'border-primary bg-primary/5 text-primary font-semibold ring-1 ring-primary'
-                  : isDone
-                  ? 'border-border bg-canvas text-ink hover:bg-canvas-subtle'
-                  : 'border-border/60 bg-canvas/60 text-ink-muted opacity-80'
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-bold">Schritt {step.id}</span>
-                {isDone && <Icon name="circleCheck" size={14} className="text-success" />}
-              </div>
-              <div className="text-xs truncate">{step.title}</div>
-            </button>
+            <li key={step}>
+              <button
+                type="button"
+                onClick={() => go(step)}
+                aria-current={isActive ? 'step' : undefined}
+                className={`w-full rounded-md border p-3 text-left transition-colors ${
+                  isActive ? 'border-indicator bg-select text-select-ink ring-1 ring-indicator' : isDone ? 'border-line bg-surface text-ink hover:bg-surface-2' : 'border-line bg-surface-2 text-ink-muted hover:bg-surface'
+                }`}
+              >
+                <span className="mb-1 flex items-center justify-between text-xs font-bold">
+                  {t('profile.wizard.step', { number: step })}
+                  {isDone && <Icon name="circleCheck" size={14} className="text-success-soft-ink" />}
+                </span>
+                <span className="block text-xs">{t(`profile.wizard.steps.${step}.title`)}</span>
+              </button>
+            </li>
           )
         })}
-      </div>
+      </ol>
 
       {/* Step Content */}
-      <div className="card p-6 min-h-[400px]">
-        {currentStep === 1 && <PersonalTab profile={profile} />}
+      <div className="card min-h-[400px] p-6">
+        {currentStep === 1 && <PersonalTab profile={profile} form={personalForm} />}
         {currentStep === 2 && <ExperiencesTab profile={profile} />}
         {currentStep === 3 && <EducationsTab profile={profile} />}
         {currentStep === 4 && (
           <div className="space-y-8">
             <div>
-              <h3 className="text-base font-semibold text-ink mb-3">Fachliche Kompetenzen</h3>
+              <h3 className="mb-3 text-base font-semibold text-ink">{t('profile.wizard.skillsHeading')}</h3>
               <SkillsTab profile={profile} />
             </div>
-            <div className="border-t border-border pt-6">
-              <h3 className="text-base font-semibold text-ink mb-3">Sprachkenntnisse</h3>
+            <div className="border-t border-line pt-6">
+              <h3 className="mb-3 text-base font-semibold text-ink">{t('profile.wizard.languagesHeading')}</h3>
               <LanguagesTab profile={profile} />
             </div>
           </div>
         )}
-        {currentStep === 5 && <PreviewTab />}
+        {currentStep === 5 && (
+          <PreviewGate form={personalForm}>
+            <PreviewTab />
+          </PreviewGate>
+        )}
       </div>
 
       {/* Wizard Footer Controls */}
       <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="secondary"
-          onClick={handlePrev}
-          disabled={currentStep === 1}
-        >
-          <Icon name="chevronLeft" className="mr-1.5" size={17} />
-          Zurück
+        <Button icon="chevronLeft" disabled={currentStep === 1} onClick={() => go((currentStep - 1) as (typeof STEPS)[number])}>
+          {t('common.back')}
         </Button>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="confirm"
-            onClick={handleNext}
-          >
-            {currentStep === STEPS.length ? (
-              <>
-                <Icon name="check" className="mr-1.5" size={17} />
-                Assistent abschließen
-              </>
-            ) : (
-              <>
-                Weiter zum nächsten Schritt
-                <Icon name="chevronRight" className="ml-1.5" size={17} />
-              </>
-            )}
-          </Button>
-        </div>
+        <Button variant="confirm" icon={currentStep === STEPS.length ? 'check' : 'chevronRight'} onClick={handleNext}>
+          {currentStep === STEPS.length ? t('profile.wizard.finish') : t('profile.wizard.next')}
+        </Button>
       </div>
     </div>
   )

@@ -17,7 +17,7 @@ export const SIGNED_OUT: Session = { user: null, twoFactorSetupRequired: false }
 
 /** Public facts about the instance (mode, rules, whether setup is needed), fetched once and kept. */
 export function useBootstrapQuery() {
-  return useQuery({ queryKey: BOOTSTRAP_KEY, queryFn: publicApi.bootstrap, staleTime: 60_000, retry: false })
+  return useQuery({ queryKey: BOOTSTRAP_KEY, queryFn: () => publicApi.bootstrap(), staleTime: 60_000, retry: false })
 }
 
 async function loadSession(): Promise<Session> {

@@ -10,7 +10,7 @@ export function SecurityTab() {
   const { t } = useTranslation()
   const user = useUser()
   return (
-    <div className="flex flex-col gap-6">
+    <div className="card-grid items-start gap-6 [--card-min:30rem]">
       <Section title={t('settings.password.title')} description={t('settings.password.text')}>
         <PasswordSection />
       </Section>
@@ -20,9 +20,12 @@ export function SecurityTab() {
       >
         <TotpSection />
       </Section>
-      <Section title={t('settings.sessions.title')} description={t('settings.sessions.text')}>
-        <SessionSection />
-      </Section>
+      {/* The sessions table needs room: it takes the whole row, so it does not scroll sideways at a normal window width. */}
+      <div className="col-span-full">
+        <Section title={t('settings.sessions.title')} description={t('settings.sessions.text')}>
+          <SessionSection />
+        </Section>
+      </div>
     </div>
   )
 }

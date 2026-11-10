@@ -15,6 +15,11 @@ export function useAppState(): AppState {
   return state
 }
 
+/** Like useAppState, but null outside the app gate (small displays that also work without a signed-in session, e.g. in isolated tests). */
+export function useOptionalAppState(): AppState | null {
+  return useContext(AppStateContext)
+}
+
 /** The signed-in user; only for routes behind the sign-in guard. */
 export function useUser() {
   const { session } = useAppState()

@@ -9,11 +9,12 @@ import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
 import { Notice } from '../../components/ui/Notice'
-import { formatBytes, formatDateTime } from '../../format'
+import { formatBytes } from '../../format'
+import { useDateFormat } from '../../hooks/useDateFormat'
 import { ReauthDialog } from './ReauthDialog'
 
-/** The largest backup file the server accepts. */
-export const MAX_UPLOAD_BYTES = 512 * 1024 * 1024
+/** Until the settings have told the real limit: the server's default. */
+export const DEFAULT_MAX_UPLOAD_BYTES = 16 * 1024 * 1024 * 1024
 
 type Action =
   | { id: number; open: boolean; kind: 'download'; entry: BackupEntry }
@@ -29,6 +30,8 @@ type Result = { tone: 'success' | 'info' | 'warning'; text: string }
 
 interface BackupListProps {
   entries: readonly BackupEntry[]
+  /** The server's limit for one backup file. */
+  maxUploadBytes?: number | undefined
   desktop: boolean
   /** The signed-in account has two-factor authentication: sensitive actions ask for the code as well. */
   twoFactor: boolean
@@ -39,7 +42,7 @@ interface BackupListProps {
 
 /** The file name the browser should propose when the server did not send one. */
 function fallbackName(entry?: BackupEntry): string {
-  return entry ? entry.file : 'backup.db'
+  return entry ? entry.file : 'backup.zip'
 }
 
 /**
@@ -47,8 +50,9 @@ function fallbackName(entry?: BackupEntry): string {
  * Wiederherstellen per entry. Download, upload and restore expose or replace everybody's data, so in server mode they go
  * through a dialog that asks for the password (and the 2FA code); the restore dialog says exactly what will happen.
  */
-export function BackupList({ entries, desktop, twoFactor, onChanged, language }: BackupListProps) {
+export function BackupList({ entries, maxUploadBytes = DEFAULT_MAX_UPLOAD_BYTES, desktop, twoFactor, onChanged, language }: BackupListProps) {
   const { t } = useTranslation()
+  const dates = useDateFormat()
   const showError = useErrorDialog()
   const fileInput = useRef<HTMLInputElement>(null)
   const [action, setAction] = useState<Action | null>(null)
@@ -76,7 +80,7 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
 
   // Download without password in the desktop program (the local owner), through the dialog in server mode.
   async function download(entry: BackupEntry | undefined, credentials: Reauth) {
-    const name = entry ? await adminApi.downloadBackup(entry.id, credentials, fallbackName(entry)) : await adminApi.downloadCurrent(credentials, 'backup.db')
+    const name = entry ? await adminApi.downloadBackup(entry.id, credentials, fallbackName(entry)) : await adminApi.downloadCurrent(credentials, 'backup.zip')
     setResult({ tone: 'success', text: t('backups.result.downloaded', { file: name }) })
     if (!entry) onChanged()
   }
@@ -92,8 +96,8 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
   function onFilePicked(file: File | undefined) {
     if (fileInput.current) fileInput.current.value = ''
     if (!file) return
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setResult({ tone: 'warning', text: t('backups.result.tooBig', { size: formatBytes(file.size, language), max: formatBytes(MAX_UPLOAD_BYTES, language) }) })
+    if (file.size > maxUploadBytes) {
+      setResult({ tone: 'warning', text: t('backups.result.tooBig', { size: formatBytes(file.size, language), max: formatBytes(maxUploadBytes, language) }) })
       return
     }
     setResult(null)
@@ -103,10 +107,10 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
   const sorted = [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const kindLabel = (kind: string) => t(`backups.kind.${kind}`, { defaultValue: kind })
   const reserve = [
-    t('backups.result.deleted', { file: 'backup-0000-00-00-0000.db' }),
-    t('backups.result.created', { file: 'backup-0000-00-00-0000.db' }),
+    t('backups.result.deleted', { file: 'backup-0000-00-00-0000.zip' }),
+    t('backups.result.created', { file: 'backup-0000-00-00-0000.zip' }),
     t('backups.result.unchanged'),
-    t('backups.result.tooBig', { size: '999 MB', max: '512 MB' }),
+    t('backups.result.tooBig', { size: '999.9 GB', max: '999.9 GB' }),
   ]
 
   return (
@@ -154,9 +158,12 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
             )}
             {sorted.map((entry) => (
               <tr key={entry.id}>
-                <td className="whitespace-nowrap tabular-nums">{formatDateTime(entry.createdAt, language)}</td>
+                <td className="whitespace-nowrap tabular-nums">{dates.dateTime(entry.createdAt)}</td>
                 <td>
-                  <span className="badge badge-neutral">{kindLabel(entry.kind)}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="badge badge-neutral">{kindLabel(entry.kind)}</span>
+                    {entry.format === 'database' && <span className="badge badge-neutral">{t('backups.databaseOnly')}</span>}
+                  </div>
                 </td>
                 <td className="text-right whitespace-nowrap tabular-nums">{formatBytes(entry.sizeBytes, language)}</td>
                 <td>
@@ -194,7 +201,7 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
             close()
           }}
         >
-          <p>{t('backups.dialog.downloadText', { date: formatDateTime(action.entry.createdAt, language) })}</p>
+          <p>{t('backups.dialog.downloadText', { date: dates.dateTime(action.entry.createdAt) })}</p>
           <p className="mt-2">{t('backups.dialog.sensitive')}</p>
         </ReauthDialog>
       )}
@@ -259,7 +266,7 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
             close()
           }}
         >
-          <p>{t('backups.dialog.deleteText', { date: formatDateTime(action.entry.createdAt, language), kind: kindLabel(action.entry.kind) })}</p>
+          <p>{t('backups.dialog.deleteText', { date: dates.dateTime(action.entry.createdAt), kind: kindLabel(action.entry.kind) })}</p>
           <p className="mt-2 font-medium text-ink">{t('backups.dialog.deleteIrreversible')}</p>
         </ReauthDialog>
       )}
@@ -282,11 +289,12 @@ export function BackupList({ entries, desktop, twoFactor, onChanged, language }:
             else window.location.assign('/login')
           }}
         >
-          <p>{t('backups.dialog.restoreIntro', { date: formatDateTime(action.entry.createdAt, language), kind: kindLabel(action.entry.kind) })}</p>
+          <p>{t('backups.dialog.restoreIntro', { date: dates.dateTime(action.entry.createdAt), kind: kindLabel(action.entry.kind) })}</p>
           <ul className="mt-3 list-disc space-y-1.5 pl-5">
             <li>{t('backups.dialog.restoreSafety')}</li>
             <li>{desktop ? t('backups.dialog.restoreReloadDesktop') : t('backups.dialog.restoreSignOut')}</li>
             <li>{t('backups.dialog.restoreReplace')}</li>
+            {action.entry.format === 'database' && <li>{t('backups.dialog.restoreDatabaseOnly')}</li>}
           </ul>
         </ReauthDialog>
       )}

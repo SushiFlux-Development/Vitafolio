@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { adminApi } from '../../api/endpoints'
 import type { BackupSettingsInfo } from '../../api/types'
 import { useAppState } from '../../auth/AppState'
-import { reserveFor } from '../../components/forms/reserve'
 import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
@@ -109,7 +108,7 @@ function BackupsEditor({ info, entries }: { info: BackupSettingsInfo; entries: P
   const state: PreviewState = !draft.automaticEnabled ? 'automaticOff' : draft.kind === 'off' ? 'scheduleOff' : runs.length === 0 ? 'noneInWindow' : 'planned'
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="card-grid items-start gap-6 [--card-min:34rem]">
       <Section title={t('backups.schedule.sectionTitle')} description={t('backups.schedule.sectionText')}>
         <ScheduleForm draft={draft} onChange={update} attempted={attempted} />
         <div className="mt-6 flex items-center gap-2">
@@ -127,8 +126,13 @@ function BackupsEditor({ info, entries }: { info: BackupSettingsInfo; entries: P
           </Button>
         </div>
         <div className="mt-3">
-          <AlertSlot reserve={[t('backups.schedule.saved'), ...reserveFor(t, ['validation.failed', 'rate_limited'])]}>
-            {save.isError ? <ErrorNotice error={save.error} title={t('backups.schedule.saveFailed')} /> : savedAt ? <Notice tone="success">{t('backups.schedule.saved')}</Notice> : null}
+          <AlertSlot
+            reservePlain={[t('backups.schedule.saved')]}
+            error={save.isError ? save.error : null}
+            errorTitle={t('backups.schedule.saveFailed')}
+            onDismiss={() => save.reset()}
+          >
+            {!save.isError && savedAt ? <Notice tone="success">{t('backups.schedule.saved')}</Notice> : null}
           </AlertSlot>
         </div>
       </Section>
@@ -167,15 +171,19 @@ function BackupsEditor({ info, entries }: { info: BackupSettingsInfo; entries: P
         )}
       </Section>
 
+      {/* The list is a table: it takes the whole row. */}
+      <div className="col-span-full">
       <Section title={t('backups.list.title')} description={t('backups.list.text')}>
         <BackupList
           entries={entries}
+          maxUploadBytes={info.maxUploadBytes}
           desktop={desktop}
           twoFactor={session.user?.twoFactorEnabled ?? false}
           language={i18n.language}
           onChanged={() => void queryClient.invalidateQueries({ queryKey: ['backups'] })}
         />
       </Section>
+      </div>
     </div>
   )
 }

@@ -29,6 +29,7 @@ internal sealed class MainWindow : Form
     private readonly Palette _palette = Palette.Current;
     private readonly LoadingView _loading;
     private readonly CancellationTokenSource _cts = new();
+    private readonly VelopackInstaller? _installer;
     private WebView2? _web;
     private DesktopServer? _server;
     private Task? _startTask;
@@ -36,12 +37,15 @@ internal sealed class MainWindow : Form
     private bool _shutdownStarted;
     private bool _canClose;
     private bool _wasMaximized;
+    private bool _applyUpdate;
 
     public MainWindow(DesktopOptions options, DesktopPaths paths, string channel)
     {
         _options = options;
         _paths = paths;
         _channel = channel;
+        // A development run never updates itself
+        _installer = options.Dev ? null : new VelopackInstaller(Cv.Server.Configuration.Branding.Repository, OnUpdateReady);
 
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -146,7 +150,7 @@ internal sealed class MainWindow : Form
 
             _loading.Status = Texts.StartingServer;
             _server = await DesktopServer.StartAsync(
-                new DesktopServerOptions(_paths.DataDirectory, _channel, _options.Dev, _options.Dev ? DesktopOptions.DevServerPort : null), _cts.Token);
+                new DesktopServerOptions(_paths.DataDirectory, _channel, _options.Dev, _options.Dev ? DesktopOptions.DevServerPort : null, _installer), _cts.Token);
 
             _server.StoppedUnexpectedly += OnServerStoppedUnexpectedly;
 
@@ -184,6 +188,19 @@ internal sealed class MainWindow : Form
             Dialogs.ShowError(this, title, message, details, closeText: Texts.Quit);
             RequestClose();
         }
+    }
+
+    /// <summary>The server has the update ready and its safety copy made: close the normal way, the installer runs once the server has stopped.</summary>
+    private void OnUpdateReady()
+    {
+        if (IsDisposed || !IsHandleCreated) return;
+        BeginInvoke(() =>
+        {
+            if (_shutdownStarted) return;
+            _applyUpdate = true;
+            DesktopLog.Info("Update bereit: das Programm wird für die Installation beendet.");
+            RequestClose();
+        });
     }
 
     private void OnServerStoppedUnexpectedly()
@@ -395,7 +412,7 @@ internal sealed class MainWindow : Form
     {
         try
         {
-            _loading.Status = Texts.Stopping;
+            _loading.Status = _applyUpdate ? Texts.Updating : Texts.Stopping;
             _loading.Visible = true;
             _loading.BringToFront();
             if (_web is not null) _web.Visible = false;
@@ -415,8 +432,26 @@ internal sealed class MainWindow : Form
         }
         finally
         {
+            ApplyPreparedUpdate();
             _canClose = true;
             Close();
+        }
+    }
+
+    /// <summary>After the server has stopped (nothing holds the program files any more); a failure leaves the installed version as it is and says so.</summary>
+    private void ApplyPreparedUpdate()
+    {
+        if (!_applyUpdate || _installer is null) return;
+        try
+        {
+            _installer.ApplyPrepared();
+            DesktopLog.Info("Das Update wird nach dem Beenden installiert, danach startet das Programm neu.");
+        }
+        catch (Exception ex)
+        {
+            ExitCode = 1;
+            DesktopLog.Error($"Das Update konnte nicht gestartet werden: {ex}");
+            Dialogs.ShowError(this, Texts.UpdateApplyFailedTitle, Texts.UpdateApplyFailed + Environment.NewLine + Environment.NewLine + ex.Message, ex.ToString(), closeText: Texts.Quit);
         }
     }
 

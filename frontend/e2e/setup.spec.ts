@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { expectNothingMoves, field, OWNER, settledLayout } from './support'
+import { expectNothingMoves, field, markHelperSeen, OWNER, settledLayout } from './support'
 
 // Runs first (project "setup") on a fresh instance: creates the first account, which becomes the administrator.
 test.use({ viewport: { width: 1024, height: 768 } })
@@ -79,6 +79,8 @@ test('a wrong setup code is answered at its field and moves nothing', async ({ p
 })
 
 test('setup creates the first account, signs in and lands on the overview', async ({ page }) => {
+  // The session saved at the end of this test is what all other tests start with: the live helper counts as seen in it (see support.ts).
+  await markHelperSeen(page)
   await page.goto('/setup')
   if (await asksForSetupToken(page)) {
     expect(SETUP_TOKEN, 'CV_SETUP_TOKEN (the setup code from the server log) must be set for the e2e run').toBeTruthy()

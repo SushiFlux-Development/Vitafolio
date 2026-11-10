@@ -1,18 +1,25 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { Education, Profile } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
-import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { FormDialog } from '../../components/ui/FormDialog'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { Notice } from '../../components/ui/Notice'
+import { DateField } from '../../components/ui/DateField'
+import { LiveTextAreaField, LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
 import { Toggle } from '../../components/ui/Toggle'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { hasEducationPeriod, periodText } from '../../features/profile/periodText'
+import { MONTH_OPTIONAL, isStoredDateValid, isValid, noRule, requiredField } from '../../validation/rules'
 
-interface EducationFormData {
+interface EducationForm {
   id?: string
   degree: string
   fieldOfStudy: string
@@ -27,7 +34,7 @@ interface EducationFormData {
   sortOrder: number
 }
 
-const emptyForm: EducationFormData = {
+const EMPTY: EducationForm = {
   degree: '',
   fieldOfStudy: '',
   institution: '',
@@ -43,278 +50,214 @@ const emptyForm: EducationFormData = {
 
 export function EducationsTab({ profile }: { profile: Profile }) {
   const { t } = useTranslation()
+  const dates = useDateFormat()
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
+  const entry = useEntryForm<EducationForm>()
+  // A date field was changed in this dialog: "no beginning and no end" is then pointed out at once, not only after a save was tried
+  const [periodTouched, setPeriodTouched] = useState(false)
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<EducationFormData | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: (data: EducationFormData) => {
+  const save = useMutation({
+    mutationFn: (data: EducationForm) => {
       const payload = {
-        degree: data.degree,
-        fieldOfStudy: data.fieldOfStudy || null,
-        institution: data.institution,
-        city: data.city || null,
-        country: data.country || null,
-        startDate: data.startDate,
-        endDate: data.isCurrent ? null : data.endDate || null,
+        degree: data.degree.trim(),
+        fieldOfStudy: data.fieldOfStudy.trim() || null,
+        institution: data.institution.trim(),
+        city: data.city.trim() || null,
+        country: data.country.trim() || null,
+        startDate: data.startDate.trim(),
+        endDate: data.isCurrent ? null : data.endDate.trim() || null,
         isCurrent: data.isCurrent,
-        grade: data.grade || null,
-        description: data.description || null,
+        grade: data.grade.trim() || null,
+        description: data.description.trim() || null,
         sortOrder: data.sortOrder,
       }
       return data.id ? profileApi.updateEducation(data.id, payload) : profileApi.addEducation(payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setDialogOpen(false)
-      setEditingItem(null)
+      refresh()
+      entry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => profileApi.deleteEducation(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDelete = async (edu: Education) => {
-    const ok = await confirm({
-      title: t('profile.educations.delete'),
-      message: t('profile.educations.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteMutation.mutate(edu.id)
-  }
-
-  const reorderMutation = useMutation({
+  const reorder = useMutation({
     mutationFn: (ids: string[]) => profileApi.reorderEducations(ids),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const handleOpenAdd = () => {
-    setEditingItem({ ...emptyForm, sortOrder: profile.educations.length })
-    setDialogOpen(true)
+  const askDelete = async (education: Education) => {
+    const ok = await confirm({ title: t('profile.educations.delete'), message: t('profile.educations.deleteConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) remove.mutate(education.id)
   }
 
-  const handleOpenEdit = (edu: Education) => {
-    setEditingItem({
-      id: edu.id,
-      degree: edu.degree,
-      fieldOfStudy: edu.fieldOfStudy ?? '',
-      institution: edu.institution,
-      city: edu.city ?? '',
-      country: edu.country ?? '',
-      startDate: edu.startDate,
-      endDate: edu.endDate ?? '',
-      isCurrent: edu.isCurrent,
-      grade: edu.grade ?? '',
-      description: edu.description ?? '',
-      sortOrder: edu.sortOrder,
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= profile.educations.length) return
+    const ids = profile.educations.map((education) => education.id)
+    const [moved] = ids.splice(index, 1)
+    if (moved) ids.splice(target, 0, moved)
+    reorder.mutate(ids)
+  }
+
+  const openNew = () => {
+    setPeriodTouched(false)
+    entry.start({ ...EMPTY, sortOrder: profile.educations.length })
+  }
+
+  const edit = (education: Education) => {
+    setPeriodTouched(false)
+    entry.start({
+      id: education.id,
+      degree: education.degree,
+      fieldOfStudy: education.fieldOfStudy ?? '',
+      institution: education.institution,
+      city: education.city ?? '',
+      country: education.country ?? '',
+      startDate: education.startDate,
+      endDate: education.endDate ?? '',
+      isCurrent: education.isCurrent,
+      grade: education.grade ?? '',
+      description: education.description ?? '',
+      sortOrder: education.sortOrder,
     })
-    setDialogOpen(true)
   }
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    if (targetIndex < 0 || targetIndex >= profile.educations.length) return
-
-    const reordered = [...profile.educations]
-    const [moved] = reordered.splice(index, 1)
-    if (moved) reordered.splice(targetIndex, 0, moved)
-
-    reorderMutation.mutate(reordered.map((e) => e.id))
-  }
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem) saveMutation.mutate(editingItem)
+  const form = entry.form
+  const periodMissing = form !== null && !hasEducationPeriod(form)
+  const submit = () => {
+    if (!form) return
+    entry.markAttempted()
+    const valid = isValid(requiredField, form.degree) && isValid(requiredField, form.institution) && isStoredDateValid(MONTH_OPTIONAL, form.startDate) && hasEducationPeriod(form) && (form.isCurrent || isStoredDateValid(MONTH_OPTIONAL, form.endDate))
+    if (valid) save.mutate(form)
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.educations.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.educations.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={handleOpenAdd}>
-          {t('profile.educations.add')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.educations.title')}
+        subtitle={t('profile.educations.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={openNew}>
+            {t('profile.educations.add')}
+          </Button>
+        }
+      />
+      <Notice tone="info">{t('profile.educations.schoolHint')}</Notice>
 
       {profile.educations.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="timeline" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.educations.empty')}</p>
-        </div>
+        <EmptyState icon="timeline" title={t('profile.educations.empty')} />
       ) : (
-        <div className="space-y-3">
-          {profile.educations.map((edu, idx) => (
-            <article key={edu.id} className="card relative flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-start">
+        <ul className="card-grid gap-3 [--card-min:32rem]">
+          {profile.educations.map((education, index) => (
+            <li key={education.id} className="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-start">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <h3 className="text-base font-semibold text-ink">{edu.degree}</h3>
-                  {edu.fieldOfStudy && <span className="text-sm text-ink font-medium">({edu.fieldOfStudy})</span>}
-                  <span className="text-sm text-ink-muted">an der {edu.institution}</span>
-                  {edu.grade && <span className="badge badge-select text-xs">Note {edu.grade}</span>}
+                  <h3 className="text-base font-semibold text-ink">{education.degree}</h3>
+                  {education.fieldOfStudy && <span className="text-sm font-medium text-ink">({education.fieldOfStudy})</span>}
+                  <span className="text-sm text-ink-muted">{t('profile.educations.at', { institution: education.institution })}</span>
+                  {education.grade && <span className="badge badge-select">{t('profile.educations.gradeBadge', { grade: education.grade })}</span>}
                 </div>
-
                 <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-ink-muted">
                   <span>
-                    {edu.startDate} – {edu.isCurrent ? t('profile.educations.isCurrent') : edu.endDate || '–'}
+                    {periodText(dates.stored, education, { now: t('profile.educations.isCurrent'), ongoing: t('profile.educations.ongoing') }) || '–'}
                   </span>
-                  {(edu.city || edu.country) && <span>{[edu.city, edu.country].filter(Boolean).join(', ')}</span>}
+                  {(education.city || education.country) && <span>{[education.city, education.country].filter(Boolean).join(', ')}</span>}
                 </div>
-
-                {edu.description && <p className="mt-3 whitespace-pre-line text-sm text-ink">{edu.description}</p>}
+                {education.description && <p className="mt-3 text-sm whitespace-pre-line text-ink">{education.description}</p>}
               </div>
 
-              <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-start">
-                <Button
-                  variant="ghost"
-                  small
-                  icon="chevronLeft"
-                  className="-rotate-90"
-                  disabled={idx === 0 || reorderMutation.isPending}
-                  onClick={() => handleMove(idx, 'up')}
-                  aria-label={t('profile.experiences.moveUp')}
-                >
-                  <span className="sr-only">{t('profile.experiences.moveUp')}</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  small
-                  icon="chevronLeft"
-                  className="rotate-90"
-                  disabled={idx === profile.educations.length - 1 || reorderMutation.isPending}
-                  onClick={() => handleMove(idx, 'down')}
-                  aria-label={t('profile.experiences.moveDown')}
-                >
-                  <span className="sr-only">{t('profile.experiences.moveDown')}</span>
-                </Button>
-                <Button variant="secondary" small icon="pencil" onClick={() => handleOpenEdit(edu)}>
-                  {t('profile.educations.edit')}
-                </Button>
-                <Button variant="danger-outline" small icon="trash" onClick={() => void handleDelete(edu)}>
-                  {t('profile.educations.delete')}
-                </Button>
-              </div>
-            </article>
+              <ItemActions
+                itemName={education.degree}
+                editLabel={t('profile.educations.edit')}
+                deleteLabel={t('profile.educations.delete')}
+                onEdit={() => edit(education)}
+                onDelete={() => void askDelete(education)}
+                onMoveUp={() => move(index, -1)}
+                onMoveDown={() => move(index, 1)}
+                disableMoveUp={index === 0}
+                disableMoveDown={index === profile.educations.length - 1}
+                busy={reorder.isPending}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={editingItem?.id ? t('profile.educations.edit') : t('profile.educations.add')}
+      <FormDialog
+        open={entry.open}
+        onClose={entry.close}
+        onSubmit={submit}
+        title={form?.id ? t('profile.educations.edit') : t('profile.educations.add')}
         icon="timeline"
-        size="md"
+        busy={save.isPending}
+        dirty={entry.dirty}
       >
-        {editingItem && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
-                label={t('profile.educations.degree')}
-                value={editingItem.degree}
-                onChange={(e) => setEditingItem({ ...editingItem, degree: e.target.value })}
+        {form && (
+          <>
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <LiveTextField
+                label={t('profile.educations.degree')} required
+                value={form.degree}
+                onValueChange={(value) => entry.patch({ degree: value })}
+                check={requiredField}
+                attempted={entry.attempted}
                 placeholder={t('profile.educations.degreePlaceholder')}
-                required
+                data-autofocus
               />
-              <TextField
-                label={t('profile.educations.fieldOfStudy')}
-                value={editingItem.fieldOfStudy}
-                onChange={(e) => setEditingItem({ ...editingItem, fieldOfStudy: e.target.value })}
-              />
+              <LiveTextField label={t('profile.educations.fieldOfStudy')} value={form.fieldOfStudy} onValueChange={(value) => entry.patch({ fieldOfStudy: value })} check={noRule} />
             </div>
 
-            <TextField
-              label={t('profile.educations.institution')}
-              value={editingItem.institution}
-              onChange={(e) => setEditingItem({ ...editingItem, institution: e.target.value })}
-              required
-            />
+            <LiveTextField label={t('profile.educations.institution')} required value={form.institution} onValueChange={(value) => entry.patch({ institution: value })} check={requiredField} attempted={entry.attempted} />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <TextField
-                label={t('profile.educations.city')}
-                value={editingItem.city}
-                onChange={(e) => setEditingItem({ ...editingItem, city: e.target.value })}
-              />
-              <TextField
-                label={t('profile.educations.country')}
-                value={editingItem.country}
-                onChange={(e) => setEditingItem({ ...editingItem, country: e.target.value })}
-              />
-              <TextField
-                label={t('profile.educations.grade')}
-                value={editingItem.grade}
-                onChange={(e) => setEditingItem({ ...editingItem, grade: e.target.value })}
-                placeholder="1,3"
-              />
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+              <LiveTextField label={t('profile.educations.city')} value={form.city} onValueChange={(value) => entry.patch({ city: value })} check={noRule} />
+              <LiveTextField label={t('profile.educations.country')} value={form.country} onValueChange={(value) => entry.patch({ country: value })} check={noRule} />
+              <LiveTextField label={t('profile.educations.grade')} value={form.grade} onValueChange={(value) => entry.patch({ grade: value })} check={noRule} placeholder={t('profile.educations.gradePlaceholder')} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <DateField
                 label={t('profile.educations.startDate')}
-                value={editingItem.startDate}
-                onChange={(e) => setEditingItem({ ...editingItem, startDate: e.target.value })}
-                placeholder="YYYY-MM"
-                required
+                spec={MONTH_OPTIONAL}
+                value={form.startDate}
+                onValueChange={(value) => {
+                  setPeriodTouched(true)
+                  entry.patch({ startDate: value })
+                }}
+                attempted={entry.attempted}
+                hint={t('profile.educations.periodHint')}
+                serverError={periodMissing && (entry.attempted || periodTouched) ? t('rules.education.periodRequired') : undefined}
+                serverKeys={['rules.education.periodRequired']}
               />
-              {!editingItem.isCurrent && (
-                <TextField
-                  label={t('profile.educations.endDate')}
-                  value={editingItem.endDate}
-                  onChange={(e) => setEditingItem({ ...editingItem, endDate: e.target.value })}
-                  placeholder="YYYY-MM"
-                />
-              )}
-            </div>
-
-            <div className="pt-1">
-              <Toggle
-                label={t('profile.educations.isCurrent')}
-                checked={editingItem.isCurrent}
-                onChange={(checked) => setEditingItem({ ...editingItem, isCurrent: checked })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="edu-desc" className="block text-sm font-medium text-ink">
-                {t('profile.educations.description')}
-              </label>
-              <textarea
-                id="edu-desc"
-                rows={4}
-                value={editingItem.description}
-                onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                className="input mt-1.5 w-full resize-y"
+              <DateField
+                label={t('profile.educations.endDate')}
+                spec={MONTH_OPTIONAL}
+                value={form.isCurrent ? '' : form.endDate}
+                onValueChange={(value) => {
+                  setPeriodTouched(true)
+                  entry.patch({ endDate: value })
+                }}
+                attempted={entry.attempted}
+                disabled={form.isCurrent}
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+            <Toggle label={t('profile.educations.isCurrent')} checked={form.isCurrent} onChange={(checked) => entry.patch({ isCurrent: checked })} />
+
+            <LiveTextAreaField label={t('profile.educations.description')} rows={4} value={form.description} onValueChange={(value) => entry.patch({ description: value })} check={noRule} />
+          </>
         )}
-      </Dialog>
+      </FormDialog>
     </div>
   )
 }

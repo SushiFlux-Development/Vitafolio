@@ -11,7 +11,6 @@ import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice } from '../../components/ui/Notice'
 import { Segmented } from '../../components/ui/Segmented'
 import { Toggle } from '../../components/ui/Toggle'
 import { displayNameCheck, isValid, passwordCheck, repeatCheck } from '../../validation/rules'
@@ -36,6 +35,9 @@ function RoleChoice({ value, onChange }: { value: Role; onChange: (role: Role) =
   )
 }
 
+/** The refusals the edit dialog gives in normal operation; every other failure is rare and laid over the content. */
+const EDIT_ANSWERS = ['user.last_admin', 'user.self_demote', 'user.self_disable'] as const
+
 interface DialogBase {
   open: boolean
   onClose: () => void
@@ -49,7 +51,7 @@ export function CreateUserDialog({ open, onClose, onCreated }: DialogBase & { on
     <Dialog open={open} onClose={onClose} title={t('admin.users.createTitle')} icon="userPlus" size="md" closeOnBackdrop={false}>
       <AccountForm
         submitLabel={t('admin.users.createAction')}
-        answerCodes={['rate_limited']}
+        answerCodes={[]}
         onCancel={onClose}
         onSubmit={async (account) => {
           await adminApi.createUser({ ...account, role })
@@ -128,9 +130,14 @@ export function EditUserDialog({ open, onClose, user, self, onSaved }: DialogBas
         <RoleChoice value={role} onChange={setRole} />
         <Toggle checked={!disabled} onChange={(active) => setDisabled(!active)} label={t('admin.users.accountActive')} description={t('admin.users.accountActiveHint')} />
         {self && <p className="text-[0.8125rem] text-ink-muted">{t('admin.users.selfNote')}</p>}
-        <AlertSlot reserve={reserveFor(t, ['user.last_admin', 'user.self_demote', 'user.self_disable'])}>
-          {server.hasGeneralError && <ErrorNotice error={server.error} title={t('admin.users.saveFailed')} />}
-        </AlertSlot>
+        <AlertSlot
+          reserve={reserveFor(t, EDIT_ANSWERS)}
+          error={server.hasGeneralError ? server.error : null}
+          errorTitle={t('admin.users.saveFailed')}
+          normalCodes={EDIT_ANSWERS}
+          grow="up"
+          onDismiss={() => server.setError(null)}
+        />
       </form>
     </Dialog>
   )
@@ -196,7 +203,8 @@ export function SetPasswordDialog({ open, onClose, user }: DialogBase & { user: 
           serverError={server.fields.newPassword}
           names={{ password: 'newPassword', repeat: 'repeatPassword' }}
         />
-        <AlertSlot reserve={reserveFor(t, ['user.not_found', 'rate_limited'])}>{server.hasGeneralError && <ErrorNotice error={server.error} />}</AlertSlot>
+        {/* Only rare failures are possible here (account gone, too many attempts): nothing is reserved, they are laid over. */}
+        <AlertSlot error={server.hasGeneralError ? server.error : null} grow="up" onDismiss={() => server.setError(null)} />
       </form>
     </Dialog>
   )

@@ -11,7 +11,47 @@
     "loading": "Loading …",
     "on": "On",
     "off": "Off",
-    "language": "Language"
+    "language": "Language",
+    "saveFailed": "Saving failed.",
+    "deleteFailed": "Deleting failed.",
+    "loadFailed": "Loading failed.",
+    "actions": "Actions",
+    "add": "Add",
+    "edit": "Edit",
+    "yes": "Yes",
+    "no": "No",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "back": "Back",
+    "discardTitle": "Discard changes?",
+    "discardMessage": "Your input is not saved yet. If you close now, it is lost."
+  },
+  "autoSave": {
+    "saved": "Saved",
+    "saving": "Saving …",
+    "retrying": "Not saved, trying again",
+    "rejected": "Not saved: the server refuses the input",
+    "signedOut": "Not saved: session expired, your input is kept",
+    "showError": "Show error",
+    "restored": "Input from {{time}} restored",
+    "invalid": "Not saved yet: correct the marked fields",
+    "unfinished": "Not saved yet: entry incomplete",
+    "leave": {
+      "title": "Input not saved",
+      "message": "Your latest input could not be saved. It stays as a copy in this browser and is offered to you the next time you open this, but it is not saved on the server.",
+      "confirm": "Leave anyway"
+    },
+    "signOut": {
+      "title": "Input not saved",
+      "message": "Your latest input could not be saved. Signing out also deletes the copy in this browser, so the input will be lost.",
+      "confirm": "Sign out and discard"
+    },
+    "restore": {
+      "askTitle": "Use the input from {{time}}?",
+      "askMessage": "This browser holds input from {{time}} that could no longer be saved on the server. Since then the data on the server has changed, for example on another device. If you use your input, it replaces the data on the server. If you keep the server's data, the input is deleted.",
+      "take": "Use my input",
+      "drop": "Keep server data"
+    }
   },
   "brand": {
     "panelLabel": "What {{product}} does",
@@ -20,7 +60,7 @@
     "features": {
       "cv": {
         "title": "CV from building blocks",
-        "text": "Maintain it once in your master profile, pick what goes into each application."
+        "text": "Maintain it once in your master profile, use it for every application."
       },
       "letter": {
         "title": "Cover letter and title page",
@@ -40,7 +80,7 @@
       }
     },
     "ai": "AI help is optional: with your own key, a local model, or by copy and paste.",
-    "copyright": "© {{year}} SushiFlux Develop"
+    "copyright": "© {{year}} SushiFlux Development"
   },
   "fields": {
     "username": "Username",
@@ -83,6 +123,62 @@
       "characters": "The setup code consists of letters and digits only, without the easily confused 0, 1, I, L and O.",
       "tooLong": "Too long: the setup code has exactly {{count}} characters.",
       "incomplete": "Not complete yet: the setup code has exactly {{count}} characters."
+    },
+    "color": {
+      "required": "Please enter a color, for example #14213D.",
+      "characters": "Only the characters 0 to 9 and A to F are allowed.",
+      "tooLong": "Too long: {{length}} of at most {{max}} digits.",
+      "incomplete": "Incomplete: {{length}} digits, 3, 4, 6 or 8 are allowed."
+    },
+    "aiHost": {
+      "required": "Please enter a host name or an IP address.",
+      "invalid": "Only the name or IP address, without http://, port or path."
+    },
+    "field": {
+      "required": "Please fill in."
+    },
+    "email": {
+      "invalid": "Please enter a valid e-mail address, e.g. name@example.com."
+    },
+    "url": {
+      "invalid": "Please enter a link starting with http:// or https://."
+    },
+    "education": {
+      "periodRequired": "Please enter a start or an end, or switch on “Currently studying”. For school, the year of graduation is enough."
+    },
+    "date": {
+      "required": {
+        "day": {
+          "dmy": "Please enter the date, e.g. 23.04.1990.",
+          "ymd_slash": "Please enter the date, e.g. 1990/04/23.",
+          "iso": "Please enter the date, e.g. 1990-04-23."
+        },
+        "month": {
+          "dmy": "Please enter the month, e.g. 03.2024.",
+          "ymd_slash": "Please enter the month, e.g. 2024/03.",
+          "iso": "Please enter the month, e.g. 2024-03."
+        }
+      },
+      "invalid": {
+        "day": {
+          "dmy": "Please use DD.MM.YYYY, e.g. 23.04.1990.",
+          "ymd_slash": "Please use YYYY/MM/DD, e.g. 1990/04/23.",
+          "iso": "Please use YYYY-MM-DD, e.g. 1990-04-23."
+        },
+        "month": {
+          "dmy": "Please use MM.YYYY, e.g. 03.2024 (or just the year).",
+          "ymd_slash": "Please use YYYY/MM, e.g. 2024/03 (or just the year).",
+          "iso": "Please use YYYY-MM, e.g. 2024-03 (or just the year)."
+        }
+      },
+      "nonexistent": "This day does not exist in the calendar.",
+      "range": "Please enter a year between {{min}} and {{max}}."
+    },
+    "model": {
+      "required": "Please enter the model name."
+    },
+    "json": {
+      "invalid": "This is not a valid JSON object. Please check the content."
     }
   },
   "setup": {
@@ -90,7 +186,7 @@
     "intro": "Create the first account to get started.",
     "adminHint": "This first account automatically becomes the administrator. You create further accounts yourself later.",
     "submit": "Create account",
-    "tokenHint": "It is in the server’s log at the first start – on Unraid under Docker → Vitafolio → Logs."
+    "tokenHint": "It is in the server’s log at the first start – on Unraid under Docker → {{product}} → Logs."
   },
   "login": {
     "title": "Sign in",
@@ -115,11 +211,11 @@
     "intro": "If you are the sole administrator and lost your password or authenticator device, you can reset your password and two-factor authentication here.",
     "adminOnlyNotice": "This emergency path is only available when there is no other active administrator.",
     "step1Title": "1. Request emergency code",
-    "step1Hint": "Click the button to generate an emergency code in the server log (on Unraid under Docker → Vitafolio → Logs or in the file emergency-token in the data directory).",
-    "requestCode": "Generate emergency code in server log",
-    "codeGeneratedNotice": "The emergency code has been generated! Check the server logs or the 'emergency-token' file in the data directory.",
+    "step1Hint": "Click the button to create an emergency code. It is then only in the file emergency-token in the server’s data folder and is valid for 15 minutes. The server log only says where the file is.",
+    "requestCode": "Generate emergency code",
+    "codeGeneratedNotice": "If this account may use emergency access, the code is now in the file emergency-token in the data folder. It is valid for 15 minutes and only once.",
     "step2Title": "2. Enter code and new password",
-    "codeLabel": "Emergency code from logs",
+    "codeLabel": "Emergency code from the file emergency-token",
     "codeHint": "Format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (28 characters).",
     "submit": "Reset password and disable 2FA",
     "successTitle": "Password successfully reset!",
@@ -138,53 +234,107 @@
     "profile": "Master profile",
     "coverLetters": "Cover letters",
     "applications": "Applications",
+    "export": "Export",
+    "guide": "Guide",
     "aiSettings": "AI Settings",
     "admin": "App administration",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "handbook": "Manual",
+    "backTo": "Back to: {{page}}"
   },
   "shell": {
     "theme": "Change appearance",
     "localAccount": "Local account",
-    "signOutFailed": "Signing out did not work."
+    "signOutFailed": "Signing out did not work.",
+    "versionLink": "About {{product}}: licence, source code and what is new in this version"
   },
   "roles": {
     "admin": "Administrator",
     "user": "User"
   },
+  "export": {
+    "title": "Export",
+    "subtitle": "The finished PDFs in one place. \"Filed version\" outputs the state that applied when the application was sent, \"Current state\" the current state of your documents.",
+    "tabs": {
+      "applications": "Applications",
+      "cv": "CV only"
+    },
+    "selectAll": "Select all",
+    "selected": "({{chosen}} of {{total}} selected)",
+    "selectRow": "Select {{name}}",
+    "columns": {
+      "select": "Selection",
+      "fileName": "File name",
+      "version": "State"
+    },
+    "preview": "View",
+    "previewRow": "View: {{name}}",
+    "pdf": "PDF",
+    "downloadRow": "Download PDF: {{name}}",
+    "creating": "Creating …",
+    "bulk": {
+      "download": "Download selected ({{number}})",
+      "hint": "One selected application gives a PDF, several give a ZIP with one PDF each. The files are named after company and job title.",
+      "tooMany": "Too many selected: {{count}} applications, at most {{limit}} are allowed at once. Deselect some."
+    },
+    "empty": {
+      "title": "No applications to export yet",
+      "text": "Once you have created an application, it appears here with its file name, ready to view and download."
+    },
+    "partial": {
+      "title": "The ZIP is incomplete."
+    },
+    "errors": {
+      "download": "The download could not be created."
+    }
+  },
   "overview": {
     "welcomeLabel": "Welcome",
     "welcome": "Welcome, {{name}}",
-    "account": {
-      "title": "Your account"
-    },
     "twoFactor": {
-      "title": "Two-factor sign-in",
       "on": "Active",
-      "off": "Not active",
-      "onText": "Signing in also asks for a code from your authenticator app.",
-      "offText": "A second factor protects your account if the password falls into the wrong hands.",
-      "manage": "Manage in settings"
+      "notice": "Two-factor sign-in is not active. It protects your account if the password falls into the wrong hands.",
+      "setUp": "Set it up now"
     },
-    "mode": {
-      "title": "Operation",
-      "server": "Server version: sign-in with an account, reached in the browser.",
-      "desktop": "Windows program: your data stays on this computer, no sign-in needed."
+    "board": {
+      "title": "Your applications",
+      "open": "Go to the application tracker"
     },
-    "backup": {
-      "title": "Backups",
-      "last": "Last backup: {{when}}",
-      "none": "No backup yet.",
-      "manage": "Open backups"
+    "next": {
+      "title": "Follow-up due",
+      "followUp": "Follow-up due since {{date}}",
+      "followUpNoDate": "Follow-up due",
+      "all": "Show all"
+    },
+    "start": {
+      "title": "How to get started",
+      "text": "Three steps to your first application. The overview fills up as soon as it is created.",
+      "step": "Step {{number}}",
+      "steps": {
+        "profile": {
+          "title": "Fill in the master profile",
+          "text": "Keep your details once. CV, cover letter and portfolio are made from it."
+        },
+        "guide": {
+          "title": "Go through the guide",
+          "text": "In a few clicks you find out what belongs in your application in your situation."
+        },
+        "application": {
+          "title": "Create the first application",
+          "text": "Enter the job, the company and a fitting cover letter. Then you can view and download it."
+        }
+      }
     }
   },
   "profile": {
     "title": "Master profile",
+    "sections": "Master profile sections",
     "description": "Your complete career record: Maintain your personal details and building blocks once here. For individual applications you can flexibly select which stations and skills appear.",
     "tabs": {
       "personal": "Personal",
       "experiences": "Work experience",
-      "educations": "Education",
+      "educations": "Education, studies & school",
       "skills": "Skills",
       "languages": "Languages",
       "certificates": "Certificates",
@@ -220,11 +370,24 @@
       "photoChange": "Change photo",
       "photoDelete": "Remove photo",
       "photoHint": "JPEG, PNG or WebP, up to 5 MB. A photo is voluntary in a CV.",
-      "saveSuccess": "Personal details saved."
+      "academicTitlePlaceholder": "Dr. / Prof.",
+      "professionalTitlePlaceholder": "e.g. Software architect",
+      "nameHeading": "Name and titles",
+      "contactHeading": "E-mail & address",
+      "personHeading": "About you",
+      "linksHeading": "Web & profiles",
+      "photoUploadFailed": "The photo could not be uploaded.",
+      "photoDeleteFailed": "The photo could not be removed.",
+      "photoDeleteConfirm": "The photo is removed from your profile. CVs then show no picture until you upload a new one.",
+      "autoSave": {
+        "namesMissing": "Not saved yet: first name and last name are missing",
+        "firstNameMissing": "Not saved yet: the first name is missing",
+        "lastNameMissing": "Not saved yet: the last name is missing"
+      }
     },
     "experiences": {
       "title": "Work experience",
-      "subtitle": "Career stages, internships and projects. The most recent item is automatically placed at the top.",
+      "subtitle": "Career stages, internships and projects. You set the order yourself with the arrows on each item.",
       "add": "Add position",
       "edit": "Edit position",
       "delete": "Delete position",
@@ -241,11 +404,13 @@
       "isCurrent": "Current position (present)",
       "description": "Tasks, achievements & key responsibilities",
       "moveUp": "Move up",
-      "moveDown": "Move down"
+      "moveDown": "Move down",
+      "at": "at {{employer}}"
     },
     "educations": {
-      "title": "Education & Degrees",
+      "title": "Education, studies & school",
       "subtitle": "Schooling, vocational training, academic degrees and qualifications.",
+      "schoolHint": "Enter your school qualifications here too, for example a secondary school certificate or A-levels. For school, the year you finished is enough (just the year).",
       "add": "Add education",
       "edit": "Edit education",
       "delete": "Delete education",
@@ -260,8 +425,13 @@
       "startDate": "Start date",
       "endDate": "End date",
       "isCurrent": "Currently studying",
+      "ongoing": "ongoing",
+      "periodHint": "A start or an end is enough. For school, the year of graduation is enough.",
       "grade": "Final grade",
-      "description": "Key subjects, thesis, details"
+      "description": "Key subjects, thesis, details",
+      "at": "at {{institution}}",
+      "gradeBadge": "Grade {{grade}}",
+      "gradePlaceholder": "1.3"
     },
     "skills": {
       "title": "Skills & Competencies",
@@ -284,7 +454,9 @@
         "3": "Advanced (3/5)",
         "4": "Very good (4/5)",
         "5": "Expert (5/5)"
-      }
+      },
+      "general": "General",
+      "levelOf": "Level {{level}} of 5"
     },
     "languages": {
       "title": "Languages",
@@ -304,7 +476,8 @@
         "B2": "B2 – Upper Intermediate",
         "C1": "C1 – Advanced",
         "C2": "C2 – Mastery / Proficient"
-      }
+      },
+      "languagePlaceholder": "e.g. English, Spanish, French"
     },
     "certificates": {
       "title": "Certificates & Training",
@@ -319,7 +492,13 @@
       "issueDate": "Issue date",
       "expiryDate": "Expires on",
       "credentialUrl": "Credential URL / Verification link",
-      "credentialId": "Credential ID"
+      "credentialId": "Credential ID",
+      "titlePlaceholder": "e.g. AWS Certified Solutions Architect",
+      "issuerPlaceholder": "e.g. Amazon Web Services, TÜV, Chamber of Commerce",
+      "credentialIdPlaceholder": "Certificate ID",
+      "issuedOn": "Issued: {{date}}",
+      "validUntil": "Valid until: {{date}}",
+      "idLine": "ID: {{id}}"
     },
     "interests": {
       "title": "Interests & Activities",
@@ -331,7 +510,9 @@
       "empty": "No interests entered yet.",
       "name": "Name / Activity",
       "category": "Category (e.g. Hobby, Volunteering, Driver's license)",
-      "description": "Additional description"
+      "description": "Additional description",
+      "namePlaceholder": "e.g. Photography, Free software, Hiking, Driving licence B",
+      "categoryPlaceholder": "e.g. Hobby, Volunteering, Sport, Licence"
     },
     "customSections": {
       "title": "Custom sections",
@@ -347,7 +528,12 @@
       "itemTitle": "Title",
       "itemSubtitle": "Subtitle / Publisher",
       "itemDate": "Date / Period",
-      "itemDescription": "Description"
+      "itemDescription": "Description",
+      "deleteSectionConfirm": "Do you really want to delete this section and all entries in it?",
+      "deleteItemConfirm": "Do you really want to delete this entry?",
+      "emptyItems": "No entries in this section yet.",
+      "sectionPlaceholder": "e.g. Publications, Patents, Awards",
+      "itemDatePlaceholder": "e.g. 2024 or 03/2023 – 09/2023"
     },
     "preview": {
       "title": "Resume Preview",
@@ -355,12 +541,49 @@
       "design": "Template design",
       "designs": {
         "classic": "Classic",
-        "classicDesc": "Tabular, single-column – clear and traditional",
+        "classicDesc": "Date column on the left and clear rules, tidy and traditional.",
         "modern": "Modern",
-        "modernDesc": "With sidebar for contact & skills plus accent color",
+        "modernDesc": "Pale card on the left with contact and skills, name in the main column.",
         "plain": "Plain",
-        "plainDesc": "Single-column, graphic-free – ideal for ATS systems"
+        "plainDesc": "Black text only, no rules. Suited to portals that read résumés automatically.",
+        "sidebar": "Color column",
+        "sidebarDesc": "A full column in your accent color with name, photo and skills.",
+        "rail": "Side rail",
+        "railDesc": "A large name, with a softly tinted column for contact and skills on the right.",
+        "banner": "Header band",
+        "bannerDesc": "A colored band across the full width of the first page.",
+        "timeline": "Timeline",
+        "timelineDesc": "Stations along a line with dots, the date above each title.",
+        "elegant": "Elegant",
+        "elegantDesc": "Everything on the center axis, a letter-spaced name and fine rules.",
+        "compact": "Compact",
+        "compactDesc": "Tight margins and two columns at the bottom, for long careers.",
+        "edge": "Edge",
+        "edgeDesc": "A narrow color strip at the page edge and a very large name.",
+        "grid": "Grid",
+        "gridDesc": "Headings in a column of their own, a fine rule above each section.",
+        "executive": "Executive",
+        "executiveDesc": "Summary as a colored block with core competencies below it.",
+        "wave": "Wave",
+        "waveDesc": "A flowing colored head area with the photo on its edge. Best for creative applications.",
+        "diagonal": "Diagonal",
+        "diagonalDesc": "A slanted color plane carrying the name. Best for creative applications.",
+        "arc": "Arc",
+        "arcDesc": "Circle segments and fine rings in the upper corner. Best for creative applications.",
+        "facet": "Facet",
+        "facetDesc": "Delicate triangles in tints along one side. Best for creative applications.",
+        "monogram": "Monogram",
+        "monogramDesc": "Large initials in a fine ring with hairlines, very calm. Best for less formal applications.",
+        "aurora": "Aurora",
+        "auroraDesc": "A soft glow from one corner, sections as rounded surfaces. Best for creative applications."
       },
+      "designGroups": {
+        "standard": "Calm",
+        "expressive": "Expressive",
+        "expressiveHint": "For creative or less formal applications. In traditional industries a calm template is usually the safer choice."
+      },
+      "chooseDesign": "Choose design",
+      "closeDesigns": "Collapse",
       "color": "Accent color",
       "font": "Font",
       "language": "Document language",
@@ -375,25 +598,132 @@
         "rect": "Square"
       },
       "download": "Download PDF",
-      "downloading": "Generating …",
       "downloadDocx": "Download Word (.docx)",
-      "downloadingDocx": "Generating Word …",
       "refresh": "Refresh preview",
       "loading": "Generating preview …",
-      "noPdf": "The preview could not be loaded.",
-      "openNewTab": "Open in new tab"
+      "openNewTab": "Open in new tab",
+      "options": "Options",
+      "frameTitle": "CV preview as PDF",
+      "exportFailed": "The export failed.",
+      "saveOptionsFailed": "Your selection could not be saved and only applies until you leave this section.",
+      "content": {
+        "title": "Content",
+        "collapse": "Collapse",
+        "expand": "Expand",
+        "adjust": "Adjust",
+        "showAll": "Show everything",
+        "applySuggestion": "Apply suggestion",
+        "show": "Show",
+        "follow": "Follow the suggestion again",
+        "nothingListed": "Nothing left out or shortened. Everything you entered is in the CV.",
+        "saveFailed": "The choice of content could not be saved.",
+        "dialogIntro": "Here you decide what your CV shows from the master profile (preview, export and new applications). The app suggests from your career and gives the reason, you decide. The master profile itself stays unchanged.",
+        "summary": {
+          "hidden_one": "{{count}} entry left out",
+          "hidden_other": "{{count}} entries left out",
+          "short_one": "{{count}} shortened",
+          "short_other": "{{count}} shortened",
+          "allShown": "Everything is shown.",
+          "suggestionOff": "The suggestion is off.",
+          "ownSelection": "Your own choice: {{summary}}"
+        },
+        "row": {
+          "hidden": "Left out. {{reason}}",
+          "short": "Shortened. {{reason}}",
+          "own": "Set by you: {{level}}. Suggestion: {{suggested}}",
+          "shownAgainst": "Shown by you. Suggestion: {{suggested}}. {{reason}}",
+          "sectionHidden": "Left out by you."
+        }
+      },
+      "staleNotice": "Your latest input under “Personal” is not saved yet. The preview shows the last saved state."
+    },
+    "classicView": "Classic view",
+    "wizardMode": "Wizard mode",
+    "loadFailed": "The profile could not be loaded.",
+    "jsonResume": {
+      "button": "JSON Resume",
+      "title": "JSON Resume standard (v1.0.0)",
+      "intro": "The open \"JSON Resume\" standard (jsonresume.org) lets you exchange your profile data with other tools, portals and open-source generators.",
+      "modeLabel": "Exchange",
+      "exportMode": "Export",
+      "importMode": "Import",
+      "exportText": "Download your whole profile (master data, career, education, skills, languages, certificates, interests) in the standardised JSON Resume format.",
+      "exportButton": "Download resume.json",
+      "fileLabel": "JSON Resume file (.json)",
+      "chooseFile": "Choose file",
+      "pasteLabel": "Or paste the JSON content directly",
+      "replaceLabel": "Replace existing stations and skills",
+      "replaceHint": "Off: the entries of the file are added. On: what the profile contains now is replaced.",
+      "importButton": "Import",
+      "confirmTitle": "Take over the profile from the file?",
+      "confirmReplace": "The existing stations, education, skills and other entries are replaced by the content of the file.",
+      "confirmUnsaved": "Your unsaved changes in the personal data are lost.",
+      "exportSuccess": "The profile was downloaded as resume.json.",
+      "importSuccess": "The profile was taken over from the file.",
+      "errors": {
+        "export": "The export failed.",
+        "import": "The import failed.",
+        "file": "The file could not be read."
+      }
+    },
+    "wizard": {
+      "label": "Step-by-step wizard",
+      "stepOf": "Step {{current}} of {{total}}: {{title}}",
+      "step": "Step {{number}}",
+      "skillsHeading": "Professional skills",
+      "languagesHeading": "Language skills",
+      "next": "Continue to the next step",
+      "finish": "Finish wizard",
+      "steps": {
+        "1": {
+          "title": "Master data & contact",
+          "description": "Name, contact details, address and summary"
+        },
+        "2": {
+          "title": "Work experience",
+          "description": "Professional stations and practical experience"
+        },
+        "3": {
+          "title": "Education, studies & school",
+          "description": "School, vocational training and university degrees"
+        },
+        "4": {
+          "title": "Skills & languages",
+          "description": "Core professional skills and foreign languages"
+        },
+        "5": {
+          "title": "Preview & finish",
+          "description": "PDF preview and export"
+        }
+      }
+    },
+    "gaps": {
+      "continuous": "Gap check passed: your career is documented without gaps.",
+      "found_one": "Gap analysis: {{count}} gap found in the timeline.",
+      "found_other": "Gap analysis: {{count}} gaps found in the timeline.",
+      "show": "Show details & tips",
+      "hide": "Hide details",
+      "advice": "Recruiters look for continuity in a CV. From about one or two months of interruption, a short, open note helps, so questions in the interview do not catch you off guard.",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "between": "Between",
+      "orientation": "Career reorientation",
+      "training": "Further education & qualification",
+      "employer": "Self-study / orientation",
+      "unnamedTitle": "Station",
+      "unnamedOrganisation": "not specified"
     }
   },
   "coverLetters": {
     "title": "Cover Letters",
-    "subtitle": "Draft professional DIN 5008 compliant cover letters for your job applications.",
+    "subtitle": "Draft cover letters for your job applications, following DIN 5008.",
     "newLetter": "New Cover Letter",
     "createTitle": "Create New Cover Letter",
     "editTitle": "Edit Cover Letter",
     "empty": "No cover letters yet. Create your first cover letter!",
     "deleteConfirm": "Do you really want to delete the cover letter \"{{title}}\"?",
     "tabs": {
-      "editor": "Content & DIN 5008",
+      "editor": "Content",
       "preview": "PDF Preview",
       "options": "Design & Formatting"
     },
@@ -408,7 +738,7 @@
       "senderCity": "City",
       "senderPhone": "Phone Number",
       "senderEmail": "Email Address",
-      "recipientSection": "Recipient (DIN 5008)",
+      "recipientSection": "Recipient",
       "recipientCompany": "Company Name / Organization",
       "recipientDepartment": "Department / Attn.",
       "recipientContactPerson": "Contact Person (e.g. Dr. Schmidt)",
@@ -420,7 +750,7 @@
       "place": "Location of Signing (e.g. Berlin)",
       "date": "Date (e.g. 2026-11-06 or November 6, 2026)",
       "contentSection": "Letter Content",
-      "subject": "Subject Line (DIN 5008: Bold, without the word 'Subject')",
+      "subject": "Subject line (bold, without the word 'Subject')",
       "salutation": "Salutation (e.g. Dear Hiring Manager,)",
       "body": "Letter Body",
       "bodyPlaceholder": "Write your cover letter here. Separate paragraphs with an empty line...",
@@ -438,7 +768,8 @@
       "font": "Font",
       "accentColor": "Accent Color",
       "foldMarks": "DIN Fold and Punch Marks",
-      "foldMarksHint": "Prints discreet guidelines on the left margin for DIN long window envelopes"
+      "foldMarksHint": "Prints discreet guidelines on the left margin for DIN long window envelopes",
+      "attachmentsNotePlaceholder": "e.g. Resume, references"
     },
     "actions": {
       "save": "Save Cover Letter",
@@ -448,6 +779,37 @@
       "refreshPreview": "Refresh Preview",
       "backToList": "Back to Overview",
       "openNewTab": "Open PDF in New Tab"
+    },
+    "defaults": {
+      "title": "New cover letter",
+      "recipientCompany": "Example Corp",
+      "recipientCity": "Sample City",
+      "subject": "Application as …",
+      "salutation": "Dear Hiring Manager,",
+      "body": "with great interest I am applying for the position as …\n\nIn my previous career, I gained solid experience in …\n\nI look forward to introducing myself in a personal interview.",
+      "closing": "Sincerely,",
+      "attachmentsNote": "Resume, diplomas, references"
+    },
+    "languages": {
+      "de": "Deutsch",
+      "en": "English (Business Letter)"
+    },
+    "previewTitle": "Live preview",
+    "previewFrame": "Preview of the cover letter as PDF",
+    "signatureDeleteConfirm": "The stored signature is removed from this cover letter. You still have the image file yourself.",
+    "errors": {
+      "save": "The cover letter could not be saved.",
+      "create": "The cover letter could not be created.",
+      "load": "The cover letter could not be opened.",
+      "loadList": "The cover letters could not be loaded.",
+      "delete": "The cover letter could not be deleted.",
+      "download": "The export failed.",
+      "signatureUpload": "The signature could not be uploaded.",
+      "signatureDelete": "The signature could not be removed."
+    },
+    "autoSave": {
+      "missing_one": "Not saved yet: {{count}} required field is empty",
+      "missing_other": "Not saved yet: {{count}} required fields are empty"
     }
   },
   "applications": {
@@ -460,14 +822,18 @@
     "empty": "No job applications yet. Create your first application!",
     "noResults": "No applications found matching your criteria.",
     "deleteConfirm": "Do you really want to delete the application at \"{{company}}\" for \"{{jobTitle}}\"?",
-    "followUpAlert": "{{count}} application(s) are due for follow-up (no response > 14 days).",
     "views": {
       "kanban": "Kanban Board",
-      "list": "List View"
+      "list": "List View",
+      "label": "View"
     },
     "filter": {
       "all": "All Statuses",
-      "searchPlaceholder": "Search by company, job title, or location..."
+      "searchPlaceholder": "Search by company, job title, or location...",
+      "search": "Search applications",
+      "status": "Filter by status",
+      "showAll": "Show all",
+      "onlyFollowUp": "Show follow-ups only"
     },
     "stats": {
       "total": "Total",
@@ -478,7 +844,10 @@
       "offer": "Offer",
       "rejected": "Rejected",
       "withdrawn": "Withdrawn",
-      "followUpsDue": "Follow-up Due"
+      "followUpsDue": "Follow-up Due",
+      "closed": "Closed",
+      "closedDetail": "{{rejected}} rejected · {{withdrawn}} withdrawn",
+      "ofWhichAcknowledged": "{{count}} acknowledged"
     },
     "statuses": {
       "draft": "Draft",
@@ -501,6 +870,7 @@
       "status": "Current Status",
       "appliedAt": "Applied Date",
       "followUpAt": "Follow-up Planned Date",
+      "followUpHint": "Without a date, the app reminds you after {{days}} days in the status “Applied”.",
       "coverLetter": "Assigned Cover Letter",
       "noCoverLetter": "No Cover Letter",
       "includeCoverSheet": "Include Cover Sheet in Dossier",
@@ -517,28 +887,275 @@
       "title": "History & Timeline Events",
       "addEvent": "Add Event",
       "date": "Date",
-      "eventTitle": "Title (e.g. 1st Technical Interview)",
       "note": "Note (optional)",
       "status": "Associated Status",
-      "noEvents": "No events recorded yet."
+      "noEvents": "No events recorded yet.",
+      "eventTitle": "Event title",
+      "eventTitlePlaceholder": "e.g. 1st interview",
+      "deleteTitle": "Delete event",
+      "deleteConfirm": "Do you really want to delete the event \"{{title}}\"?"
     },
     "dossier": {
       "title": "Application Dossier",
       "frozenBadge": "Archived Snapshot",
-      "liveBadge": "Live Preview",
       "frozenHint": "This PDF snapshot was frozen when the application was marked as applied.",
       "download": "Download Dossier (PDF)",
       "preview": "View Dossier",
-      "archiveNow": "Update Snapshot"
+      "archiveNow": "Update Snapshot",
+      "replaceTitle": "Replace the archived version?",
+      "replaceMessage": "The version of \"{{jobTitle}}\" at {{company}} that was saved when it was sent is still kept. If you replace it, the current state of your documents is used from now on, and the old version can no longer be retrieved.",
+      "replaceConfirm": "Replace",
+      "previewFrame": "Preview of the application dossier",
+      "snapshotBadge": "Snapshot",
+      "liveHint": "Combines cover sheet, cover letter, CV and attachments in one document.",
+      "liveBadge": "Live preview",
+      "sourceArchivedBadge": "Filed version",
+      "sourceCurrentBadge": "Current state",
+      "sourceArchivedText": "This is the filed version: how the documents looked when they were filed (when the application was sent or at the last \"Update Snapshot\").",
+      "sourceCurrentText": "This is the current state of your documents, freshly rendered. It can differ from the filed version.",
+      "sourceNoArchiveText": "No version has been filed for this application yet. This is the current state of your documents.",
+      "viewCurrent": "View current state",
+      "viewArchived": "Back to the filed version"
     },
     "actions": {
       "changeStatus": "Change Status",
       "viewDetails": "View Details",
       "downloadDossier": "Dossier",
+      "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
       "saving": "Saving…",
       "cancel": "Cancel"
+    },
+    "followUpAlert_one": "{{count}} application is due for a follow-up (no reply for more than 14 days).",
+    "followUpAlert_other": "{{count}} applications are due for a follow-up (no reply for more than 14 days).",
+    "columnCount_one": "{{count}} application in this column",
+    "columnCount_other": "{{count}} applications in this column",
+    "notSentYet": "Not sent yet",
+    "columns": {
+      "draft": "Draft",
+      "applied": "Applied",
+      "acknowledged": "Acknowledged",
+      "interview": "Interview",
+      "offer": "Offer",
+      "closed": "Closed",
+      "closedHint": "Rejections and withdrawn applications"
+    },
+    "placeholders": {
+      "jobTitle": "e.g. Senior Cloud Architect",
+      "company": "e.g. Acme Corp Ltd.",
+      "location": "e.g. Berlin / Remote",
+      "salary": "e.g. 85,000 EUR",
+      "contactPerson": "e.g. Ms. Smith",
+      "contactEmail": "jobs@acme.example",
+      "contactPhone": "+49 30 12345678",
+      "jobPostingUrl": "https://acme.example/careers/job-123",
+      "notes": "Personal notes on this application …"
+    },
+    "contact": {
+      "email": "E-mail",
+      "phone": "Phone"
+    },
+    "attachments": {
+      "manage": "Attachments & certificates",
+      "choose_one": "Attach documents ({{count}} selected)",
+      "choose_other": "Attach documents ({{count}} selected)",
+      "none": "No documents uploaded yet. Use \"Attachments & certificates\" in the page header.",
+      "loadFailed": "The attachments could not be loaded.",
+      "label": "Attachments & proofs",
+      "count_one": "{{count}} document attached",
+      "count_other": "{{count}} documents attached",
+      "noneAttached": "None",
+      "suggestionIntro": "The app suggests which attachments fit your situation. The choice is yours.",
+      "suggestionLine": "Suggestion: {{advice}}. {{reason}}",
+      "include": "attach",
+      "omit": "better leave out",
+      "reasons": {
+        "recent_reference": "One of your three newest work references",
+        "older_reference": "Older than your three newest work references",
+        "highest_degree": "Certificate of your highest degree",
+        "lower_degree": "Earlier degree next to a higher one",
+        "school_report": "School report; usually not needed with work experience",
+        "older_school_report": "Older school report",
+        "degree": "Degree certificate",
+        "certificate": "Certificate, only if it fits the job",
+        "unknown": "Suggestion of the app"
+      }
+    },
+    "content": {
+      "title": "CV content",
+      "open": "Adjust",
+      "done": "Done",
+      "intro": "By default your whole master profile goes into the CV. Here you decide what belongs in this application. The app suggests from the entries that have dates (positions, education, certificates, attachments) and gives the reason, you decide. Nothing is left out without your click, and your master profile stays unchanged.",
+      "guideLink": "Adjust your answers in the guide",
+      "years_one": "According to your master profile about {{count}} year of work experience.",
+      "years_other": "According to your master profile about {{count}} years of work experience.",
+      "yearsNone": "No years of work are recorded in your master profile yet.",
+      "stage": {
+        "entry": "Suggestion for starting your career: education, internships and projects are the focus.",
+        "some": "Suggestion for a few years of experience: the latest positions in full, earlier ones shorter.",
+        "long": "Suggestion for long work experience: older positions and early qualifications may be shorter."
+      },
+      "now": "present",
+      "auto": "{{product}} put together a suggestion: {{summary}}",
+      "noSuggestion": "There is no suggestion. The CV stays complete.",
+      "certificateChoice": {
+        "full": "In the CV",
+        "hidden": "Leave out"
+      },
+      "differs": "Differs",
+      "suggestionLine": "Suggestion: {{level}}. {{reason}}",
+      "levelFor": "Display of {{title}}",
+      "levels": {
+        "full": "Full",
+        "short": "Short",
+        "hidden": "Leave out"
+      },
+      "reasons": {
+        "experience": {
+          "recent": "Is one of your recent positions",
+          "older_than_10_years": "Ended more than 10 years ago",
+          "old_internship": "Older internship",
+          "entry": "Internship or side job, important when starting out",
+          "new_field": "Helps with the move into a new field",
+          "before_break": "Was before your break and counts like a recent position",
+          "unknown": "Suggestion of the app"
+        },
+        "education": {
+          "highest": "Your highest qualification",
+          "school": "School years; with work experience the qualification alone is usually enough",
+          "school_entry": "School years; with work experience the qualification alone is usually enough",
+          "earlier_degree": "Earlier degree next to a higher one",
+          "other": "Another qualification",
+          "below_highest_degree": "Is below your highest qualification",
+          "older_earlier_degree": "Earlier degree, older than your highest",
+          "unknown": "Suggestion of the app"
+        },
+        "certificate": {
+          "recent": "Recent certificate",
+          "older_than_10_years": "Issued more than 10 years ago",
+          "no_date": "No date, so its age cannot be judged",
+          "unknown": "Suggestion of the app"
+        }
+      },
+      "groups": {
+        "experiences": "Work experience",
+        "educations": "Education",
+        "certificates": "Certificates",
+        "sections": "Sections",
+        "levelHint": "Full shows everything, Short leaves out the description, Leave out removes the entry.",
+        "switchHint": "On = appears in the CV, Off = left out.",
+        "empty": "There are no entries for this in your master profile yet."
+      },
+      "sections": {
+        "summary": "Summary",
+        "skills": "Skills",
+        "languages": "Languages",
+        "interests": "Interests & activities"
+      },
+      "actions": {
+        "take": "Take suggestion",
+        "reset": "Everything complete"
+      },
+      "summary": {
+        "complete": "Complete: the whole master profile",
+        "experiencesShort_one": "{{count}} position shortened",
+        "experiencesShort_other": "{{count}} positions shortened",
+        "experiencesHidden_one": "{{count}} position left out",
+        "experiencesHidden_other": "{{count}} positions left out",
+        "educationsShort_one": "{{count}} education shortened",
+        "educationsShort_other": "{{count}} educations shortened",
+        "educationsHidden_one": "{{count}} education left out",
+        "educationsHidden_other": "{{count}} educations left out",
+        "certificatesHidden_one": "{{count}} certificate left out",
+        "certificatesHidden_other": "{{count}} certificates left out",
+        "sectionsHidden_one": "{{count}} section left out",
+        "sectionsHidden_other": "{{count}} sections left out",
+        "attachments_one": "{{count}} attachment",
+        "attachments_other": "{{count}} attachments"
+      },
+      "errors": {
+        "suggestion": "The suggestion could not be loaded.",
+        "suggestionShort": "The suggestion could not be loaded. \"Take suggestion\" tries again.",
+        "profile": "The master profile could not be loaded."
+      },
+      "checklist": {
+        "title": "What belongs in this application",
+        "note": "A suggestion based on common guides for your situation, not a rule. You decide.",
+        "manual": "More in the manual, chapter 22 \"Guide: How to put an application together\".",
+        "items": {
+          "cover_letter": "Cover letter",
+          "cv": "CV",
+          "work_references": "Work references",
+          "highest_degree": "Certificate of highest degree",
+          "certificates": "Certificates",
+          "photo": "Photo"
+        },
+        "states": {
+          "ok": "In place",
+          "missing": "Missing",
+          "optional": "Optional",
+          "not_needed": "Not needed"
+        },
+        "fallback": {
+          "ok": "This is in place.",
+          "missing": "This is still missing.",
+          "optional": "This is optional.",
+          "not_needed": "According to the suggestion you do not need this here."
+        },
+        "hints": {
+          "cover_letter": {
+            "ok": "A cover letter is ready. Assign it to this application above.",
+            "missing": "A cover letter usually belongs to an application. Create one under \"Cover letters\".",
+            "optional": "Some employers do not want a cover letter. The job posting usually says so.",
+            "not_needed": "According to the suggestion no separate cover letter is needed here."
+          },
+          "cv": {
+            "ok": "Your CV is built from the master profile, and it has content.",
+            "missing": "The CV needs content. Enter your positions in the master profile."
+          },
+          "work_references": {
+            "ok": "Work references of your latest positions are common. Pick the fitting ones below.",
+            "missing": "If you have work references, upload them under \"Attachments & certificates\".",
+            "optional": "Work references are possible, but not required.",
+            "not_needed": "According to the suggestion you do not need work references here."
+          },
+          "highest_degree": {
+            "ok": "The certificate of your highest degree is ready. It usually belongs to an application.",
+            "missing": "The certificate of your highest degree usually belongs to an application. Upload it under \"Attachments & certificates\".",
+            "optional": "The certificate of your highest degree is optional here.",
+            "not_needed": "According to the suggestion you do not need the certificate of your highest degree here."
+          },
+          "certificates": {
+            "ok": "Certificates that fit the job are a plus.",
+            "missing": "If you have fitting certificates or training, include them.",
+            "optional": "Certificates are optional. Include what fits the job.",
+            "not_needed": "You can leave out older certificates or ones from another field."
+          },
+          "photo": {
+            "ok": "A photo is on file. Whether it appears is up to you.",
+            "missing": "A photo is optional. You can apply without one.",
+            "optional": "A photo is optional, though common in Germany. It is up to you.",
+            "not_needed": "According to the suggestion you do not need a photo here."
+          }
+        }
+      }
+    },
+    "ai": {
+      "analyze": "Analyze",
+      "analyzeText": "Compare the requirements with your master profile and get a match score."
+    },
+    "errors": {
+      "load": "The applications could not be loaded.",
+      "stats": "The figures could not be loaded.",
+      "create": "The application could not be created.",
+      "update": "The application could not be saved.",
+      "delete": "The application could not be deleted.",
+      "status": "The status could not be changed.",
+      "addEvent": "The event could not be added.",
+      "deleteEvent": "The event could not be deleted.",
+      "archive": "The snapshot could not be created.",
+      "download": "The dossier could not be downloaded."
     }
   },
   "ai": {
@@ -551,12 +1168,13 @@
       "anthropic": "Anthropic (Claude)",
       "gemini": "Google Gemini",
       "ollama": "Ollama (Local on this PC / server)",
-      "custom": "Custom Endpoint (LM Studio / vLLM)"
+      "custom": "Custom endpoint (OpenAI-compatible, e.g. vLLM)",
+      "lmstudio": "LM Studio (local on this PC / server)"
     },
     "model": "Model",
-    "modelPlaceholder": "e.g. gpt-4o-mini, claude-3-5-haiku-20241022, gemini-2.5-flash, llama3.2",
+    "modelPlaceholder": "Model name as the provider calls it",
     "baseUrl": "Base URL / Server Address",
-    "baseUrlPlaceholder": "http://localhost:11434 for Ollama or http://localhost:1234/v1 for LM Studio",
+    "baseUrlPlaceholder": "e.g. http://localhost:1234/v1",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter new key (leave empty to keep existing)...",
     "apiKeyStored": "Key is securely encrypted and stored",
@@ -564,16 +1182,14 @@
     "pseudonymize": "Protect personal data with placeholders (Privacy)",
     "pseudonymizeHint": "Replaces name, contact info and address with tokens before transmission and restores them afterwards.",
     "testConnection": "Test Connection",
-    "testing": "Testing connection...",
     "testSuccess": "Connection successfully established!",
     "save": "Save Settings",
-    "saving": "Saving...",
-    "saved": "AI settings successfully saved.",
     "tasks": {
       "coverLetter": "Draft Cover Letter",
       "analyzeJob": "Analyze Job Posting",
       "summary": "Draft Profile Summary",
-      "improveBullet": "Optimize Bullet Point"
+      "improveBullet": "Optimize Bullet Point",
+      "translate": "Translate text"
     },
     "assistant": {
       "title": "AI Assistant",
@@ -605,7 +1221,70 @@
       "missingRequirements": "Gaps & Tactical Tips",
       "tips": "Application Tips",
       "keyMatches": "Highlighted Strengths",
-      "openSettings": "Configure AI Settings"
+      "openSettings": "Configure AI Settings",
+      "changeProvider": "Change",
+      "jobTitlePlaceholder": "e.g. Senior Cloud Engineer",
+      "companyPlaceholder": "e.g. CloudScale Inc.",
+      "recipientPlaceholder": "e.g. Ms. Smith",
+      "jobDescriptionPlaceholder": "Paste the text of the job posting or its main requirements here …",
+      "bulletInput": "Bullet point to improve",
+      "bulletPlaceholder": "e.g. Responsible for cloud migrations",
+      "summaryInput": "Focus (optional)",
+      "summaryPlaceholder": "e.g. Focus on cloud architecture and team leadership",
+      "directHint": "Creates the suggestion directly through your configured provider ({{model}}).",
+      "copyPasteHint": "Copy the prepared prompt and paste it into ChatGPT, Claude or Gemini in the browser.",
+      "copied": "Copied",
+      "copyFailed": "Copying to the clipboard did not work. Select the text below and copy it by hand.",
+      "promptLabel": "Prepared prompt",
+      "actionFailed": "The AI request failed.",
+      "parseFailed": "The answer could not be evaluated.",
+      "close": "Close",
+      "result": {
+        "letterPreview": "Cover letter preview",
+        "subject": "Subject",
+        "salutation": "Salutation",
+        "bodyParts": "Opening & main part",
+        "closing": "Closing",
+        "summaryTitle": "Profile summary & elevator pitch",
+        "bulletTitle": "Improved bullet point",
+        "alternatives": "Alternative wordings",
+        "tip": "Tip",
+        "scoreHigh": "Strong match",
+        "scoreMedium": "Partial match",
+        "scoreLow": "Weak match",
+        "translationTitle": "Translation into {{language}}"
+      },
+      "way": "Way to the result",
+      "languages": {
+        "de": "German",
+        "en": "English"
+      },
+      "applyToSummary": "Use in short profile",
+      "applyToDescription": "Use in description",
+      "applyTranslation": "Use translation",
+      "bulletContext": "Position (for context)",
+      "pickLine": "Which line to improve?",
+      "pickLineHint": "The description has several lines. Choose one, or all together.",
+      "pickAll": "All together ({{count}} lines)",
+      "translateInput": "Text to translate",
+      "translatePlaceholder": "The text that should be translated …",
+      "targetLanguage": "Translate into"
+    },
+    "modelHint": "Leave empty = the provider’s default model.",
+    "testFailed": "The connection test failed.",
+    "testSavesFirst": "The test checks the saved settings. Changed entries are saved first.",
+    "errors": {
+      "load": "The AI settings could not be loaded."
+    },
+    "copyPasteNotice": {
+      "title": "Free & privacy-friendly",
+      "text": "In “Copy & paste” mode {{product}} prepares the finished prompt for you. You copy it with one click into your preferred AI chat (e.g. ChatGPT, Claude or Gemini in the browser) and paste the answer back into the app. No API key is needed and there are no costs."
+    },
+    "entry": {
+      "summary": "Write the short profile with AI",
+      "translate": "Translate with AI",
+      "improveBullets": "Improve bullet points with AI",
+      "translateLetter": "Translate text"
     }
   },
   "settings": {
@@ -614,18 +1293,30 @@
     "tabs": {
       "appearance": "Appearance",
       "security": "Security",
-      "backups": "Backups"
+      "backups": "Backups",
+      "updates": "Updates",
+      "about": "About"
     },
     "theme": {
       "title": "Colour scheme",
-      "text": "Light, dark, or automatic following your system setting.",
-      "system": "System",
+      "text": "Light or dark. On the first start your system decides, after that your choice applies.",
       "light": "Light",
       "dark": "Dark"
     },
     "language": {
       "title": "Language",
       "text": "The language of the interface."
+    },
+    "dateFormat": {
+      "title": "Date format",
+      "text": "How you enter dates and how the app shows them. You only type the digits, the app adds the separators.",
+      "auto": "Automatic (by language)",
+      "formats": {
+        "dmy": "DD.MM.YYYY",
+        "ymd_slash": "YYYY/MM/DD",
+        "iso": "YYYY-MM-DD"
+      },
+      "preview": "Example: today is {{date}} (month: {{month}})."
     },
     "password": {
       "title": "Change password",
@@ -679,6 +1370,7 @@
     "tabs": {
       "users": "Users",
       "settings": "Settings",
+      "updates": "Updates",
       "activity": "Activity log",
       "backups": "Backups"
     },
@@ -731,7 +1423,30 @@
       "confirm2faText": "Every account without a second factor has to set one up at the next sign-in; nothing else is possible before.",
       "confirm2faAction": "Require",
       "saveFailed": "The setting could not be saved:",
-      "loadFailed": "The settings could not be loaded:"
+      "loadFailed": "The settings could not be loaded:",
+      "aiHostsTitle": "Released AI servers",
+      "aiHostsText": "Own AI addresses (for example a local Ollama) are only allowed on this server for hosts listed here. Without an entry, only the public addresses of the AI providers can be reached.",
+      "aiHostsField": "Host name or IP address",
+      "aiHostsHint": "Only the name, without http:// and without a port, for example ollama.lan.",
+      "aiHostsAdd": "Add",
+      "aiHostsRemove": "Remove {{host}}",
+      "aiHostsEmpty": "No host released yet.",
+      "stepUpTitle": "Confirm the change",
+      "stepUpText": "This change opens the instance further. Confirm it with your password.",
+      "stepUpAction": "Confirm"
+    },
+    "ai": {
+      "title": "AI access of the server",
+      "text": "Here you set up one AI service for all accounts. Whoever has not set up an own one can then work with it directly. Copy and paste always works.",
+      "loadFailed": "The AI access of the server could not be loaded.",
+      "enabled": "Use the AI access of the server",
+      "enabledHint": "Off: everybody needs an own service or uses copy and paste. An own service of an account always takes precedence.",
+      "baseUrlHint": "The host has to be in the list of allowed hosts below, otherwise the server rejects the address.",
+      "save": "Save AI access",
+      "saved": "The AI access of the server was saved.",
+      "stepUpTitle": "Change the AI access of the server?",
+      "stepUpAction": "Save",
+      "stepUpText": "This setting decides where the application data of all accounts is sent and under whose key that happens. Confirm it with your password."
     }
   },
   "activity": {
@@ -858,9 +1573,9 @@
     "retention": {
       "title": "Retention",
       "recent": "Keep the latest backups",
-      "recentHint": "The newest {{min}} to {{max}} stay.",
+      "recentHint": "The newest {{min}} to {{max}} stay. Default: 2 (the newest and the one before).",
       "daily": "Keep one per day (days)",
-      "dailyHint": "{{min}} to {{max}} days; 0 = none.",
+      "dailyHint": "{{min}} to {{max}} days; 0 = none (default).",
       "problemRecent": "Please enter a whole number from {{min}} to {{max}}.",
       "problemDaily": "Please enter a whole number from {{min}} to {{max}}."
     },
@@ -908,7 +1623,8 @@
       "scheduled": "Scheduled",
       "manual": "Manual",
       "pre-restore": "Before restore",
-      "uploaded": "Uploaded"
+      "uploaded": "Uploaded",
+      "pre-update": "Before update"
     },
     "result": {
       "created": "Backup created: {{file}}",
@@ -938,10 +1654,12 @@
       "restoreSignOut": "Everybody is signed out and has to sign in again.",
       "restoreReloadDesktop": "The program then reloads and shows the restored state.",
       "restoreReplace": "All data created after this backup is no longer in the running app afterwards.",
+      "restoreDatabaseOnly": "This older backup contains only the database: photos, signatures, attachments and saved dossiers stay as they are now.",
       "deleteTitle": "Delete backup",
       "deleteText": "The backup from {{date}} ({{kind}}) is deleted.",
       "deleteIrreversible": "This cannot be undone. The running app is not affected."
     },
+    "databaseOnly": "Database only",
     "deleteFailed": "The backup could not be deleted:"
   },
   "errorScreen": {
@@ -969,6 +1687,7 @@
       "title": "Not reachable",
       "text": "The server is not answering right now or is being maintained. Please try again in a moment."
     },
+    "noAnswer": "Offline",
     "retry": "Try again",
     "home": "To the overview",
     "signIn": "To sign-in"
@@ -1005,7 +1724,8 @@
         "404": "That was not found.",
         "429": "Too many requests. Please wait a moment.",
         "500": "An error occurred on the server.",
-        "503": "The server is not available right now."
+        "503": "The server is not available right now.",
+        "invalid": "This application status is not valid."
       },
       "validation": {
         "failed": "The input is not valid.",
@@ -1018,10 +1738,14 @@
         "pattern": "The format is wrong.",
         "invalid_characters": "Contains characters that are not allowed.",
         "invalid_value": "This value is not valid.",
+        "period_required": "Please enter a start or an end, or mark the education as ongoing.",
         "duplicates": "A value is in the list twice.",
         "file_too_large": "The file is too large.",
         "max_items": "There are too many entries (at most {{max}}).",
-        "time_format": "The time is not in a valid format (HH:mm)."
+        "time_format": "The time is not in a valid format (HH:mm).",
+        "url": "Please enter a complete address starting with http:// or https://.",
+        "color": "Please enter a colour as #RGB, #RRGGBB or #RRGGBBAA, for example #14213D.",
+        "host": "\"{{value}}\" is not a valid host name or IP address."
       },
       "auth": {
         "invalid_credentials": "Username or password is wrong.",
@@ -1042,10 +1766,6 @@
       },
       "password": {
         "current_invalid": "The current password is wrong."
-      },
-      "admin": {
-        "emergency_reset_other_admins_exist": "Another administrator account is active. Please ask another administrator to reset your password.",
-        "emergency_reset_no_admin": "No active administrator account was found."
       },
       "emergency_reset": {
         "code_invalid": "The emergency reset code is missing, expired or wrong."
@@ -1083,7 +1803,8 @@
         "too_new": "This backup is from a newer version of the app and cannot be restored here.",
         "not_found": "This backup does not exist (any more).",
         "invalid": "The file is not a valid backup of this app.",
-        "too_large": "The file is too large.",
+        "too_large": "The backup is too large for this server (at most {{maxMegabytes}} MB and {{maxFiles}} files). The operator sets this limit.",
+        "no_space": "There is not enough space on the disk to unpack this backup. Nothing was changed.",
         "restore_failed": "The restore failed. The previous state was brought back automatically; it is also saved as the backup {{safetyBackup}}. Details are in the server’s log.",
         "upload_limit": "At most {{max}} uploaded backups – please delete one first.",
         "restore_failed_not_rolled_back": "The restore failed and the previous state could not be brought back automatically. It is saved as the backup {{safetyBackup}}: restore that backup. Details are in the server’s log.",
@@ -1127,7 +1848,8 @@
       "photo": {
         "required": "Please select an image file.",
         "too_large": "The image exceeds the maximum size of 5 MB.",
-        "invalid_format": "Only JPEG, PNG, and WebP images are accepted."
+        "invalid_format": "Only JPEG, PNG, and WebP images are accepted.",
+        "too_many_pixels": "The image has too many pixels (at most 8000 pixels per side and 40 megapixels)."
       },
       "ai": {
         "invalid_json": "The AI response did not contain valid JSON. Please instruct the AI to output valid JSON only.",
@@ -1136,9 +1858,496 @@
         "copy_paste_only": "Copy & Paste mode is active. Please use 'Copy Prompt' or configure an API key in settings.",
         "api_error": "Error communicating with the AI service.",
         "missing_key": "An API key is required for this provider.",
-        "invalid_url": "The provided base URL is invalid."
+        "key_unavailable": "The stored API key can no longer be decrypted, for example after restoring a backup into a new data folder. Enter it again in the AI settings; a server key is entered again by the administrator.",
+        "invalid_url": "The provided base URL is invalid.",
+        "host_not_allowed": "This address is not released on this server. An administrator can add the host under App administration → Settings.",
+        "connection_failed": "The AI service cannot be reached.",
+        "timeout": "The AI service did not answer in time.",
+        "daily_limit": "The daily limit for the server's AI key is used up ({{limit}} requests). Try again tomorrow or add your own key.",
+        "empty_response": "The AI service returned no answer.",
+        "invalid_provider": "This provider does not support a direct connection.",
+        "invalid_task": "This AI task is not valid.",
+        "unsupported_task": "This AI task is not known."
       },
-      "rate_limited_account": "Too many attempts for this account – please wait 15 minutes."
+      "attachment": {
+        "not_found": "One of the chosen attachments no longer exists. Check the selection of attachments and save again."
+      },
+      "coverLetter": {
+        "not_found": "The chosen cover letter no longer exists. Choose another cover letter or none."
+      },
+      "rate_limited_account": "Too many attempts for this account – please wait 15 minutes.",
+      "render": {
+        "busy": "Too many documents are being created right now. Please try again shortly.",
+        "timeout": "Creating the document took too long."
+      },
+      "dossiers": {
+        "partial_failed": "{{failed}} of {{total}} applications could not be created. The others are in the ZIP; the reasons are in the file \"Not-created.txt\" inside it.",
+        "failed": "None of the selected applications could be created as a PDF. Check the attachments and the saved state of the applications and try again."
+      },
+      "archive": {
+        "exists": "A version of this application is already archived. Confirm that it should be replaced.",
+        "missing": "The archived version of this application is no longer available. \"Update Snapshot\" creates a new one.",
+        "failed": "The documents could not be archived. The application itself is saved; try again with \"Update Snapshot\".",
+        "attachments_unavailable": "The documents were not archived because at least one attachment is missing or cannot be read. Check the attachments and create the snapshot with \"Update Snapshot\"."
+      },
+      "file": {
+        "required": "Please choose a file.",
+        "missing": "No file was transferred. Please choose a file.",
+        "too_large": "The file is too large (attachments: at most 20 MB, signature: at most 2 MB).",
+        "invalid_format": "This file format is not supported. PDF, PNG, JPEG and WebP files are allowed.",
+        "invalid_type": "Only PNG and JPEG images are allowed for the signature.",
+        "unreadable_pdf": "This PDF file cannot be read. It is damaged or protected by a password.",
+        "too_many_pages": "This PDF file has {{pages}} pages. At most {{max}} pages are allowed per attachment.",
+        "not_renderable": "This file cannot be included in an application dossier. Please save it again (for example with the 'Print to PDF' function) and upload it again.",
+        "quota_exceeded": "The attachment storage of this account is used up (at most {{quotaMegabytes}} MB). Please delete an attachment first."
+      },
+      "updates": {
+        "busy": "A backup or a restore is running right now. Install the update afterwards.",
+        "busy_backup": "A backup is running right now. Wait until it is finished, then install the update.",
+        "busy_restore": "A backup is being restored right now. Install the update afterwards.",
+        "none": "There is no update to install. Check for updates first.",
+        "in_progress": "An update is already being installed.",
+        "not_supported": "This program cannot update itself. The steps for your installation are on the update page.",
+        "dev_build": "A development build does not install updates.",
+        "download_failed": "The update could not be downloaded. Check your internet connection and try again. Your version and your data are unchanged.",
+        "checksum_failed": "The downloaded update is not intact (its checksum does not match) and was therefore not installed. Try again. Your version and your data are unchanged.",
+        "backup_failed": "The backup before the update failed, so nothing was installed. Your version and your data are unchanged.",
+        "no_package": "This version has no installation package for the chosen channel. Your version and your data are unchanged.",
+        "failed": "The update failed. Your version and your data are unchanged. The technical details help to find the cause."
+      },
+      "whats_new": {
+        "not_available": "There are no release notes for this version."
+      },
+      "handbook": {
+        "not_available": "The manual is not part of this program."
+      }
+    }
+  },
+  "updates": {
+    "title": "System updates",
+    "description": "Check for new versions and manage updates for your {{product}} instance.",
+    "loadFailed": "Failed to load update status:",
+    "currentVersionTitle": "Installed version",
+    "checkNow": "Check for updates",
+    "lastCheckedAt": "Last checked: {{time}}",
+    "throttledHint": "The last check was performed less than 30 seconds ago. Result returned from memory cache.",
+    "availableBadge": "New update available",
+    "viewOnGitHub": "View release notes on GitHub",
+    "publishedAt": "Published on {{date}}",
+    "instructionsServerTitle": "Updating the Docker container (Unraid / Server)",
+    "instructionsServerStep1": "In the Unraid web interface, open the \"Docker\" tab.",
+    "instructionsServerStep2": "At the bottom of the page, click \"Check for Updates\".",
+    "instructionsServerStep3": "Next to the {{product}} container, click \"Update\". The container is updated with the newest image; all data and settings are kept.",
+    "instructionsDesktopTitle": "Updating the Windows desktop application",
+    "openReleases": "Go to GitHub Releases",
+    "updateAvailablePill": "Update available",
+    "checkFailed": "The update check failed.",
+    "tabBadge": "New",
+    "neverChecked": "Not checked for updates yet.",
+    "state": {
+      "devBuild": "This is a development build. It does not look for updates on its own and offers none.",
+      "unknownVersion": "The running version cannot be compared with the published versions, so no update is offered. You can find the newest versions on the releases page.",
+      "upToDate": "You are running the newest version of this channel."
+    },
+    "install": {
+      "button": "Install update",
+      "running": "The update is being installed right now.",
+      "confirmTitle": "Install update {{version}}?",
+      "confirmText": "The program downloads the new version and checks it. Then it makes a backup of your data, closes and restarts in the new version. This takes a moment.",
+      "unsavedWarning": "Careful: some of your input is not saved yet. Input in an open window is lost when the program restarts. Input marked “Not saved” stays as a copy on this computer and is back after the restart.",
+      "confirmAction": "Install",
+      "confirmAnyway": "Install anyway",
+      "startFailed": "The update could not be started."
+    },
+    "progress": {
+      "title": "Update to {{version}}",
+      "failedTitle": "Update failed",
+      "failedNotice": "The update was not installed.",
+      "retry": "Try again",
+      "untouched": "Your installed version and your data are unchanged.",
+      "untouchedWithBackup": "Your installed version and your data are unchanged. The backup made before the update is called {{file}}.",
+      "steps": {
+        "downloading": "Download and check the update",
+        "backingUp": "Back up your data",
+        "restarting": "Close and restart the program"
+      },
+      "backingUpText": "Your data is being backed up. Please do not close the program yourself.",
+      "restartingText": "The program is closing now and will start again in the new version in a moment."
+    },
+    "instructionsServerIntro": "On a server you update the container, not the app itself. For the chosen channel the container must use the image tag \"{{tag}}\".",
+    "instructionsServerCompose": "With Docker Compose: \"docker compose pull\" and then \"docker compose up -d\". On any other server the command above is enough, then recreate the container.",
+    "instructionsDesktopOneClick": "When an update is available, a notice appears in the navigation. One click downloads the new version, makes a backup and restarts the program. Nothing is installed without your click.",
+    "instructionsDesktopManual": "This program was not installed with the setup program, so it cannot update itself. Download the newest version from the releases page and run the setup.",
+    "channel": {
+      "title": "Update channel",
+      "text": "The channel decides which versions are offered to you as an update. The program is never set back to an older version.",
+      "none": "Standard",
+      "beta": "Beta",
+      "nightly": "Nightly",
+      "noneText": "Standard: you only get finished versions (releases). This is the safest choice.",
+      "betaText": "Beta channel: you get beta versions to try out and all finished versions as well. Betas may still contain errors.",
+      "nightlyText": "Nightly channel: you get every change as soon as possible and all finished versions as well. Nightlies are hardly tested and may contain errors.",
+      "notSaved": "No channel chosen yet: the standard applies.",
+      "dockerNote": "Docker and Unraid: the container has to use the image \"{{image}}\" for this. In Unraid enter it under \"Edit\" in the \"Repository\" field. Choosing it here alone does not change what Docker downloads.",
+      "desktopNote": "The Windows program downloads the package of the chosen channel by itself.",
+      "saveFailed": "The update channel could not be saved."
+    },
+    "whatsNewButton": "What is new in this version",
+    "allReleases": "All releases"
+  },
+  "colorPicker": {
+    "custom": "Custom color",
+    "customChosen": "Custom color {{hex}}",
+    "dialog": "Choose a custom color",
+    "area": "Saturation and brightness",
+    "areaValue": "Saturation {{saturation}} %, brightness {{brightness}} %",
+    "hue": "Hue",
+    "hueValue": "{{hue}} degrees",
+    "hex": "Color value (hex)",
+    "tooLight": "This color is light (contrast {{ratio}} to 1 on white, at least {{min}} to 1 is recommended). Headings are hard to read on paper. You can still use the color.",
+    "tooLightShort": "Light color: headings are hard to read on white",
+    "transparent": "With transparency: in the PDF the paper shows through, in Word the color is drawn solid."
+  },
+  "preview": {
+    "loading": "Rendering the preview …",
+    "failed": "The preview could not be created.",
+    "retry": "Try again"
+  },
+  "attachments": {
+    "title": "Manage attachments & certificates",
+    "intro": "Upload references, diplomas, certificates or work samples. You can then attach them to any application dossier.",
+    "addTitle": "Add a new document (PDF, PNG, JPG or WebP, up to 20 MB)",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Reference letter Tech Inc. 2025",
+      "category": "Category"
+    },
+    "categories": {
+      "workReference": "Employment reference",
+      "degree": "Degree / diploma",
+      "certificate": "Certificate / training",
+      "recommendation": "Letter of recommendation",
+      "sample": "Work sample",
+      "other": "Other"
+    },
+    "chooseFile": "Choose file",
+    "noFile": "No file chosen yet",
+    "save": "Save document",
+    "listTitle": "Saved documents",
+    "listCount": "Saved documents ({{count}})",
+    "empty": "No attachments yet. Upload a first reference or certificate above.",
+    "view": "View",
+    "deleteTitle": "Delete attachment",
+    "deleteConfirm": "Do you really want to delete \"{{title}}\"? Applications it was attached to will no longer contain it.",
+    "errors": {
+      "upload": "The document could not be uploaded.",
+      "delete": "The attachment could not be deleted.",
+      "load": "The attachments could not be loaded."
+    }
+  },
+  "whatsNew": {
+    "title": "New in {{version}}",
+    "titleNoVersion": "What is new",
+    "close": "Got it",
+    "empty": "There are no entries for this version.",
+    "notAvailable": "There are no release notes for this version.",
+    "loadFailed": "The release notes could not be loaded."
+  },
+  "dragWindow": {
+    "handle": "Move window: use the arrow keys to move it, hold Shift for larger steps. With the mouse, drag the header.",
+    "reset": "Reset position"
+  },
+  "liveHelper": {
+    "helpButton": "Help for this page",
+    "settings": {
+      "title": "Introduction and hints",
+      "text": "Shows the short introduction again and brings back the hints on every page.",
+      "restart": "Restart introduction and hints"
+    },
+    "intro": {
+      "title": "Welcome to {{product}}",
+      "stepOf": "Step {{current}} of {{total}}",
+      "announce": "Step {{current}} of {{total}}: {{title}}",
+      "skip": "Skip",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Done",
+      "dots": "Steps of the introduction",
+      "dot": "Step {{n}}: {{title}}",
+      "where": "Where to find it",
+      "toProfile": "Go to the master profile",
+      "openHandbook": "Open the manual",
+      "steps": {
+        "welcome": {
+          "title": "Applications that look good",
+          "text": "{{product}} turns your details into a CV, a cover letter and an application portfolio. You write everything down once and reuse it for every application.",
+          "point1": "One master profile instead of many separate files.",
+          "point2": "CV, cover letter and portfolio as PDF, CV and cover letter also as a Word file.",
+          "point3": "The AI help is optional. Everything works just the same without it."
+        },
+        "profile": {
+          "title": "The master profile: keep it once",
+          "text": "Everything about you is here: contact details, work experience, education, skills. What you type is saved by itself, there is no save button.",
+          "point1": "Switch between the sections in the sidebar; the wizard mode walks you through them step by step.",
+          "point2": "Under \"Preview & Export\" you see the CV as a PDF and choose design, color and font.",
+          "point3": "The gap analysis shows periods without a station in your career."
+        },
+        "letter": {
+          "title": "The cover letter",
+          "text": "A cover letter of its own for every job. {{product}} fills in sender and date from your master profile; the layout is based on DIN 5008.",
+          "point1": "It is saved by itself, and the PDF preview shows the finished page.",
+          "point2": "You can download it as a PDF or as a Word file.",
+          "point3": "The AI assistant can suggest a draft. Only what you confirm is taken over."
+        },
+        "applications": {
+          "title": "Applications and portfolio",
+          "text": "The application tracker keeps the overview: every application has a status, from draft to offer or rejection.",
+          "point1": "View them as a Kanban board with columns or as a list.",
+          "point2": "The portfolio combines cover sheet, cover letter, CV and attachments in one PDF.",
+          "point3": "Upload certificates and other attachments once and attach them to every application."
+        },
+        "guide": {
+          "title": "Guide: what belongs in your application?",
+          "text": "In a few clicks you find out what belongs in your application in your situation.",
+          "point1": "Five short questions, about a minute, can be cancelled at any time.",
+          "point2": "You get a plan: what belongs in it, how the CV is built, what you can cut.",
+          "point3": "Under \"All situations\" you read the plans for typical situations without any questions. Orientation, not legal advice."
+        },
+        "help": {
+          "title": "Help when you need it",
+          "text": "On every page, \"Help for this page\" at the bottom of the sidebar shows short hints right at the controls.",
+          "point1": "The manual explains everything in detail and can be downloaded as a PDF.",
+          "point2": "In the settings you restart this introduction and all hints at any time.",
+          "point3": "You set up the AI under \"AI Settings\": your own key, a local model, or copy and paste."
+        }
+      }
+    },
+    "hints": {
+      "meta": "Hint {{current}} of {{total}}",
+      "next": "Next",
+      "done": "Done",
+      "skip": "Hide",
+      "intro": "Show the introduction",
+      "handbook": "Open the manual",
+      "overviewActions": {
+        "title": "New application and export",
+        "text": "The gold button creates an application, \"Export\" downloads the finished PDFs."
+      },
+      "overviewBoard": {
+        "title": "Your application board",
+        "text": "Each column is a stage of your applications. A click on a card opens it, and there you change the status as well."
+      },
+      "overviewNext": {
+        "title": "Follow-up due",
+        "text": "The applications whose follow-up is due are listed here. A click opens the application."
+      },
+      "navProfile": {
+        "title": "Start here",
+        "text": "In the master profile you keep your details once. CV, cover letter and portfolio are made from it."
+      },
+      "navExport": {
+        "title": "Export",
+        "text": "Download the finished PDFs of your applications here, one at a time or many at once."
+      },
+      "exportTabs": {
+        "title": "Applications or CV only",
+        "text": "The first tab holds the PDFs of your applications, the second only the CV with preview, design and download."
+      },
+      "exportBulk": {
+        "title": "Several at once",
+        "text": "Tick applications. One gives a PDF, several give a ZIP. At most 100 are possible at once."
+      },
+      "exportList": {
+        "title": "Your applications",
+        "text": "Each row shows the file name made from company and job title. \"View\" shows the portfolio, \"PDF\" downloads it."
+      },
+      "navGuide": {
+        "title": "Guide",
+        "text": "A click-through assistant: in a few clicks you find out what belongs in your application in your situation."
+      },
+      "shellAi": {
+        "title": "AI Settings",
+        "text": "The AI help is optional. Here you set up how it works: with your own key, with a local model, or by copy and paste."
+      },
+      "shellHandbook": {
+        "title": "Manual",
+        "text": "The detailed manual, in German and English. You read it in the app or download it as a PDF."
+      },
+      "shellHelp": {
+        "title": "Help for this page",
+        "text": "Shows the hints of the page you are on. On pages without hints, the introduction starts."
+      },
+      "profileSections": {
+        "title": "The sections of the master profile",
+        "text": "Switch here between personal data, work experience, education, skills and the other sections. \"Preview & Export\" is at the bottom."
+      },
+      "profileAutosave": {
+        "title": "Saved by itself",
+        "text": "You do not have to save anything. What you type is backed up by itself; this shows how that is going."
+      },
+      "profileAssistant": {
+        "title": "Wizard mode",
+        "text": "Prefer it step by step? The wizard walks you through all the details in order. \"Classic view\" takes you back."
+      },
+      "profileAi": {
+        "title": "AI help for the short profile",
+        "text": "The AI can suggest a short profile or translate your text. It is optional, and only what you confirm is taken over."
+      },
+      "experiencesAdd": {
+        "title": "Add a station",
+        "text": "Enter your jobs here. They appear in your CV."
+      },
+      "profileGaps": {
+        "title": "Gap analysis",
+        "text": "Here {{product}} reports periods without a station in your career. Under \"Show details & tips\" you fill a gap with one click, for example with further education."
+      },
+      "previewDesign": {
+        "title": "Design",
+        "text": "This is how your CV looks. With \"Choose design\" you compare all templates with a thumbnail."
+      },
+      "previewColor": {
+        "title": "Accent color",
+        "text": "The color for lines, areas and headings. You can pick a color of your own as well."
+      },
+      "previewFont": {
+        "title": "Font",
+        "text": "The font for the whole document. The preview follows at once."
+      },
+      "previewExport": {
+        "title": "Download",
+        "text": "Download the CV as a PDF or as a Word file here. \"Refresh preview\" redraws the preview."
+      },
+      "previewPane": {
+        "title": "The preview",
+        "text": "This is what the finished CV looks like. It changes as soon as you change design, color or font."
+      },
+      "lettersNew": {
+        "title": "New Cover Letter",
+        "text": "Creates a cover letter. Sender and date are filled in already, you add the recipient and the text."
+      },
+      "lettersList": {
+        "title": "Your cover letters",
+        "text": "A click opens a cover letter for editing. It is saved by itself."
+      },
+      "letterTabs": {
+        "title": "Content and preview",
+        "text": "Write the letter under \"Content\"; under \"PDF Preview\" you see the finished page."
+      },
+      "letterAutosave": {
+        "title": "Saved by itself",
+        "text": "The cover letter saves itself. This shows whether everything is backed up or what is still missing."
+      },
+      "letterAi": {
+        "title": "AI Assistant",
+        "text": "Has a draft of the cover letter suggested. The AI is optional, and you decide what is taken over."
+      },
+      "letterExport": {
+        "title": "Download",
+        "text": "The finished cover letter as a PDF or Word file. \"Delete\" removes it."
+      },
+      "applicationsNew": {
+        "title": "New Application",
+        "text": "Create an application here: job, company, status and the matching cover letter."
+      },
+      "applicationsAttachments": {
+        "title": "Attachments & certificates",
+        "text": "Upload certificates and other documents once. Then attach them to every application that needs them."
+      },
+      "applicationsViews": {
+        "title": "View",
+        "text": "Switch between the Kanban board with columns and the list view."
+      },
+      "applicationsBoard": {
+        "title": "Your applications",
+        "text": "A click on an application opens its details. You view and download the portfolio of cover sheet, cover letter, CV and attachments with the icons on the application."
+      },
+      "settingsTabs": {
+        "title": "Settings by topic",
+        "text": "Choose the area you want to change at the top."
+      },
+      "guideStart": {
+        "title": "Start the guide",
+        "text": "Five short questions by click, about one minute. Then you get your application plan. You can cancel at any time."
+      },
+      "guideAnswers": {
+        "title": "Your answers",
+        "text": "Your plan is based on these. They stay saved in your account, so the next time you see the plan straight away."
+      },
+      "guidePlan": {
+        "title": "Your application plan",
+        "text": "Cards on the topics of your application: what belongs in it, how the CV is built, what you can cut. The buttons at the end of each card lead straight to the right place in the app."
+      },
+      "guideChange": {
+        "title": "Change answers",
+        "text": "Has your situation changed? Answer the questions again and the plan adjusts."
+      },
+      "guideOverviewButton": {
+        "title": "All situations",
+        "text": "To read up on: the plan for typical situations, without answering anything."
+      },
+      "guideSituations": {
+        "title": "Choose a situation",
+        "text": "From leaving school to returning after a break: choose a situation and the plan for typical answers appears below."
+      },
+      "guideSituationPlan": {
+        "title": "The plan for the situation",
+        "text": "This is what the plan looks like for this situation. The assumed answers are above it; they are examples and not yours."
+      },
+      "guideLegend": {
+        "title": "How to read the markers",
+        "text": "This explains what \"Rule of thumb\", \"Recommendation\" and the other markers mean. It is orientation, not legal advice."
+      },
+      "settingsHelper": {
+        "title": "Introduction and hints",
+        "text": "This button shows the introduction and all hints once more."
+      }
+    }
+  },
+  "handbook": {
+    "title": "Manual",
+    "frame": "Manual as PDF",
+    "language": "Language of the manual",
+    "languages": {
+      "de": "Deutsch",
+      "en": "English"
+    },
+    "openInTab": "Open in new tab",
+    "download": "Download",
+    "notAvailableTitle": "The manual is not part of this program",
+    "notAvailableText": "This version does not include the manual in the chosen language. You can find it on the releases page."
+  },
+  "about": {
+    "title": "About {{product}}",
+    "description": "Version, licence and source code of this program.",
+    "product": "Program",
+    "version": "Version",
+    "license": "Licence",
+    "licenseText": "Free software: you may read, change and pass on the source code. Whoever offers a changed version as a service has to offer its source code as well.",
+    "source": "Source code",
+    "whatsNew": "What is new in this version",
+    "handbook": "Open the manual",
+    "loadFailed": "The information about the program could not be loaded.",
+    "licensesTitle": "Components used",
+    "licensesText": "This program contains software by others. Here you can see what it is called and under which licence it is available.",
+    "noLicenseText": "The licence text comes with the component itself: see the link.",
+    "licensesLoadFailed": "The list of components could not be loaded.",
+    "search": "Search components",
+    "searchPlaceholder": "Name, licence or part of the program",
+    "licensesCount": "{{shown}} of {{total}} components",
+    "licensesNone": "No component matches this search."
+  },
+  "dates": {
+    "placeholder": {
+      "day": {
+        "dmy": "DD.MM.YYYY",
+        "ymd_slash": "YYYY/MM/DD",
+        "iso": "YYYY-MM-DD"
+      },
+      "month": {
+        "dmy": "MM.YYYY",
+        "ymd_slash": "YYYY/MM",
+        "iso": "YYYY-MM"
+      }
     }
   }
 }

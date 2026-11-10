@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../components/ui/Icon'
 import { MessageSlot } from '../../components/ui/MessageSlot'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { formatMonthDay } from '../../validation/dates'
 import { groupByDay, usableTimeZone, zonedParts } from './nextRuns'
 
 const HOUR_MARKS = [0, 6, 12, 18, 24]
@@ -35,7 +37,9 @@ export function WeekPreview({ runs, now, timeZone, state, unsaved, language, onS
   const days = groupByDay(runs, now, zone)
   const today = zonedParts(now, zone)
   const nowMinutes = today.hour * 60 + today.minute
-  const dayFormat = new Intl.DateTimeFormat(language, { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: zone })
+  const { format: dateFormat } = useDateFormat()
+  // The weekday is the language's own short name; the date behind it follows the chosen date format.
+  const weekdayFormat = new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: zone })
   const total = days.reduce((sum, day) => sum + day.minutes.length, 0)
 
   const captions: Record<PreviewState, string> = {
@@ -77,7 +81,9 @@ export function WeekPreview({ runs, now, timeZone, state, unsaved, language, onS
         <span />
 
         {days.map((day, index) => {
-          const label = dayFormat.format(day.start + 12 * 3_600_000)
+          const noon = day.start + 12 * 3_600_000
+          const date = zonedParts(noon, zone)
+          const label = `${weekdayFormat.format(noon)} ${formatMonthDay(date.month, date.day, dateFormat)}`
           const times = day.minutes.map(clock)
           const summary = times.length === 0 ? t('backups.preview.noRun') : times.length <= 3 ? times.join(' · ') : t('backups.preview.manyRuns', { count: times.length })
           return (

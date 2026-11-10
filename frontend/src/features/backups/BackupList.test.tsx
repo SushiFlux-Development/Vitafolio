@@ -21,15 +21,61 @@ const entries: BackupEntry[] = [
   { id: 'b2', file: 'app-2.db', createdAt: '2026-11-03T12:00:00Z', sizeBytes: 1000, kind: 'uploaded', tier: 'recent' },
 ]
 
-function renderList(over: { desktop?: boolean; twoFactor?: boolean; onChanged?: () => void } = {}) {
+function renderList(over: { desktop?: boolean; twoFactor?: boolean; onChanged?: () => void; entries?: BackupEntry[]; maxUploadBytes?: number } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
       <ErrorDialogProvider>
-        <BackupList entries={entries} desktop={over.desktop ?? false} twoFactor={over.twoFactor ?? false} onChanged={over.onChanged ?? (() => undefined)} language="de" />
+        <BackupList entries={over.entries ?? entries} maxUploadBytes={over.maxUploadBytes} desktop={over.desktop ?? false} twoFactor={over.twoFactor ?? false} onChanged={over.onChanged ?? (() => undefined)} language="de" />
       </ErrorDialogProvider>
     </QueryClientProvider>,
   )
 }
+
+describe('backups of earlier versions (database only)', () => {
+  const old: BackupEntry = { id: 'b3', file: 'app-3.db', createdAt: '2026-11-02T12:00:00Z', sizeBytes: 1000, kind: 'manual', tier: 'recent', format: 'database' }
+  const full: BackupEntry = { id: 'b4', file: 'app-4.zip', createdAt: '2026-11-03T12:00:00Z', sizeBytes: 1000, kind: 'manual', tier: 'recent', format: 'archive' }
+
+  it('marks only the old ones in the list', () => {
+    renderList({ entries: [full, old] })
+    expect(screen.getAllByText('Nur Datenbank')).toHaveLength(1)
+  })
+
+  it('says in the restore dialog that the files stay as they are', async () => {
+    const user = userEvent.setup()
+    renderList({ entries: [old] })
+    await user.click(screen.getByTestId('restore'))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('bleiben, wie sie jetzt sind')
+  })
+
+  it('does not say so for a complete backup', async () => {
+    const user = userEvent.setup()
+    renderList({ entries: [full] })
+    await user.click(screen.getByTestId('restore'))
+    expect(await screen.findByRole('alertdialog')).not.toHaveTextContent('bleiben, wie sie jetzt sind')
+  })
+})
+
+describe('kind of a backup', () => {
+  it.each([
+    ['pre-update', 'Vor Update'],
+    ['pre-restore', 'Vor Wiederherstellung'],
+    ['shutdown', 'Vor dem Beenden'],
+  ])('names the kind %s in words, never as the raw code', (kind, text) => {
+    renderList({ entries: [{ id: 'k1', file: 'app-k.zip', createdAt: '2026-11-04T12:00:00Z', sizeBytes: 1000, kind, tier: 'recent', format: 'archive' }] })
+    expect(screen.getByText(text)).toBeInTheDocument()
+    expect(screen.queryByText(kind)).toBeNull()
+  })
+})
+
+describe('the upload limit', () => {
+  it('comes from the server', async () => {
+    const user = userEvent.setup()
+    renderList({ maxUploadBytes: 1024 })
+    await user.upload(screen.getByTestId('upload-input'), new File([new Uint8Array(2048)], 'gross.zip'))
+    expect(await screen.findByText('Die Datei ist zu groß: 2 KB (erlaubt sind höchstens 1 KB).')).toBeInTheDocument()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+})
 
 describe('deleting a backup', () => {
   it('has a red Löschen button per backup', () => {

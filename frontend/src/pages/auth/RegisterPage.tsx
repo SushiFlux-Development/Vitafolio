@@ -19,7 +19,7 @@ export function RegisterPage() {
       <p className="mt-2 mb-6 text-ink-muted">{t('register.intro')}</p>
       <AccountForm
         submitLabel={t('register.submit')}
-        answerCodes={['rate_limited', 'registration.closed']}
+        answerCodes={['registration.closed']}
         onSubmit={async (account) => {
           const { user } = await authApi.register(account)
           queryClient.setQueryData<Session>(ME_KEY, { user, twoFactorSetupRequired: user.mustSetupTwoFactor })

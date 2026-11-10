@@ -1,9 +1,10 @@
 using Cv.Server.Auth;
-using Cv.Server.Configuration;
 using Cv.Server.Data;
 using Cv.Server.Errors;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cv.Server.Controllers;
@@ -17,10 +18,11 @@ namespace Cv.Server.Controllers;
 [Authorize]
 public sealed class ProfileController(
     AppDbContext db,
-    ServerSettings settings,
+    Storage.DataFiles files,
     TimeProvider time,
     Documents.TypstRenderer renderer,
-    Documents.DocxRenderer docxRenderer) : ControllerBase
+    Documents.DocxRenderer docxRenderer,
+    Documents.RenderGate renderGate) : ControllerBase
 {
     private static readonly byte[] JpegMagic = [0xFF, 0xD8, 0xFF];
     private static readonly byte[] PngMagic = [0x89, 0x50, 0x4E, 0x47];
@@ -41,25 +43,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<ProfileResponse>> UpdateProfile([FromBody] PersonalDataRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "firstName", body.FirstName, 64);
-        InputRules.Required(errors, "lastName", body.LastName, 64);
-        InputRules.Optional(errors, "academicTitle", body.AcademicTitle, 32);
-        InputRules.Optional(errors, "professionalTitle", body.ProfessionalTitle, 128);
-        InputRules.Optional(errors, "email", body.Email, 128);
-        InputRules.Optional(errors, "phone", body.Phone, 64);
-        InputRules.Optional(errors, "street", body.Street, 128);
-        InputRules.Optional(errors, "postalCode", body.PostalCode, 32);
-        InputRules.Optional(errors, "city", body.City, 128);
-        InputRules.Optional(errors, "country", body.Country, 64);
-        InputRules.Optional(errors, "dateOfBirth", body.DateOfBirth, 32);
-        InputRules.Optional(errors, "placeOfBirth", body.PlaceOfBirth, 128);
-        InputRules.Optional(errors, "nationality", body.Nationality, 64);
-        InputRules.Optional(errors, "maritalStatus", body.MaritalStatus, 64);
-        InputRules.Optional(errors, "website", body.Website, 256);
-        InputRules.Optional(errors, "linkedIn", body.LinkedIn, 256);
-        InputRules.Optional(errors, "gitHub", body.GitHub, 256);
-        InputRules.Optional(errors, "xing", body.Xing, 256);
-        InputRules.Optional(errors, "bio", body.Bio, 4096);
+        ProfileRules.Personal(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -88,6 +72,81 @@ public sealed class ProfileController(
         return ProfileResponse.From(profile);
     }
 
+    [HttpPut("preview-options")]
+    [RequestSizeLimit(2048)]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
+    public async Task<ActionResult<PreviewOptionsDto>> SavePreviewOptions([FromBody] PreviewOptionsRequest body, CancellationToken ct)
+    {
+        var errors = new FieldErrors();
+        ProfileRules.PreviewOptions(errors, body);
+        errors.ThrowIfAny();
+
+        var normalized = PreviewOptionsDto.Normalize(body);
+        var profile = await GetOrCreateProfileAsync(ct);
+        profile.PreviewOptionsJson = normalized.ToJson();
+        await db.SaveChangesAsync(ct);
+        return normalized;
+    }
+
+    /// <summary>
+    /// What "Preview and export" shows: whether the suggestion is followed and the own decisions per entry. Saved normalised and answered as
+    /// saved. Ids of other accounts or of deleted entries are kept as sent but never match anything when documents are made.
+    /// </summary>
+    [HttpPut("cv-content-settings")]
+    [RequestSizeLimit(65536)]
+    public async Task<ActionResult<Applications.CvContentSettingsDto>> SaveCvContentSettings([FromBody] Applications.CvContentSettingsRequest? body, CancellationToken ct)
+    {
+        var errors = new FieldErrors();
+        Applications.CvContentSettings.Validate(errors, body);
+        errors.ThrowIfAny();
+
+        var normalized = Applications.CvContentSettings.Normalize(body!);
+        var profile = await GetOrCreateProfileAsync(ct);
+        profile.CvContentSettingsJson = Applications.CvContentSettings.ToJson(normalized);
+        await db.SaveChangesAsync(ct);
+        return normalized;
+    }
+
+    /// <summary>
+    /// The profile as a document gets it. With <c>applySelection</c> the suggestion plus the person's own decisions are applied (through the
+    /// same <see cref="Applications.CvSelectionRules.Apply"/> as for an application's own selection); without it the whole profile, as before.
+    /// </summary>
+    private ProfileResponse ProfileForDocument(UserProfile profile, Documents.CvRenderOptions opts)
+    {
+        var data = ProfileResponse.From(profile);
+        if (!opts.NormalizedApplySelection) return data;
+        var selection = new Applications.ContentSuggestionRules(time).EffectiveSelection(
+            data, Applications.GuideAnswers.Parse(profile.GuideAnswersJson), data.CvContentSettings);
+        return Applications.CvSelectionRules.Apply(data, selection);
+    }
+
+    /// <summary>The saved answers of the guide, or JSON <c>null</c> (status 200) when there are none yet.</summary>
+    [HttpGet("guide-answers")]
+    public async Task<IActionResult> GetGuideAnswers(CancellationToken ct)
+    {
+        var userId = User.RequiredUserId();
+        var json = await db.Profiles.Where(p => p.UserId == userId).Select(p => p.GuideAnswersJson).FirstOrDefaultAsync(ct);
+        // An explicit "null" body: returning null from an action would answer 204 and the client would have nothing to read
+        return Content(Applications.GuideAnswers.Parse(json) is { } answers ? System.Text.Json.JsonSerializer.Serialize(answers, GuideJson) : "null", "application/json");
+    }
+
+    [HttpPut("guide-answers")]
+    [RequestSizeLimit(2048)]
+    public async Task<ActionResult<Applications.GuideAnswersDto>> SaveGuideAnswers([FromBody] Applications.GuideAnswersDto? body, CancellationToken ct)
+    {
+        var errors = new FieldErrors();
+        Applications.GuideAnswers.Validate(errors, body);
+        errors.ThrowIfAny();
+
+        var normalized = Applications.GuideAnswers.Normalize(body!);
+        var profile = await GetOrCreateProfileAsync(ct);
+        profile.GuideAnswersJson = Applications.GuideAnswers.ToJson(normalized);
+        await db.SaveChangesAsync(ct);
+        return normalized;
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions GuideJson = new(System.Text.Json.JsonSerializerDefaults.Web);
+
     // -----------------------------------------------------------------------------------------------------------------
     // Profile Photo
     // -----------------------------------------------------------------------------------------------------------------
@@ -96,13 +155,8 @@ public sealed class ProfileController(
     public async Task<IActionResult> GetPhoto(CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
-        if (string.IsNullOrEmpty(profile.PhotoPath))
-        {
-            return NotFound();
-        }
-
-        var fullPath = Path.Combine(settings.DataDirectory, profile.PhotoPath);
-        if (!System.IO.File.Exists(fullPath))
+        var fullPath = files.Resolve(Storage.DataArea.Photos, profile.PhotoPath);
+        if (fullPath is null)
         {
             return NotFound();
         }
@@ -155,27 +209,18 @@ public sealed class ProfileController(
             throw ApiException.BadRequest("photo.invalid_format", "Only JPEG, PNG, and WebP images are accepted.");
         }
 
-        var profile = await GetOrCreateProfileAsync(ct);
-        var photosDir = Path.Combine(settings.DataDirectory, "photos");
-        Directory.CreateDirectory(photosDir);
-
-        // Delete older photo if extension changed
-        if (!string.IsNullOrEmpty(profile.PhotoPath))
+        if (Documents.ImageDimensions.TooLarge(bytes))
         {
-            var oldPath = Path.Combine(settings.DataDirectory, profile.PhotoPath);
-            if (System.IO.File.Exists(oldPath))
-            {
-                try { System.IO.File.Delete(oldPath); } catch { /* best effort */ }
-            }
+            throw ApiException.BadRequest("photo.too_many_pixels", "The image has too many pixels.");
         }
 
-        var relativePath = Path.Combine("photos", $"{profile.UserId}{ext}");
-        var destination = Path.Combine(settings.DataDirectory, relativePath);
-        await System.IO.File.WriteAllBytesAsync(destination, bytes, ct);
-
-        profile.PhotoPath = relativePath.Replace('\\', '/');
-        profile.UpdatedAt = time.GetUtcNow().UtcDateTime;
-        await db.SaveChangesAsync(ct);
+        var profile = await GetOrCreateProfileAsync(ct);
+        await files.SaveAsync(Storage.DataArea.Photos, $"{profile.UserId}-{Guid.NewGuid():N}{ext}", bytes, profile.PhotoPath, async stored =>
+        {
+            profile.PhotoPath = stored;
+            profile.UpdatedAt = time.GetUtcNow().UtcDateTime;
+            await db.SaveChangesAsync(ct);
+        }, ct);
 
         return ProfileResponse.From(profile);
     }
@@ -186,14 +231,11 @@ public sealed class ProfileController(
         var profile = await GetOrCreateProfileAsync(ct);
         if (!string.IsNullOrEmpty(profile.PhotoPath))
         {
-            var fullPath = Path.Combine(settings.DataDirectory, profile.PhotoPath);
-            if (System.IO.File.Exists(fullPath))
-            {
-                try { System.IO.File.Delete(fullPath); } catch { /* best effort */ }
-            }
+            var previous = profile.PhotoPath;
             profile.PhotoPath = null;
             profile.UpdatedAt = time.GetUtcNow().UtcDateTime;
             await db.SaveChangesAsync(ct);
+            files.Delete(Storage.DataArea.Photos, previous);
         }
 
         return NoContent();
@@ -207,14 +249,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<ExperienceDto>> AddExperience([FromBody] ExperienceRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "jobTitle", body.JobTitle, 128);
-        InputRules.Required(errors, "employer", body.Employer, 128);
-        InputRules.Required(errors, "startDate", body.StartDate, 32);
-        InputRules.Optional(errors, "employmentType", body.EmploymentType, 64);
-        InputRules.Optional(errors, "city", body.City, 128);
-        InputRules.Optional(errors, "country", body.Country, 64);
-        InputRules.Optional(errors, "endDate", body.EndDate, 32);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.Experience(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -247,14 +282,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<ExperienceDto>> UpdateExperience(Guid id, [FromBody] ExperienceRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "jobTitle", body.JobTitle, 128);
-        InputRules.Required(errors, "employer", body.Employer, 128);
-        InputRules.Required(errors, "startDate", body.StartDate, 32);
-        InputRules.Optional(errors, "employmentType", body.EmploymentType, 64);
-        InputRules.Optional(errors, "city", body.City, 128);
-        InputRules.Optional(errors, "country", body.Country, 64);
-        InputRules.Optional(errors, "endDate", body.EndDate, 32);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.Experience(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -319,15 +347,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<EducationDto>> AddEducation([FromBody] EducationRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "degree", body.Degree, 128);
-        InputRules.Required(errors, "institution", body.Institution, 128);
-        InputRules.Required(errors, "startDate", body.StartDate, 32);
-        InputRules.Optional(errors, "fieldOfStudy", body.FieldOfStudy, 128);
-        InputRules.Optional(errors, "city", body.City, 128);
-        InputRules.Optional(errors, "country", body.Country, 64);
-        InputRules.Optional(errors, "endDate", body.EndDate, 32);
-        InputRules.Optional(errors, "grade", body.Grade, 32);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.Education(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -340,7 +360,7 @@ public sealed class ProfileController(
             Institution = body.Institution!.Trim(),
             City = body.City?.Trim(),
             Country = body.Country?.Trim(),
-            StartDate = body.StartDate!.Trim(),
+            StartDate = body.StartDate?.Trim() ?? "",
             EndDate = body.IsCurrent ? null : body.EndDate?.Trim(),
             IsCurrent = body.IsCurrent,
             Grade = body.Grade?.Trim(),
@@ -361,15 +381,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<EducationDto>> UpdateEducation(Guid id, [FromBody] EducationRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "degree", body.Degree, 128);
-        InputRules.Required(errors, "institution", body.Institution, 128);
-        InputRules.Required(errors, "startDate", body.StartDate, 32);
-        InputRules.Optional(errors, "fieldOfStudy", body.FieldOfStudy, 128);
-        InputRules.Optional(errors, "city", body.City, 128);
-        InputRules.Optional(errors, "country", body.Country, 64);
-        InputRules.Optional(errors, "endDate", body.EndDate, 32);
-        InputRules.Optional(errors, "grade", body.Grade, 32);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.Education(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -381,7 +393,7 @@ public sealed class ProfileController(
         education.Institution = body.Institution!.Trim();
         education.City = body.City?.Trim();
         education.Country = body.Country?.Trim();
-        education.StartDate = body.StartDate!.Trim();
+        education.StartDate = body.StartDate?.Trim() ?? "";
         education.EndDate = body.IsCurrent ? null : body.EndDate?.Trim();
         education.IsCurrent = body.IsCurrent;
         education.Grade = body.Grade?.Trim();
@@ -435,9 +447,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<SkillDto>> AddSkill([FromBody] SkillRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "name", body.Name, 128);
-        InputRules.Optional(errors, "category", body.Category, 64);
-        InputRules.Range(errors, "level", body.Level, 0, 5);
+        ProfileRules.Skill(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -464,9 +474,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<SkillDto>> UpdateSkill(Guid id, [FromBody] SkillRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "name", body.Name, 128);
-        InputRules.Optional(errors, "category", body.Category, 64);
-        InputRules.Range(errors, "level", body.Level, 0, 5);
+        ProfileRules.Skill(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -525,8 +533,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<LanguageDto>> AddLanguage([FromBody] LanguageRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "language", body.Language, 64);
-        InputRules.Required(errors, "level", body.Level, 32);
+        ProfileRules.Language(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -552,8 +559,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<LanguageDto>> UpdateLanguage(Guid id, [FromBody] LanguageRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "language", body.Language, 64);
-        InputRules.Required(errors, "level", body.Level, 32);
+        ProfileRules.Language(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -611,12 +617,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CertificateDto>> AddCertificate([FromBody] CertificateRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
-        InputRules.Optional(errors, "issuer", body.Issuer, 128);
-        InputRules.Optional(errors, "issueDate", body.IssueDate, 32);
-        InputRules.Optional(errors, "expiryDate", body.ExpiryDate, 32);
-        InputRules.Optional(errors, "credentialUrl", body.CredentialUrl, 256);
-        InputRules.Optional(errors, "credentialId", body.CredentialId, 128);
+        ProfileRules.Certificate(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -646,12 +647,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CertificateDto>> UpdateCertificate(Guid id, [FromBody] CertificateRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
-        InputRules.Optional(errors, "issuer", body.Issuer, 128);
-        InputRules.Optional(errors, "issueDate", body.IssueDate, 32);
-        InputRules.Optional(errors, "expiryDate", body.ExpiryDate, 32);
-        InputRules.Optional(errors, "credentialUrl", body.CredentialUrl, 256);
-        InputRules.Optional(errors, "credentialId", body.CredentialId, 128);
+        ProfileRules.Certificate(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -713,9 +709,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<InterestDto>> AddInterest([FromBody] InterestRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "name", body.Name, 128);
-        InputRules.Optional(errors, "category", body.Category, 64);
-        InputRules.Optional(errors, "description", body.Description, 1024);
+        ProfileRules.Interest(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -742,9 +736,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<InterestDto>> UpdateInterest(Guid id, [FromBody] InterestRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "name", body.Name, 128);
-        InputRules.Optional(errors, "category", body.Category, 64);
-        InputRules.Optional(errors, "description", body.Description, 1024);
+        ProfileRules.Interest(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -803,7 +795,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CustomSectionDto>> AddCustomSection([FromBody] CustomSectionRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
+        ProfileRules.CustomSection(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -828,7 +820,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CustomSectionDto>> UpdateCustomSection(Guid id, [FromBody] CustomSectionRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
+        ProfileRules.CustomSection(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -881,10 +873,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CustomSectionItemDto>> AddCustomSectionItem(Guid sectionId, [FromBody] CustomSectionItemRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
-        InputRules.Optional(errors, "subtitle", body.Subtitle, 128);
-        InputRules.Optional(errors, "dateRange", body.DateRange, 64);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.CustomSectionItem(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -916,10 +905,7 @@ public sealed class ProfileController(
     public async Task<ActionResult<CustomSectionItemDto>> UpdateCustomSectionItem(Guid sectionId, Guid id, [FromBody] CustomSectionItemRequest body, CancellationToken ct)
     {
         var errors = new FieldErrors();
-        InputRules.Required(errors, "title", body.Title, 128);
-        InputRules.Optional(errors, "subtitle", body.Subtitle, 128);
-        InputRules.Optional(errors, "dateRange", body.DateRange, 64);
-        InputRules.Optional(errors, "description", body.Description, 4096);
+        ProfileRules.CustomSectionItem(errors, body);
         errors.ThrowIfAny();
 
         var profile = await GetOrCreateProfileAsync(ct);
@@ -996,11 +982,16 @@ public sealed class ProfileController(
     }
 
     [HttpPost("json-resume/import")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<ProfileResponse>> ImportJsonResume(
         [FromBody] Documents.JsonResumeDto resume,
         [FromQuery] bool replace = false,
         CancellationToken ct = default)
     {
+        var errors = new FieldErrors();
+        Documents.JsonResumeValidator.Validate(errors, resume);
+        errors.ThrowIfAny();
+
         var profile = await GetOrCreateProfileAsync(ct);
         Documents.JsonResumeConverter.ApplyJsonResume(db, profile, resume, time, replaceExisting: replace);
         await db.SaveChangesAsync(ct);
@@ -1012,22 +1003,26 @@ public sealed class ProfileController(
     // -----------------------------------------------------------------------------------------------------------------
 
     [HttpPost("preview/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> PreviewPdf([FromBody] Documents.CvRenderOptions? options, CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
         var opts = options ?? new Documents.CvRenderOptions(null, null, null, null, null, null);
-        var photoPath = !string.IsNullOrEmpty(profile.PhotoPath) ? Path.Combine(settings.DataDirectory, profile.PhotoPath) : null;
-        var pdfBytes = renderer.RenderPdf(ProfileResponse.From(profile), opts, photoPath);
+        var photoPath = files.Resolve(Storage.DataArea.Photos, profile.PhotoPath);
+        var profileData = ProfileForDocument(profile, opts);
+        var pdfBytes = await renderGate.RunAsync(() => renderer.RenderPdf(profileData, opts, photoPath), ct);
         return File(pdfBytes, "application/pdf");
     }
 
     [HttpPost("export/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> ExportPdf([FromBody] Documents.CvRenderOptions? options, CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
         var opts = options ?? new Documents.CvRenderOptions(null, null, null, null, null, null);
-        var photoPath = !string.IsNullOrEmpty(profile.PhotoPath) ? Path.Combine(settings.DataDirectory, profile.PhotoPath) : null;
-        var pdfBytes = renderer.RenderPdf(ProfileResponse.From(profile), opts, photoPath);
+        var photoPath = files.Resolve(Storage.DataArea.Photos, profile.PhotoPath);
+        var profileData = ProfileForDocument(profile, opts);
+        var pdfBytes = await renderGate.RunAsync(() => renderer.RenderPdf(profileData, opts, photoPath), ct);
 
         var first = SanitizeFilename(profile.FirstName);
         var last = SanitizeFilename(profile.LastName);
@@ -1040,11 +1035,13 @@ public sealed class ProfileController(
     }
 
     [HttpPost("export/docx")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> ExportDocx([FromBody] Documents.CvRenderOptions? options, CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
         var opts = options ?? new Documents.CvRenderOptions(null, null, null, null, null, null);
-        var docxBytes = docxRenderer.RenderCvDocx(ProfileResponse.From(profile), opts);
+        var profileData = ProfileForDocument(profile, opts);
+        var docxBytes = await renderGate.RunAsync(() => docxRenderer.RenderCvDocx(profileData, opts), ct);
 
         var first = SanitizeFilename(profile.FirstName);
         var last = SanitizeFilename(profile.LastName);
@@ -1057,22 +1054,26 @@ public sealed class ProfileController(
     }
 
     [HttpPost("preview/cover-sheet/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> PreviewCoverSheetPdf([FromBody] Documents.CoverSheetOptions? options, CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
         var opts = options ?? new Documents.CoverSheetOptions(null, null, null, null, null, null, null, null);
-        var photoPath = !string.IsNullOrEmpty(profile.PhotoPath) ? Path.Combine(settings.DataDirectory, profile.PhotoPath) : null;
-        var pdfBytes = renderer.RenderCoverSheetPdf(ProfileResponse.From(profile), opts, photoPath);
+        var photoPath = files.Resolve(Storage.DataArea.Photos, profile.PhotoPath);
+        var profileData = ProfileResponse.From(profile);
+        var pdfBytes = await renderGate.RunAsync(() => renderer.RenderCoverSheetPdf(profileData, opts, photoPath), ct);
         return File(pdfBytes, "application/pdf");
     }
 
     [HttpPost("export/cover-sheet/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> ExportCoverSheetPdf([FromBody] Documents.CoverSheetOptions? options, CancellationToken ct)
     {
         var profile = await GetOrCreateProfileAsync(ct);
         var opts = options ?? new Documents.CoverSheetOptions(null, null, null, null, null, null, null, null);
-        var photoPath = !string.IsNullOrEmpty(profile.PhotoPath) ? Path.Combine(settings.DataDirectory, profile.PhotoPath) : null;
-        var pdfBytes = renderer.RenderCoverSheetPdf(ProfileResponse.From(profile), opts, photoPath);
+        var photoPath = files.Resolve(Storage.DataArea.Photos, profile.PhotoPath);
+        var profileData = ProfileResponse.From(profile);
+        var pdfBytes = await renderGate.RunAsync(() => renderer.RenderCoverSheetPdf(profileData, opts, photoPath), ct);
 
         var first = SanitizeFilename(profile.FirstName);
         var last = SanitizeFilename(profile.LastName);
@@ -1095,10 +1096,8 @@ public sealed class ProfileController(
     // Helper: Load or initialize the master profile
     // -----------------------------------------------------------------------------------------------------------------
 
-    private async Task<UserProfile> GetOrCreateProfileAsync(CancellationToken ct)
-    {
-        var userId = User.RequiredUserId();
-        var profile = await db.Profiles
+    private Task<UserProfile?> FindProfileAsync(Guid userId, CancellationToken ct) =>
+        db.Profiles
             .Include(p => p.Experiences)
             .Include(p => p.Educations)
             .Include(p => p.Skills)
@@ -1109,6 +1108,10 @@ public sealed class ProfileController(
                 .ThenInclude(cs => cs.Items)
             .FirstOrDefaultAsync(p => p.UserId == userId, ct);
 
+    private async Task<UserProfile> GetOrCreateProfileAsync(CancellationToken ct)
+    {
+        var userId = User.RequiredUserId();
+        var profile = await FindProfileAsync(userId, ct);
         if (profile is not null) return profile;
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
@@ -1130,7 +1133,17 @@ public sealed class ProfileController(
         };
 
         db.Profiles.Add(profile);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqliteException { SqliteErrorCode: SQLitePCL.raw.SQLITE_CONSTRAINT })
+        {
+            // The UI loads the profile from several places at once: another request created it first, and that one is the profile
+            db.Entry(profile).State = EntityState.Detached;
+            return await FindProfileAsync(userId, ct)
+                ?? throw new ApiException(StatusCodes.Status401Unauthorized, "auth.invalid", "The account no longer exists.");
+        }
 
         return profile;
     }

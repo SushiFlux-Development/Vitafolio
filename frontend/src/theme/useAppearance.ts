@@ -5,11 +5,12 @@ import { useAppState } from '../auth/AppState'
 import { ME_KEY } from '../auth/useAuth'
 import type { Session } from '../auth/useAuth'
 import { applyLanguage } from '../i18n'
+import type { DateFormatPreference } from '../validation/dates'
 import { useTheme } from './ThemeProvider'
 
 /**
- * Theme and language changes: applied immediately and kept in this browser; when somebody is signed in the choice is
- * also saved to the account. The account copy is best effort - the local copy already works, so a failed save is not
+ * Theme, language and date format changes: applied immediately and kept in this browser; when somebody is signed in the choice is
+ * also saved to the account (the date format lives in the account only). The account copy is best effort - the local copy already works, so a failed save is not
  * worth interrupting the user for.
  */
 export function useAppearance() {
@@ -18,7 +19,7 @@ export function useAppearance() {
   const queryClient = useQueryClient()
   const signedIn = session.user !== null
 
-  const remember = (patch: Partial<{ theme: ThemePreference; language: LanguageCode }>) => {
+  const remember = (patch: Partial<{ theme: ThemePreference; language: LanguageCode; dateFormat: DateFormatPreference }>) => {
     queryClient.setQueryData<Session>(ME_KEY, (current) =>
       current?.user ? { ...current, user: { ...current.user, ...patch } } : current,
     )
@@ -35,6 +36,9 @@ export function useAppearance() {
     async setLanguage(language: LanguageCode) {
       await applyLanguage(language)
       remember({ language })
+    },
+    setDateFormat(dateFormat: DateFormatPreference) {
+      remember({ dateFormat })
     },
   }
 }

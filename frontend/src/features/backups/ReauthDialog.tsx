@@ -8,16 +8,15 @@ import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import type { IconName } from '../../components/ui/Icon'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice } from '../../components/ui/Notice'
 import { isLoginCodeComplete, loginCodeCheck, required } from '../../validation/rules'
 
 /**
  * Every answer the three actions can give in normal operation; the room under the form is sized for the longest of them in the
- * active language, so a refusal never makes the dialog grow.
+ * active language, so a refusal never makes the dialog grow. Anything else (too many attempts, no connection, an unexpected
+ * server error) is rare and laid over the content instead of being reserved.
  */
 export const REAUTH_ANSWERS = [
   'auth.reauth_failed',
-  'rate_limited',
   'maintenance.busy',
   'twofactor.code_already_used',
   'twofactor.key_unavailable',
@@ -27,6 +26,8 @@ export const REAUTH_ANSWERS = [
   'backup.restore_failed',
   'backup.restore_failed_not_rolled_back',
   'backup.upload_limit',
+  'backup.too_large',
+  'backup.no_space',
   'backup.invalid_schema_mismatch',
   'backup.busy',
   'validation.file_too_large',
@@ -135,7 +136,7 @@ export function ReauthDialog({ open, onClose, title, icon, tone = 'default', chi
             attempted={attempted}
           />
         )}
-        <AlertSlot reserve={reserveFor(t, REAUTH_ANSWERS)}>{error !== null && <ErrorNotice error={error} />}</AlertSlot>
+        <AlertSlot reserve={reserveFor(t, REAUTH_ANSWERS)} error={error} normalCodes={REAUTH_ANSWERS} grow="up"onDismiss={() => setError(null)} />
       </form>
     </Dialog>
   )

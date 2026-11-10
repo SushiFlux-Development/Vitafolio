@@ -7,6 +7,9 @@
  *   confirm  - blue    : saves / confirms / continues
  *   select   - blue tint with a gold indicator: the active tab, filter, navigation entry
  *   danger   - red     : destructive actions and errors
+ * Status colours (soft background + readable ink, one pair each): success (green), warning (amber), danger (red), info
+ * (blue: sent, waiting, hints) and highlight (violet: milestones such as an interview, and the AI help). Neutral states
+ * use the sunken surface. A status is never told by colour alone - it always carries its label.
  * Toggles have their own pair (on = green, off = red) because their meaning is unrelated to the categories above.
  *
  * Contrast (WCAG 2.x) of the text/background pairs and of the UI parts is pinned by src/styles/tokens.test.ts for both
@@ -52,6 +55,10 @@
   --success-soft-ink: #14602e;
   --warning-soft: #fbf1db;
   --warning-soft-ink: #6b4a08;
+  --info-soft: #e3e9f6;
+  --info-soft-ink: #1b2f5e;
+  --highlight-soft: #ece6f7;
+  --highlight-soft-ink: #46308a;
 
   --toggle-on: #1e7a3c;
   --toggle-off: #b3261e;
@@ -103,6 +110,10 @@
   --success-soft-ink: #86dba1;
   --warning-soft: #3a301a;
   --warning-soft-ink: #f0cf86;
+  --info-soft: #24325c;
+  --info-soft-ink: #e3eaff;
+  --highlight-soft: #33295c;
+  --highlight-soft-ink: #ddd2ff;
 
   --toggle-on: #46c36f;
   --toggle-off: #e5645c;

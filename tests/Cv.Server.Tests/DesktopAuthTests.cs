@@ -37,6 +37,8 @@ public sealed class DesktopFixture : IAsyncLifetime
             Urls = [$"http://127.0.0.1:{Port}"],
             DataDirectory = DataDir,
             DesktopToken = Token,
+            // A real channel would ask GitHub for releases; tests must not leave this machine
+            Channel = "dev",
         }, ["--Backups:Automatic=false"]);
         await App.StartAsync();
     }
@@ -127,5 +129,17 @@ public sealed class DesktopAuthTests(DesktopFixture desktop) : IClassFixture<Des
             Content = System.Net.Http.Json.JsonContent.Create(new { theme = "light" }),
         }, csrf: false);
         Assert.Equal(HttpStatusCode.Forbidden, noCsrf.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_windows_program_reads_the_update_status_and_needs_no_step_up()
+    {
+        var client = desktop.Client(desktop.Token);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/updates/status")).StatusCode);
+
+        // The local owner has no password: opening the registration must not ask for one
+        var put = await client.PutAsync("/api/admin/settings", new { registrationOpen = true, requireTwoFactor = false, aiAllowedHosts = new[] { "ollama.lan" } });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+        await client.PutAsync("/api/admin/settings", new { registrationOpen = false, requireTwoFactor = false, aiAllowedHosts = Array.Empty<string>() });
     }
 }

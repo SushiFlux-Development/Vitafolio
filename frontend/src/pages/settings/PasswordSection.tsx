@@ -4,11 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { accountApi } from '../../api/endpoints'
 import { useAppState } from '../../auth/AppState'
 import { NewPasswordFields } from '../../components/forms/NewPasswordFields'
-import { reserveFor } from '../../components/forms/reserve'
 import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice, Notice } from '../../components/ui/Notice'
+import { Notice } from '../../components/ui/Notice'
 import { isValid, passwordCheck, repeatCheck, required } from '../../validation/rules'
 import { useServerErrors } from '../../validation/useServerErrors'
 
@@ -85,8 +84,13 @@ export function PasswordSection() {
           {t('settings.password.submit')}
         </Button>
       </div>
-      <AlertSlot reserve={[t('settings.password.done'), ...reserveFor(t, ['rate_limited'])]}>
-        {server.hasGeneralError ? <ErrorNotice error={server.error} title={t('settings.password.failed')} /> : done ? <Notice tone="success">{t('settings.password.done')}</Notice> : null}
+      <AlertSlot
+        reservePlain={[t('settings.password.done')]}
+        error={server.hasGeneralError ? server.error : null}
+        errorTitle={t('settings.password.failed')}
+        onDismiss={() => server.setError(null)}
+      >
+        {!server.hasGeneralError && done ? <Notice tone="success">{t('settings.password.done')}</Notice> : null}
       </AlertSlot>
     </form>
   )

@@ -1,8 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Cv.Server.Ai;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Cv.Server.Tests.Support;
 
@@ -15,6 +19,9 @@ public class ServerFixture : IAsyncLifetime
     public string DataDir { get; } = Path.Combine(Path.GetTempPath(), "cv-server-tests", Guid.NewGuid().ToString("N"));
 
     public WebApplicationFactory<Program> Factory { get; private set; } = null!;
+
+    /// <summary>The server's clock: the system clock unless a test freezes it (see <see cref="TestClock"/>).</summary>
+    public TestClock Clock { get; } = new();
 
     /// <summary>Generous limits by default, so ordinary tests never hit them; the rate-limit tests override this.</summary>
     protected virtual Dictionary<string, string?> Settings => new()
@@ -29,6 +36,8 @@ public class ServerFixture : IAsyncLifetime
         ["RateLimits:Password"] = "1000",
         ["RateLimits:EmergencyReset"] = "1000",
         ["RateLimits:StepUp"] = "1000",
+        ["RateLimits:Ai"] = "1000",
+        ["RateLimits:Render"] = "1000",
     };
 
     public ValueTask InitializeAsync()
@@ -38,6 +47,14 @@ public class ServerFixture : IAsyncLifetime
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             foreach (var (key, value) in settings) builder.UseSetting(key, value);
+            // No test may reach the real internet: outbound clients get a handler that answers 503
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton<TimeProvider>(Clock);
+                services.AddHttpClient(nameof(IAiClient)).ConfigurePrimaryHttpMessageHandler(() => new NoNetworkHandler());
+                services.AddHttpClient("updates").ConfigurePrimaryHttpMessageHandler(() => new NoNetworkHandler());
+            });
         });
         // Start the server once (migrations) before the first test of the class
         _ = Factory.Server;
@@ -96,6 +113,13 @@ public class ServerFixture : IAsyncLifetime
         (await client.PostAsync("/api/auth/login", new { username, password })).EnsureSuccessStatusCode();
         return (client, id);
     }
+}
+
+/// <summary>Stands in for the outside world in tests: every outbound request ends here.</summary>
+public sealed class NoNetworkHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+        Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) { Content = new StringContent("no network in tests") });
 }
 
 public static class TestFiles

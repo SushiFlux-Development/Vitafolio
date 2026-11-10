@@ -22,6 +22,12 @@ public sealed class ServerSettings
 
     public string? VersionFilePath { get; init; }
 
+    /// <summary>The customer changelog shipped with the program ("What's new" reads it); may not exist in a development checkout.</summary>
+    public string? ChangelogPath { get; init; }
+
+    /// <summary>Folder with <c>de/</c> and <c>en/</c> holding the manual as PDF; missing until the manuals are built.</summary>
+    public string? HandbookDirectory { get; init; }
+
     public string? WebRootPath { get; init; }
 
     /// <summary>Desktop mode: the per-run token and the only Host header accepted (<c>127.0.0.1:&lt;port&gt;</c>).</summary>
@@ -46,6 +52,18 @@ public sealed class ServerSettings
     public TimeSpan RefreshReuseGrace { get; init; } = TimeSpan.FromSeconds(5);
 
     public RateLimitSettings RateLimits { get; init; } = new();
+
+    /// <summary>
+    /// Storage per account for attachments (configuration key <c>Attachments:QuotaMegabytes</c>, default 250 MB - room for many certificates at
+    /// a few MB each, while one account cannot fill the operator's disk).
+    /// </summary>
+    public long AttachmentQuotaBytes { get; init; } = 250L * 1024 * 1024;
+
+    /// <summary>
+    /// Largest backup this server makes or accepts (configuration keys <c>Backups:MaxFiles</c>, <c>Backups:MaxSizeMegabytes</c>; defaults 200,000 files
+    /// and 16 GB): enough for many accounts at their attachment quota, while an uploaded archive cannot fill the disk.
+    /// </summary>
+    public Backups.BackupLimits BackupLimits { get; init; } = new(200_000, 16L * 1024 * 1024 * 1024);
 
     public bool IsDesktop => Mode == HostMode.Desktop;
 
@@ -87,7 +105,7 @@ public sealed class ServerSettings
 
         var channel = (NonEmpty(options.Channel) ?? NonEmpty(configuration["APP_CHANNEL"]) ?? (environment.IsDevelopment() ? "dev" : "release"))
             .Trim().ToLowerInvariant();
-        if (channel is not ("dev" or "beta" or "release")) channel = "release";
+        if (channel is not ("dev" or "beta" or "nightly" or "alpha" or "release")) channel = "release";
 
         var versionFile = NonEmpty(options.VersionFilePath) ?? NonEmpty(configuration["VERSION_FILE"]);
         if (versionFile is null)
@@ -95,6 +113,12 @@ public sealed class ServerSettings
             var nextToApp = Path.Combine(AppContext.BaseDirectory, "version.txt");
             versionFile = File.Exists(nextToApp) || repoRoot is null ? nextToApp : Path.Combine(repoRoot, "version.txt");
         }
+
+        var changelog = NonEmpty(options.ChangelogPath) ?? NonEmpty(configuration["CHANGELOG_FILE"]) ?? FirstExistingFile(repoRoot, "CHANGELOG.md");
+        var handbook = NonEmpty(options.HandbookDirectory) ?? NonEmpty(configuration["HANDBOOK_DIR"])
+            ?? (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "docs", "handbuch")) || repoRoot is null
+                ? Path.Combine(AppContext.BaseDirectory, "docs", "handbuch")
+                : Path.Combine(repoRoot, "docs", "handbuch"));
 
         string? webRoot = NonEmpty(options.WebRootPath) ?? NonEmpty(configuration["WEB_ROOT"]);
         if (webRoot is null && options.WebRootPath is null)
@@ -130,6 +154,8 @@ public sealed class ServerSettings
             BackupDirectory = backupDir,
             Channel = channel,
             VersionFilePath = versionFile,
+            ChangelogPath = changelog,
+            HandbookDirectory = handbook,
             WebRootPath = webRoot,
             DesktopHost = desktopHost,
             DesktopToken = desktopToken,
@@ -139,6 +165,10 @@ public sealed class ServerSettings
             AutomaticBackups = configuration.GetValue("Backups:Automatic", true),
             RefreshReuseGrace = TimeSpan.FromSeconds(Math.Clamp(configuration.GetValue("Auth:RefreshReuseGraceSeconds", 5), 0, 60)),
             RateLimits = RateLimitSettings.From(configuration.GetSection("RateLimits")),
+            AttachmentQuotaBytes = Math.Max(1, configuration.GetValue<long>("Attachments:QuotaMegabytes", 250)) * 1024 * 1024,
+            BackupLimits = new Backups.BackupLimits(
+                Math.Max(1, configuration.GetValue("Backups:MaxFiles", 200_000)),
+                Math.Max(1, configuration.GetValue<long>("Backups:MaxSizeMegabytes", 16L * 1024)) * 1024 * 1024),
         };
     }
 
@@ -173,6 +203,13 @@ public sealed class ServerSettings
         return (proxies, networks);
     }
 
+    /// <summary>Next to the program when it is there, otherwise in the source checkout (development, tests).</summary>
+    private static string FirstExistingFile(string? repoRoot, string name)
+    {
+        var nextToApp = Path.Combine(AppContext.BaseDirectory, name);
+        return File.Exists(nextToApp) || repoRoot is null ? nextToApp : Path.Combine(repoRoot, name);
+    }
+
     private static string? NonEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
@@ -193,7 +230,16 @@ public sealed class RateLimitSettings
 
     public int StepUp { get; init; } = 10;
 
-    /// <summary>Sign-in / 2FA attempts per account and <see cref="AccountWindow"/> (whatever the IP).</summary>
+    /// <summary>A person works through a few AI actions per minute; 30 keeps a script from draining a key.</summary>
+    public int Ai { get; init; } = 30;
+
+    /// <summary>The live preview renders on pause while typing, about once a second at most.</summary>
+    public int Render { get; init; } = 60;
+
+    /// <summary>Uses of the administrator's AI key per account and day (own keys are not limited).</summary>
+    public int AiServerKeyPerDay { get; init; } = 50;
+
+    /// <summary>Wrong passwords / codes per account and client network and <see cref="AccountWindow"/>.</summary>
     public int AccountAttempts { get; init; } = 20;
 
     public TimeSpan AccountWindow { get; init; } = TimeSpan.FromMinutes(15);
@@ -209,6 +255,9 @@ public sealed class RateLimitSettings
         Password = Math.Max(1, section.GetValue("Password", 5)),
         EmergencyReset = Math.Max(1, section.GetValue("EmergencyReset", 5)),
         StepUp = Math.Max(1, section.GetValue("StepUp", 10)),
+        Ai = Math.Max(1, section.GetValue("Ai", 30)),
+        Render = Math.Max(1, section.GetValue("Render", 60)),
+        AiServerKeyPerDay = Math.Max(1, section.GetValue("AiServerKeyPerDay", 50)),
         AccountAttempts = Math.Max(1, section.GetValue("AccountAttempts", 20)),
         AccountWindow = TimeSpan.FromMinutes(Math.Clamp(section.GetValue("AccountWindowMinutes", 15), 1, 1440)),
         Window = TimeSpan.FromSeconds(Math.Clamp(section.GetValue("WindowSeconds", 60), 1, 3600)),

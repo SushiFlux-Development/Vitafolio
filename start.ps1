@@ -270,6 +270,8 @@ function Set-BuildEnvironment {
     $env:APP_VERSION_DETAIL = if ($lines.Count -gt 1) { $lines[1] } else { $lines[0] }
     $env:APP_CHANNEL = 'release'
     $env:APP_TITLE = $Product
+    $env:APP_COMPANY = Get-BrandingValue 'company'
+    $env:REPOSITORY = Get-BrandingValue 'repository'
     $env:APP_PORT = "$LivePort"
     $env:BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     $revision = @(Get-NativeOutput 'git' @('rev-parse', 'HEAD'))

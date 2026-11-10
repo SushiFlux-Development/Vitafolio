@@ -1,4 +1,9 @@
 {
   "name": "Vitafolio",
-  "company": "SushiFlux Develop"
+  "company": "SushiFlux Development",
+  "previousCompanies": [
+    "SushiFlux Develop"
+  ],
+  "repository": "SushiFlux-Development/Vitafolio",
+  "branch": "master"
 }

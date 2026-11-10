@@ -1,12 +1,12 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using Cv.Server.Auth;
-using Cv.Server.Configuration;
 using Cv.Server.Data;
 using Cv.Server.Errors;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cv.Server.Controllers;
@@ -20,10 +20,11 @@ namespace Cv.Server.Controllers;
 [Authorize]
 public sealed class CoverLetterController(
     AppDbContext db,
-    ServerSettings settings,
+    Storage.DataFiles files,
     TimeProvider time,
     Documents.TypstRenderer renderer,
-    Documents.DocxRenderer docxRenderer) : ControllerBase
+    Documents.DocxRenderer docxRenderer,
+    Documents.RenderGate renderGate) : ControllerBase
 {
     private static readonly byte[] JpegMagic = [0xFF, 0xD8, 0xFF];
     private static readonly byte[] PngMagic = [0x89, 0x50, 0x4E, 0x47];
@@ -116,8 +117,9 @@ public sealed class CoverLetterController(
             SignatureName = !string.IsNullOrWhiteSpace(body.SignatureName) ? body.SignatureName.Trim() : senderName,
             AttachmentsNote = body.AttachmentsNote?.Trim(),
             Language = body.Language?.Trim().ToLowerInvariant() == "en" ? "en" : "de",
-            Font = body.Font?.Trim(),
-            AccentColor = body.AccentColor?.Trim(),
+            Font = Documents.DocumentFonts.ForStorage(body.Font),
+            AccentColor = string.IsNullOrWhiteSpace(body.AccentColor) ? null : body.AccentColor.Trim(),
+            IncludeFoldMarks = body.IncludeFoldMarks ?? true,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -162,8 +164,10 @@ public sealed class CoverLetterController(
         letter.SignatureName = body.SignatureName?.Trim();
         letter.AttachmentsNote = body.AttachmentsNote?.Trim();
         letter.Language = body.Language?.Trim().ToLowerInvariant() == "en" ? "en" : "de";
-        letter.Font = body.Font?.Trim();
-        letter.AccentColor = body.AccentColor?.Trim();
+        letter.Font = Documents.DocumentFonts.ForStorage(body.Font);
+        letter.AccentColor = string.IsNullOrWhiteSpace(body.AccentColor) ? null : body.AccentColor.Trim();
+        // A request that does not mention the option leaves it as it is (an older client must not switch the marks back on)
+        letter.IncludeFoldMarks = body.IncludeFoldMarks ?? letter.IncludeFoldMarks;
         letter.UpdatedAt = time.GetUtcNow().UtcDateTime;
 
         await db.SaveChangesAsync(ct);
@@ -177,13 +181,10 @@ public sealed class CoverLetterController(
         var letter = await db.CoverLetters.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, ct);
         if (letter is null) return NotFound();
 
-        if (!string.IsNullOrEmpty(letter.SignaturePath) && System.IO.File.Exists(letter.SignaturePath))
-        {
-            try { System.IO.File.Delete(letter.SignaturePath); } catch { /* best effort */ }
-        }
-
+        var signature = letter.SignaturePath;
         db.CoverLetters.Remove(letter);
         await db.SaveChangesAsync(ct);
+        files.Delete(Storage.DataArea.Signatures, signature);
         return NoContent();
     }
 
@@ -213,20 +214,22 @@ public sealed class CoverLetterController(
             throw new ApiException(StatusCodes.Status400BadRequest, "file.invalid_type", "Only PNG and JPEG images are allowed.");
         }
 
+        if (Documents.ImageDimensions.TooLarge(bytes))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "photo.too_many_pixels", "The image has too many pixels.");
+        }
+
         var userId = User.RequiredUserId();
         var letter = await db.CoverLetters.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, ct);
         if (letter is null) return NotFound();
 
         var ext = isPng ? ".png" : ".jpg";
-        var dir = Path.Combine(settings.DataDirectory, "signatures");
-        Directory.CreateDirectory(dir);
-
-        var path = Path.Combine(dir, $"{userId}_{id}{ext}");
-        await System.IO.File.WriteAllBytesAsync(path, bytes, ct);
-
-        letter.SignaturePath = path;
-        letter.UpdatedAt = time.GetUtcNow().UtcDateTime;
-        await db.SaveChangesAsync(ct);
+        await files.SaveAsync(Storage.DataArea.Signatures, $"{userId}_{id}_{Guid.NewGuid():N}{ext}", bytes, letter.SignaturePath, async stored =>
+        {
+            letter.SignaturePath = stored;
+            letter.UpdatedAt = time.GetUtcNow().UtcDateTime;
+            await db.SaveChangesAsync(ct);
+        }, ct);
 
         return Ok(CoverLetterDto.From(letter));
     }
@@ -238,19 +241,17 @@ public sealed class CoverLetterController(
         var letter = await db.CoverLetters.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, ct);
         if (letter is null) return NotFound();
 
-        if (!string.IsNullOrEmpty(letter.SignaturePath) && System.IO.File.Exists(letter.SignaturePath))
-        {
-            try { System.IO.File.Delete(letter.SignaturePath); } catch { /* best effort */ }
-        }
-
+        var signature = letter.SignaturePath;
         letter.SignaturePath = null;
         letter.UpdatedAt = time.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(ct);
+        files.Delete(Storage.DataArea.Signatures, signature);
 
         return Ok(CoverLetterDto.From(letter));
     }
 
     [HttpPost("{id:guid}/preview/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> PreviewPdf(Guid id, [FromBody] CoverLetterRenderOptions? options, CancellationToken ct)
     {
         var userId = User.RequiredUserId();
@@ -258,13 +259,15 @@ public sealed class CoverLetterController(
         if (letter is null) return NotFound();
 
         var dto = CoverLetterDto.From(letter);
-        var effectiveOptions = options ?? new CoverLetterRenderOptions(letter.Font, letter.AccentColor, letter.Language, true);
+        var effectiveOptions = EffectiveOptions(letter, options);
 
-        byte[] pdfBytes = renderer.RenderCoverLetterPdf(dto, effectiveOptions, letter.SignaturePath);
+        var signaturePath = files.Resolve(Storage.DataArea.Signatures, letter.SignaturePath);
+        byte[] pdfBytes = await renderGate.RunAsync(() => renderer.RenderCoverLetterPdf(dto, effectiveOptions, signaturePath), ct);
         return File(pdfBytes, "application/pdf");
     }
 
     [HttpPost("{id:guid}/export/pdf")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> ExportPdf(Guid id, [FromBody] CoverLetterRenderOptions? options, CancellationToken ct)
     {
         var userId = User.RequiredUserId();
@@ -272,9 +275,10 @@ public sealed class CoverLetterController(
         if (letter is null) return NotFound();
 
         var dto = CoverLetterDto.From(letter);
-        var effectiveOptions = options ?? new CoverLetterRenderOptions(letter.Font, letter.AccentColor, letter.Language, true);
+        var effectiveOptions = EffectiveOptions(letter, options);
 
-        byte[] pdfBytes = renderer.RenderCoverLetterPdf(dto, effectiveOptions, letter.SignaturePath);
+        var signaturePath = files.Resolve(Storage.DataArea.Signatures, letter.SignaturePath);
+        byte[] pdfBytes = await renderGate.RunAsync(() => renderer.RenderCoverLetterPdf(dto, effectiveOptions, signaturePath), ct);
 
         var safeCompany = SanitizeFileNamePart(letter.RecipientCompany);
         var safeSender = SanitizeFileNamePart(letter.SenderName ?? "Bewerbung");
@@ -285,6 +289,7 @@ public sealed class CoverLetterController(
     }
 
     [HttpPost("{id:guid}/export/docx")]
+    [EnableRateLimiting(RateLimitPolicies.Render)]
     public async Task<IActionResult> ExportDocx(Guid id, [FromBody] CoverLetterRenderOptions? options, CancellationToken ct)
     {
         var userId = User.RequiredUserId();
@@ -292,9 +297,9 @@ public sealed class CoverLetterController(
         if (letter is null) return NotFound();
 
         var dto = CoverLetterDto.From(letter);
-        var effectiveOptions = options ?? new CoverLetterRenderOptions(letter.Font, letter.AccentColor, letter.Language, true);
+        var effectiveOptions = EffectiveOptions(letter, options);
 
-        byte[] docxBytes = docxRenderer.RenderCoverLetterDocx(dto, effectiveOptions);
+        byte[] docxBytes = await renderGate.RunAsync(() => docxRenderer.RenderCoverLetterDocx(dto, effectiveOptions), ct);
 
         var safeCompany = SanitizeFileNamePart(letter.RecipientCompany);
         var safeSender = SanitizeFileNamePart(letter.SenderName ?? "Bewerbung");
@@ -303,6 +308,16 @@ public sealed class CoverLetterController(
 
         return File(docxBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
     }
+
+    /// <summary>
+    /// What a render uses: without options the saved ones, and an option the request leaves out is the saved value of the letter, so
+    /// the fold marks of a letter are the same in preview, export and dossier. A value in the request is an explicit override (the
+    /// editor shows the unsaved state that way).
+    /// </summary>
+    private static CoverLetterRenderOptions EffectiveOptions(CoverLetter letter, CoverLetterRenderOptions? options) =>
+        options is null
+            ? new CoverLetterRenderOptions(letter.Font, letter.AccentColor, letter.Language, letter.IncludeFoldMarks)
+            : options with { IncludeFoldMarks = options.IncludeFoldMarks ?? letter.IncludeFoldMarks };
 
     private static void ValidateRequest(FieldErrors errors, CoverLetterRequest body)
     {
@@ -329,9 +344,10 @@ public sealed class CoverLetterController(
         InputRules.Required(errors, "body", body.Body, 16384);
         InputRules.Optional(errors, "closing", body.Closing, 128);
         InputRules.Optional(errors, "signatureName", body.SignatureName, 128);
-        InputRules.Optional(errors, "attachmentsNote", body.AttachmentsNote, 512);
+        InputRules.Optional(errors, "attachmentsNote", body.AttachmentsNote, 128);
         InputRules.Optional(errors, "font", body.Font, 64);
-        InputRules.Optional(errors, "accentColor", body.AccentColor, 32);
+        InputRules.Optional(errors, "accentColor", body.AccentColor, 16);
+        Documents.DocumentText.ValidateColor(errors, "accentColor", body.AccentColor);
     }
 
     private static string SanitizeFileNamePart(string input)

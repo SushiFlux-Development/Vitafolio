@@ -4,7 +4,7 @@ import { parseTime } from './nextRuns'
 /** The limits of the backup settings (the same the server enforces). */
 export const LIMITS = {
   intervalHours: { min: 1, max: 168 },
-  keepRecent: { min: 5, max: 500 },
+  keepRecent: { min: 2, max: 500 },
   keepDailyDays: { min: 0, max: 3650 },
   maxTimes: 12,
 } as const

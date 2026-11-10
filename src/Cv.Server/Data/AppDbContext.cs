@@ -59,7 +59,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Role).HasMaxLength(16).IsRequired();
             e.Property(x => x.PasswordHash).IsRequired();
             e.Property(x => x.Language).HasMaxLength(8);
+            e.Property(x => x.WhatsNewSeenVersion).HasMaxLength(64);
             e.Property(x => x.Theme).HasMaxLength(16).IsRequired();
+            e.Property(x => x.DateFormat).HasMaxLength(16).IsRequired().HasDefaultValue("auto");
             e.HasMany(x => x.RecoveryCodes).WithOne(x => x.User).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Sessions).WithOne(x => x.User).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Profile).WithOne(x => x.User).HasForeignKey<UserProfile>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -139,6 +141,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Xing).HasMaxLength(256);
             e.Property(x => x.Bio).HasMaxLength(4096);
             e.Property(x => x.PhotoPath).HasMaxLength(256);
+            e.Property(x => x.PreviewOptionsJson).HasMaxLength(512);
+            e.Property(x => x.GuideAnswersJson).HasMaxLength(512);
+            e.Property(x => x.CvContentSettingsJson).HasMaxLength(65536);
             e.HasIndex(x => x.UserId).IsUnique();
             e.HasMany(x => x.Experiences).WithOne(x => x.Profile).HasForeignKey(x => x.ProfileId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Educations).WithOne(x => x.Profile).HasForeignKey(x => x.ProfileId).OnDelete(DeleteBehavior.Cascade);

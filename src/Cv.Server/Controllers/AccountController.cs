@@ -1,6 +1,7 @@
 using Cv.Server.Auth;
 using Cv.Server.Data;
 using Cv.Server.Errors;
+using Cv.Server.Security;
 using Cv.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ public sealed class AccountController(
     TwoFactorService twoFactor,
     ActivityLogger activity,
     SettingsService instanceSettings,
+    AccountAttemptLimiter accountLimiter,
     TimeProvider time) : ControllerBase
 {
     [HttpPut("preferences")]
@@ -29,11 +31,13 @@ public sealed class AccountController(
         var errors = new FieldErrors();
         if (body.Language is not null) InputRules.OneOf(errors, "language", body.Language, "de", "en");
         if (body.Theme is not null) InputRules.OneOf(errors, "theme", body.Theme, "system", "light", "dark");
+        if (body.DateFormat is not null) InputRules.OneOf(errors, "dateFormat", body.DateFormat, "auto", "dmy", "ymd_slash", "iso");
         errors.ThrowIfAny();
 
         var user = await CurrentUserAsync(ct);
         if (body.Language is not null) user.Language = body.Language;
         if (body.Theme is not null) user.Theme = body.Theme;
+        if (body.DateFormat is not null) user.DateFormat = body.DateFormat;
         user.UpdatedAt = time.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(ct);
         return new UserResponse(UserDto.From(user, (await instanceSettings.GetAsync(ct)).RequireTwoFactor));
@@ -50,8 +54,10 @@ public sealed class AccountController(
         errors.ThrowIfAny();
 
         var user = await CurrentUserAsync(ct);
+        accountLimiter.EnsureAllowed(HttpContext, user.NormalizedUsername);
         if (!accounts.CheckPassword(user, body.CurrentPassword!))
         {
+            await RecordFailedCheckAsync(user, "password_change", ct);
             throw ApiException.Field("currentPassword", "password.current_invalid", "The current password is wrong.");
         }
         accounts.SetPassword(user, body.NewPassword!);
@@ -89,8 +95,10 @@ public sealed class AccountController(
         errors.ThrowIfAny();
 
         var user = await CurrentUserAsync(ct);
+        accountLimiter.EnsureAllowed(HttpContext, user.NormalizedUsername);
         if (passwordNeeded && !accounts.CheckPassword(user, body.CurrentPassword!))
         {
+            await RecordFailedCheckAsync(user, "totp_enable", ct);
             throw ApiException.Field("currentPassword", "password.current_invalid", "The current password is wrong.", StatusCodes.Status403Forbidden);
         }
         if (user.TotpEnabled) throw ApiException.Conflict("twofactor.already_enabled", "Two-factor authentication is already on.");
@@ -98,8 +106,12 @@ public sealed class AccountController(
         {
             throw ApiException.Conflict("twofactor.setup_not_started", "Start the setup first to get a new secret.");
         }
-        var codes = await twoFactor.ConfirmSetupAsync(user, body.Code!, ct)
-            ?? throw ApiException.Field("code", "auth.twofactor_invalid", "The code is wrong. Check the time on your phone and try again.");
+        var codes = await twoFactor.ConfirmSetupAsync(user, body.Code!, ct);
+        if (codes is null)
+        {
+            await RecordFailedCheckAsync(user, "totp_enable_code", ct);
+            throw ApiException.Field("code", "auth.twofactor_invalid", "The code is wrong. Check the time on your phone and try again.");
+        }
         await activity.RecordNowAsync(HttpContext, "twofactor.enabled", user.Username, ct: ct);
         return Ok(new { recoveryCodes = codes });
     }
@@ -120,14 +132,17 @@ public sealed class AccountController(
         }
         var user = await CurrentUserAsync(ct);
         if (!user.TotpEnabled) throw ApiException.Conflict("twofactor.not_enabled", "Two-factor authentication is not on.");
+        accountLimiter.EnsureAllowed(HttpContext, user.NormalizedUsername);
         if (!accounts.CheckPassword(user, body.Password!))
         {
+            await RecordFailedCheckAsync(user, "totp_disable", ct);
             throw ApiException.Field("password", "password.current_invalid", "The password is wrong.");
         }
         var factor = await twoFactor.VerifyAsync(user, body.Code, ct);
         if (factor == SecondFactor.AlreadyUsed) throw TwoFactorService.CodeAlreadyUsed(StatusCodes.Status400BadRequest);
         if (factor == SecondFactor.Invalid)
         {
+            await RecordFailedCheckAsync(user, "totp_disable_code", ct);
             throw ApiException.Field("code", "auth.twofactor_invalid", "The code is wrong or was already used.");
         }
         await twoFactor.DisableAsync(user, ct);
@@ -160,6 +175,12 @@ public sealed class AccountController(
         await sessions.RevokeAsync(session, "revoked", ct);
         await activity.RecordNowAsync(HttpContext, "session.revoked", User.Username(), new { sessionId = id }, ct: ct);
         return NoContent();
+    }
+
+    private async Task RecordFailedCheckAsync(User user, string action, CancellationToken ct)
+    {
+        accountLimiter.RecordFailure(HttpContext, user.NormalizedUsername);
+        await activity.RecordNowAsync(HttpContext, "auth.reauth_failed", user.Username, new { action }, ct: ct);
     }
 
     /// <summary>How long after signing in the forced 2FA setup may skip the password.</summary>

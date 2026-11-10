@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using Cv.Server.Data;
@@ -8,20 +8,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cv.Server.Ai;
 
-public sealed class AiService(
+public sealed partial class AiService(
     AppDbContext db,
     IAiClient client,
     IDataProtectionProvider protection,
+    AiOutboundGuard guard,
+    AiUsageLimiter usage,
     ILogger<AiService> logger
 )
 {
+    // Column widths of user_ai_configs
+    private const int MaxModelLength = 64;
+    private const int MaxBaseUrlLength = 512;
+    private const int MaxApiKeyLength = 4096;
+
     private readonly IDataProtector _protector = protection.CreateProtector("Cv.Server.AiApiKey.v1");
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[A-Za-z0-9._:/\-]+\z")]
+    private static partial System.Text.RegularExpressions.Regex ModelRegex();
 
     public async Task<AiConfigDto> GetConfigAsync(Guid userId, CancellationToken ct)
     {
         var config = await db.AiConfigs.FirstOrDefaultAsync(c => c.UserId == userId, ct);
         var serverConfig = await GetAdminServerConfigAsync(ct);
-        bool hasServerFallback = serverConfig.Enabled && (!string.IsNullOrEmpty(serverConfig.Provider) && (serverConfig.Provider == AiProviders.Ollama || serverConfig.HasApiKey));
+        bool hasServerFallback = serverConfig.Enabled && (!string.IsNullOrEmpty(serverConfig.Provider) && (AiProviders.IsLocal(serverConfig.Provider) || serverConfig.HasApiKey));
         string? fallbackProvider = hasServerFallback ? serverConfig.Provider : null;
 
         if (config is null)
@@ -67,6 +77,10 @@ public sealed class AiService(
 
     public async Task<AdminServerAiConfigDto> SaveAdminServerConfigAsync(UpdateAdminServerAiConfigRequest req, CancellationToken ct)
     {
+        var errors = new FieldErrors();
+        ValidateConfigFields(errors, req.Provider, req.Model, req.BaseUrl, req.ApiKey);
+        errors.ThrowIfAny();
+
         await SetAppSettingAsync("ai.server_enabled", req.Enabled ? "true" : "false", ct);
         if (req.Provider is not null) await SetAppSettingAsync("ai.server_provider", req.Provider, ct);
         if (req.Model is not null) await SetAppSettingAsync("ai.server_model", req.Model, ct);
@@ -94,29 +108,65 @@ public sealed class AiService(
         }
     }
 
-    private async Task<(string provider, string model, string? baseUrl, string? apiKey, bool pseudonymize)> ResolveActiveConfigAsync(Guid userId, CancellationToken ct)
+    private static void ValidateConfigFields(FieldErrors errors, string? provider, string? model, string? baseUrl, string? apiKey)
+    {
+        if (provider is not null && !AiProviders.IsValid(provider))
+        {
+            errors.Add("provider", "validation.one_of", new()
+            {
+                ["allowed"] = new[] { AiProviders.CopyPaste, AiProviders.OpenAi, AiProviders.Anthropic, AiProviders.Gemini, AiProviders.Ollama, AiProviders.LmStudio, AiProviders.Custom },
+            });
+        }
+        if (model is not null)
+        {
+            InputRules.Optional(errors, "model", model.Trim(), MaxModelLength);
+            if (model.Trim().Length > 0 && model.Trim().Length <= MaxModelLength && !ModelRegex().IsMatch(model.Trim())) errors.Add("model", "validation.pattern");
+        }
+        if (baseUrl is not null)
+        {
+            InputRules.Optional(errors, "baseUrl", baseUrl, MaxBaseUrlLength);
+            if (!string.IsNullOrWhiteSpace(baseUrl) && baseUrl.Length <= MaxBaseUrlLength && !AiClient.TryParseBaseUrl(baseUrl, out _)) errors.Add("baseUrl", "validation.url");
+        }
+        InputRules.Optional(errors, "apiKey", apiKey, MaxApiKeyLength);
+    }
+
+    private async Task<(string provider, string model, string? baseUrl, string? apiKey, bool pseudonymize, bool usesServerKey)> ResolveActiveConfigAsync(Guid userId, CancellationToken ct)
     {
         var config = await db.AiConfigs.FirstOrDefaultAsync(c => c.UserId == userId, ct);
         var pseudonymize = config?.Pseudonymize ?? true;
 
-        if (config != null && config.Provider != AiProviders.CopyPaste && (!string.IsNullOrEmpty(config.ApiKeyProtected) || config.Provider == AiProviders.Ollama))
+        if (config != null && config.Provider != AiProviders.CopyPaste && (!string.IsNullOrEmpty(config.ApiKeyProtected) || AiProviders.IsLocal(config.Provider)))
         {
-            return (config.Provider, config.Model, config.BaseUrl, UnprotectApiKey(config.ApiKeyProtected), pseudonymize);
+            return (config.Provider, config.Model, config.BaseUrl, UnprotectApiKey(config.ApiKeyProtected), pseudonymize, false);
         }
 
         var serverConfig = await GetAdminServerConfigAsync(ct);
-        if (serverConfig.Enabled && (serverConfig.HasApiKey || serverConfig.Provider == AiProviders.Ollama))
+        if (serverConfig.Enabled && (serverConfig.HasApiKey || AiProviders.IsLocal(serverConfig.Provider)))
         {
             var serverKeySetting = await db.AppSettings.FirstOrDefaultAsync(s => s.Key == "ai.server_api_key", ct);
             var serverApiKey = UnprotectApiKey(serverKeySetting?.Value);
-            return (serverConfig.Provider ?? AiProviders.CopyPaste, serverConfig.Model ?? "gpt-4o-mini", serverConfig.BaseUrl, serverApiKey, pseudonymize);
+            return (serverConfig.Provider ?? AiProviders.CopyPaste, serverConfig.Model ?? "gpt-4o-mini", serverConfig.BaseUrl, serverApiKey, pseudonymize, true);
         }
 
-        return (config?.Provider ?? AiProviders.CopyPaste, config?.Model ?? "gpt-4o-mini", config?.BaseUrl, UnprotectApiKey(config?.ApiKeyProtected), pseudonymize);
+        return (config?.Provider ?? AiProviders.CopyPaste, config?.Model ?? "gpt-4o-mini", config?.BaseUrl, UnprotectApiKey(config?.ApiKeyProtected), pseudonymize, false);
     }
 
     public async Task<AiConfigDto> SaveConfigAsync(Guid userId, UpdateAiConfigRequest req, CancellationToken ct)
     {
+        var errors = new FieldErrors();
+        ValidateConfigFields(errors, req.Provider, req.Model, req.BaseUrl, req.ApiKey);
+        errors.ThrowIfAny();
+
+        // Say it at once, not only at the first request: the base URL's host must be released on a server
+        if (!string.IsNullOrWhiteSpace(req.BaseUrl) && AiClient.TryParseBaseUrl(req.BaseUrl, out var parsedUrl))
+        {
+            var effectiveProvider = req.Provider ?? (await db.AiConfigs.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId, ct))?.Provider ?? AiProviders.CopyPaste;
+            if (!await guard.IsBaseUrlAllowedAsync(parsedUrl, effectiveProvider, ct))
+            {
+                throw ApiException.Field("baseUrl", "ai.host_not_allowed", "This server address is not released. An administrator can add its host in App-Administration.");
+            }
+        }
+
         var config = await db.AiConfigs.FirstOrDefaultAsync(c => c.UserId == userId, ct);
         var now = DateTime.UtcNow;
 
@@ -164,11 +214,13 @@ public sealed class AiService(
 
     public async Task<TestAiConnectionResponse> TestConnectionAsync(Guid userId, CancellationToken ct)
     {
-        var (provider, model, baseUrl, apiKey, _) = await ResolveActiveConfigAsync(userId, ct);
+        var (provider, model, baseUrl, apiKey, _, usesServerKey) = await ResolveActiveConfigAsync(userId, ct);
         if (provider == AiProviders.CopyPaste)
         {
-            return new TestAiConnectionResponse(true, "Kopieren & Einfügen erfordert keine Server-Verbindung.");
+            return new TestAiConnectionResponse(true, "Copy and paste needs no server connection.");
         }
+
+        if (usesServerKey) usage.ConsumeServerKey(userId);
 
         return await client.TestConnectionAsync(provider, model, baseUrl, apiKey, ct);
     }
@@ -213,7 +265,7 @@ public sealed class AiService(
             throw ApiException.BadRequest("ai.invalid_task", $"Ungültige KI-Aufgabe '{req.Task}'.");
         }
 
-        var (provider, model, baseUrl, apiKey, pseudonymize) = await ResolveActiveConfigAsync(userId, ct);
+        var (provider, model, baseUrl, apiKey, pseudonymize, usesServerKey) = await ResolveActiveConfigAsync(userId, ct);
         if (provider == AiProviders.CopyPaste)
         {
             throw ApiException.BadRequest(
@@ -221,6 +273,8 @@ public sealed class AiService(
                 "Aktuell ist der Modus 'Kopieren & Einfügen' aktiv. Bitte nutzen Sie die Schaltfläche 'Prompt kopieren' oder hinterlegen Sie einen API-Key in den Einstellungen."
             );
         }
+
+        if (usesServerKey) usage.ConsumeServerKey(userId);
 
         var profile = await LoadFullProfileAsync(userId, ct);
 
@@ -251,6 +305,10 @@ public sealed class AiService(
         return AiResponseParser.ParseAndDePseudonymize(req.Task, rawResponse, profile, pseudonymize);
     }
 
+    /// <summary>
+    /// The stored key in clear text. A key that exists but cannot be decrypted is an error of its own: the key ring is not part of a backup, so after
+    /// a move to a new data folder this happens, and sending the request without a key would only produce a misleading answer from the provider.
+    /// </summary>
     private string? UnprotectApiKey(string? protectedKey)
     {
         if (string.IsNullOrWhiteSpace(protectedKey)) return null;
@@ -258,10 +316,11 @@ public sealed class AiService(
         {
             return _protector.Unprotect(protectedKey);
         }
-        catch (Exception ex)
+        catch (System.Security.Cryptography.CryptographicException ex)
         {
-            logger.LogWarning(ex, "Failed to unprotect AI API key");
-            return null;
+            logger.LogWarning(ex, "Ein gespeicherter KI-Schlüssel kann nicht entschlüsselt werden (der Schlüsselbund im Ordner keys/ fehlt oder ist neu, z. B. nach dem Einspielen einer Sicherung in einen neuen Datenordner). Er muss neu eingetragen werden.");
+            throw new ApiException(StatusCodes.Status409Conflict, "ai.key_unavailable",
+                "The stored API key cannot be decrypted any more, for example after restoring a backup into a new data folder. Enter it again in the AI settings.");
         }
     }
 

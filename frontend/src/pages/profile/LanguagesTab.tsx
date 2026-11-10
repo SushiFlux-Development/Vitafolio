@@ -1,28 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { LanguageSkill, Profile } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
-import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { FormDialog } from '../../components/ui/FormDialog'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
+import { SelectField } from '../../components/ui/SelectField'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { isValid, requiredField } from '../../validation/rules'
 
-interface LanguageFormData {
+interface LanguageForm {
   id?: string
   language: string
   level: string
   sortOrder: number
 }
 
-const emptyForm: LanguageFormData = {
-  language: '',
-  level: 'B2',
-  sortOrder: 0,
-}
+const EMPTY: LanguageForm = { language: '', level: 'B2', sortOrder: 0 }
 
 const STANDARD_LEVELS = ['native', 'C2', 'C1', 'B2', 'B1', 'A2', 'A1'] as const
 
@@ -31,159 +30,110 @@ export function LanguagesTab({ profile }: { profile: Profile }) {
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
+  const entry = useEntryForm<LanguageForm>()
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<LanguageFormData | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: (data: LanguageFormData) => {
-      const payload = {
-        language: data.language,
-        level: data.level,
-        sortOrder: data.sortOrder,
-      }
+  const save = useMutation({
+    mutationFn: (data: LanguageForm) => {
+      const payload = { language: data.language.trim(), level: data.level, sortOrder: data.sortOrder }
       return data.id ? profileApi.updateLanguage(data.id, payload) : profileApi.addLanguage(payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setDialogOpen(false)
-      setEditingItem(null)
+      refresh()
+      entry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => profileApi.deleteLanguage(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDelete = async (lang: LanguageSkill) => {
-    const ok = await confirm({
-      title: t('profile.languages.delete'),
-      message: t('profile.languages.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteMutation.mutate(lang.id)
+  const askDelete = async (language: LanguageSkill) => {
+    const ok = await confirm({ title: t('profile.languages.delete'), message: t('profile.languages.deleteConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) remove.mutate(language.id)
   }
 
-  const handleOpenAdd = () => {
-    setEditingItem({ ...emptyForm, sortOrder: profile.languages.length })
-    setDialogOpen(true)
-  }
+  const edit = (language: LanguageSkill) => entry.start({ id: language.id, language: language.language, level: language.level, sortOrder: language.sortOrder })
 
-  const handleOpenEdit = (lang: LanguageSkill) => {
-    setEditingItem({
-      id: lang.id,
-      language: lang.language,
-      level: lang.level,
-      sortOrder: lang.sortOrder,
-    })
-    setDialogOpen(true)
-  }
+  // A level that is not one of the standard ones (an older entry) is shown as it was typed.
+  const levelLabel = (level: string) => ((STANDARD_LEVELS as readonly string[]).includes(level) ? t(`profile.languages.levels.${level}`) : level)
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem) saveMutation.mutate(editingItem)
-  }
-
-  const displayLevel = (lvl: string) => {
-    const key = `profile.languages.levels.${lvl}`
-    const translated = t(key)
-    return translated !== key ? translated : lvl
+  const form = entry.form
+  const submit = () => {
+    if (!form) return
+    entry.markAttempted()
+    if (isValid(requiredField, form.language)) save.mutate(form)
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.languages.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.languages.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={handleOpenAdd}>
-          {t('profile.languages.add')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.languages.title')}
+        subtitle={t('profile.languages.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={() => entry.start({ ...EMPTY, sortOrder: profile.languages.length })}>
+            {t('profile.languages.add')}
+          </Button>
+        }
+      />
 
       {profile.languages.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="language" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.languages.empty')}</p>
-        </div>
+        <EmptyState icon="language" title={t('profile.languages.empty')} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {profile.languages.map((lang) => (
-            <div key={lang.id} className="card flex items-center justify-between p-4">
-              <div>
-                <h3 className="text-base font-semibold text-ink">{lang.language}</h3>
-                <span className="badge badge-select mt-1.5 inline-block text-xs font-semibold">
-                  {displayLevel(lang.level)}
-                </span>
+        <ul className="card-grid [--card-min:18rem]">
+          {profile.languages.map((language) => (
+            <li key={language.id} className="card flex items-center justify-between gap-2 p-4">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold text-ink">{language.language}</h3>
+                <span className="badge badge-select mt-1.5">{levelLabel(language.level)}</span>
               </div>
-
-              <div className="flex shrink-0 items-center gap-1">
-                <Button variant="ghost" small icon="pencil" onClick={() => handleOpenEdit(lang)}>
-                  <span className="sr-only">{t('profile.languages.edit')}</span>
-                </Button>
-                <Button variant="danger-outline" small icon="trash" onClick={() => void handleDelete(lang)}>
-                  <span className="sr-only">{t('profile.languages.delete')}</span>
-                </Button>
-              </div>
-            </div>
+              <ItemActions
+                itemName={language.language}
+                editLabel={t('profile.languages.edit')}
+                deleteLabel={t('profile.languages.delete')}
+                onEdit={() => edit(language)}
+                onDelete={() => void askDelete(language)}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={editingItem?.id ? t('profile.languages.edit') : t('profile.languages.add')}
+      <FormDialog
+        open={entry.open}
+        onClose={entry.close}
+        onSubmit={submit}
+        title={form?.id ? t('profile.languages.edit') : t('profile.languages.add')}
         icon="language"
         size="sm"
+        busy={save.isPending}
+        dirty={entry.dirty}
       >
-        {editingItem && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <TextField
-              label={t('profile.languages.language')}
-              value={editingItem.language}
-              onChange={(e) => setEditingItem({ ...editingItem, language: e.target.value })}
-              placeholder="z. B. Englisch, Spanisch, Französisch"
-              required
+        {form && (
+          <>
+            <LiveTextField
+              label={t('profile.languages.language')} required
+              value={form.language}
+              onValueChange={(value) => entry.patch({ language: value })}
+              check={requiredField}
+              attempted={entry.attempted}
+              placeholder={t('profile.languages.languagePlaceholder')}
+              data-autofocus
             />
-
-            <div>
-              <label htmlFor="lang-level-select" className="block text-sm font-medium text-ink">
-                {t('profile.languages.level')}
-              </label>
-              <select
-                id="lang-level-select"
-                value={editingItem.level}
-                onChange={(e) => setEditingItem({ ...editingItem, level: e.target.value })}
-                className="input mt-1.5 w-full"
-              >
-                {STANDARD_LEVELS.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {t(`profile.languages.levels.${lvl}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+            <SelectField label={t('profile.languages.level')} value={form.level} onChange={(event) => entry.patch({ level: event.target.value })}>
+              {STANDARD_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {t(`profile.languages.levels.${level}`)}
+                </option>
+              ))}
+              {!(STANDARD_LEVELS as readonly string[]).includes(form.level) && <option value={form.level}>{form.level}</option>}
+            </SelectField>
+          </>
         )}
-      </Dialog>
+      </FormDialog>
     </div>
   )
 }

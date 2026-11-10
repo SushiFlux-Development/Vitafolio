@@ -8,7 +8,7 @@
 $ErrorActionPreference = 'Stop'
 $RootDir = Split-Path -Parent $PSScriptRoot
 
-$image = 'mcr.microsoft.com/playwright:v1.64.1-noble'
+$image = 'mcr.microsoft.com/playwright:v1.65.0-noble'
 $repo = $RootDir -replace '\\', '/'
 $logo = '/repo/branding/logo.svg'
 
@@ -25,7 +25,7 @@ if (-not $jobs) {
 
 # The renderer is TypeScript (Node in the container runs it directly); the temporary package must be an ES module
 $inner = 'mkdir -p /tmp/kp && cd /tmp/kp && npm init -y >/dev/null 2>&1 && npm pkg set type=module' +
-    ' && npm i --no-audit --no-fund marked@18 playwright@1.64.1 @fontsource/inter@5 @fontsource/jetbrains-mono@5 >/dev/null 2>&1' +
+    ' && npm i --no-audit --no-fund marked@18 playwright@1.65.0 @fontsource/inter@5 @fontsource/jetbrains-mono@5 >/dev/null 2>&1' +
     ' && cp /repo/scripts/konzept-pdf.ts /tmp/kp/'
 foreach ($job in $jobs) {
     $source = '/repo/' + ($job.Source -replace '\\', '/')

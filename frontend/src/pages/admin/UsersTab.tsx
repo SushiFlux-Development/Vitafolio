@@ -11,7 +11,7 @@ import { Icon } from '../../components/ui/Icon'
 import type { IconName } from '../../components/ui/Icon'
 import { ErrorNotice } from '../../components/ui/Notice'
 import { Loading } from '../../components/ui/Page'
-import { formatDateTime } from '../../format'
+import { useDateFormat } from '../../hooks/useDateFormat'
 import { CreateUserDialog, EditUserDialog, SetPasswordDialog } from './UserDialogs'
 
 const KEY = ['admin', 'users'] as const
@@ -36,7 +36,8 @@ function RowAction({ icon, label, onClick, disabled, danger = false, testId }: {
 
 /** Accounts: list with role, status, two-factor state and last sign-in; create, edit, set password, reset 2FA, delete. */
 export function UsersTab() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const dates = useDateFormat()
   const me = useUser()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
@@ -124,7 +125,7 @@ export function UsersTab() {
                   <td>
                     <span className={`badge ${user.twoFactorEnabled ? 'badge-success' : 'badge-neutral'}`}>{user.twoFactorEnabled ? t('common.on') : t('common.off')}</span>
                   </td>
-                  <td className="whitespace-nowrap tabular-nums">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, i18n.language) : t('admin.users.never')}</td>
+                  <td className="whitespace-nowrap tabular-nums">{user.lastLoginAt ? dates.dateTime(user.lastLoginAt) : t('admin.users.never')}</td>
                   <td className="text-right whitespace-nowrap">
                     <RowAction icon="pencil" label={t('admin.users.edit')} onClick={() => open({ kind: 'edit', user })} testId={`edit-${user.username}`} />
                     <RowAction icon="key" label={t('admin.users.setPassword')} onClick={() => open({ kind: 'password', user })} />

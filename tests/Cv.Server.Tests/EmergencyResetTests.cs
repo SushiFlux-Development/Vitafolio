@@ -96,14 +96,16 @@ public sealed class EmergencyResetTests(ServerFixture server) : IClassFixture<Se
         });
         Assert.Equal(HttpStatusCode.Created, addSecond.StatusCode);
 
+        // The same answer as with one admin, so a stranger cannot learn how many admins exist; no code is created
         var anon = server.Client();
         var req = await anon.PostAsync("/api/auth/emergency-reset/request", new { });
-        Assert.Equal(HttpStatusCode.Conflict, req.StatusCode);
-        Assert.Equal("admin.emergency_reset_other_admins_exist", await req.CodeAsync());
+        Assert.Equal(HttpStatusCode.OK, req.StatusCode);
+        Assert.True((await req.JsonAsync()).GetProperty("requested").GetBoolean());
+        Assert.Empty(server.EmergencyToken());
 
         var confirm = await anon.PostAsync("/api/auth/emergency-reset/confirm", new { code = "SOME-CODE", newPassword = "new-password-123" });
-        Assert.Equal(HttpStatusCode.Conflict, confirm.StatusCode);
-        Assert.Equal("admin.emergency_reset_other_admins_exist", await confirm.CodeAsync());
+        Assert.Equal(HttpStatusCode.Forbidden, confirm.StatusCode);
+        Assert.Equal("emergency_reset.code_invalid", await confirm.CodeAsync());
 
         // Clean up second admin so fixture has only 1 admin again
         var secondId = (await addSecond.JsonAsync()).GetProperty("id").GetString();

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Cv.Server.Auth;
 using Cv.Server.Data;
+using Cv.Server.Security;
 
 namespace Cv.Server.Services;
 
@@ -17,9 +18,9 @@ public sealed class ActivityLogger(AppDbContext db, TimeProvider time)
         {
             At = time.GetUtcNow().UtcDateTime,
             ActorId = actorId ?? context.User.UserId(),
-            ActorName = Truncate(actorName ?? context.User.Username(), 64),
+            ActorName = Truncate(Clean(actorName ?? context.User.Username()), 64),
             Action = action,
-            Target = Truncate(target, 256),
+            Target = Truncate(Clean(target), 256),
             Ip = ClientInfo.Ip(context),
             Details = details is null ? null : JsonSerializer.Serialize(details, JsonSerializerOptions.Web),
         });
@@ -39,11 +40,13 @@ public sealed class ActivityLogger(AppDbContext db, TimeProvider time)
         {
             At = time.GetUtcNow().UtcDateTime,
             Action = action,
-            Target = Truncate(target, 256),
+            Target = Truncate(Clean(target), 256),
             Details = details is null ? null : JsonSerializer.Serialize(details, JsonSerializerOptions.Web),
         });
         await db.SaveChangesAsync(ct);
     }
+
+    private static string? Clean(string? value) => value is null ? null : LogText.Clean(value);
 
     private static string? Truncate(string? value, int max) => value is null || value.Length <= max ? value : value[..max];
 }

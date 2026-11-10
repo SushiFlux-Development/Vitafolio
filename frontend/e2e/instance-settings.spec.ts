@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Browser, Page } from '@playwright/test'
-import { apiCall, apiOk, createUser, enableTotp, field, MEMBER_PASSWORD, newBrowserContext, openApp, openAs, removeUsers, setInstanceSettings, signedInContext, signInWithRecoveryCode, totp } from './support'
+import { apiCall, apiOk, confirmStepUp, createUser, enableTotp, field, MEMBER_PASSWORD, newBrowserContext, openApp, openAs, removeUsers, setInstanceSettings, signedInContext, signInWithRecoveryCode, totp } from './support'
 import type { InstanceSettings } from './support'
 
 // App-Administration > Einstellungen against the real server: the two instance-wide switches and what they do to everybody
@@ -8,7 +8,7 @@ import type { InstanceSettings } from './support'
 // The switches are put back to their defaults after every test, whatever the test did.
 test.describe.configure({ mode: 'serial' })
 
-const DEFAULTS: InstanceSettings = { registrationOpen: false, requireTwoFactor: false }
+const DEFAULTS: InstanceSettings = { registrationOpen: false, requireTwoFactor: false, aiAllowedHosts: [] }
 const NAMES = ['e2e-newcomer', 'e2e-forced', 'e2e-boss']
 
 const registrationSwitch = (page: Page) => page.getByRole('switch', { name: 'Registrierung offen' })
@@ -24,6 +24,8 @@ interface Rescue {
   browser: Browser
   username: string
   recoveryCode: string
+  /** A second code for the step-up that puts the switches back (the first one signs in). */
+  stepUpCode: string
 }
 
 /** Cleanup that works in every state: the owner, who has no second factor, is locked out while the requirement is on. */
@@ -31,7 +33,7 @@ async function putBack(page: Page, rescue?: Rescue) {
   if (rescue) {
     const boss = await signInWithRecoveryCode(rescue.browser, rescue.username, rescue.recoveryCode)
     try {
-      await setInstanceSettings(boss, DEFAULTS)
+      await setInstanceSettings(boss, DEFAULTS, { password: MEMBER_PASSWORD, code: rescue.stepUpCode })
     } finally {
       await boss.close()
     }
@@ -63,6 +65,8 @@ test('opening the registration lets a new account register - and closing it shut
     await openApp(page, '/admin?tab=settings')
     await expect(registrationSwitch(page)).toHaveAttribute('aria-checked', 'false')
     await registrationSwitch(page).click()
+    // Opening the instance further needs the password again.
+    await confirmStepUp(page)
     await expect(registrationSwitch(page)).toHaveAttribute('aria-checked', 'true')
     // The setting is stored in the database: it survives a reload.
     await page.reload()
@@ -110,7 +114,7 @@ test('"two-factor for everybody" reaches signed-in people at once and leads them
   // is locked out by it for as long as it is on.
   const { context: boss, page: bossPage } = await signedInContext(browser, 'e2e-boss')
   const { recoveryCodes } = await enableTotp(boss)
-  const rescue: Rescue = { browser, username: 'e2e-boss', recoveryCode: recoveryCodes[0]! }
+  const rescue: Rescue = { browser, username: 'e2e-boss', recoveryCode: recoveryCodes[0]!, stepUpCode: recoveryCodes[1]! }
   const { context: member, page: memberPage } = await signedInContext(browser, 'e2e-forced')
   try {
     await openAs(memberPage, 'Fritz Forced')
@@ -157,6 +161,7 @@ test('"two-factor for everybody" reaches signed-in people at once and leads them
     // Switched off again: the owner is free again.
     await bossPage.reload()
     await twoFactorSwitch(bossPage).click()
+    await confirmStepUp(bossPage, MEMBER_PASSWORD, recoveryCodes[2]!)
     await expect(twoFactorSwitch(bossPage)).toHaveAttribute('aria-checked', 'false')
     expect((await apiOk<{ user: { mustSetupTwoFactor: boolean } }>(page, 'GET', '/api/auth/me')).user.mustSetupTwoFactor).toBe(false)
   } finally {
@@ -170,7 +175,7 @@ test('the owner, who has no second factor, is refused by the server as soon as t
   await createUser(page, 'e2e-boss', { role: 'admin', displayName: 'Bea Boss' })
   const { context: boss, page: bossPage } = await signedInContext(browser, 'e2e-boss')
   const { recoveryCodes } = await enableTotp(boss)
-  const rescue: Rescue = { browser, username: 'e2e-boss', recoveryCode: recoveryCodes[0]! }
+  const rescue: Rescue = { browser, username: 'e2e-boss', recoveryCode: recoveryCodes[0]!, stepUpCode: recoveryCodes[1]! }
   try {
     await openAs(bossPage, 'Bea Boss', '/admin?tab=settings')
     await twoFactorSwitch(bossPage).click()

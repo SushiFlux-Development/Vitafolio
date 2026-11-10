@@ -13,3 +13,10 @@ scripts/git-hooks/* text eol=lf
 *.woff binary
 *.woff2 binary
 *.pdf binary
+*.ttf binary
+*.otf binary
+
+# The Unraid feed file and its template are compared byte for byte with the rendered output (tests); the licence texts keep the upstream line endings out of the diff
+unraid/* text eol=lf
+scripts/license-texts/*.txt text eol=lf
+scripts/native-components/*.json text eol=lf

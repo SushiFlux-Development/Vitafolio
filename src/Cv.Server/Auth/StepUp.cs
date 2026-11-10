@@ -1,6 +1,7 @@
 using Cv.Server.Configuration;
 using Cv.Server.Data;
 using Cv.Server.Errors;
+using Cv.Server.Security;
 using Cv.Server.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,7 @@ namespace Cv.Server.Auth;
 /// Step-up check for actions that touch everyone's data (backup download, upload, restore): in server mode the admin's current password
 /// and - when 2FA is on - a code (TOTP or recovery code) in the same request. Desktop mode: the local owner, no check.
 /// </summary>
-public sealed class StepUp(AppDbContext db, Accounts accounts, TwoFactorService twoFactor, ActivityLogger activity, ServerSettings settings)
+public sealed class StepUp(AppDbContext db, Accounts accounts, TwoFactorService twoFactor, ActivityLogger activity, ServerSettings settings, AccountAttemptLimiter accountLimiter)
 {
     public async Task VerifyAsync(HttpContext context, string? password, string? code, string action, CancellationToken ct)
     {
@@ -18,6 +19,7 @@ public sealed class StepUp(AppDbContext db, Accounts accounts, TwoFactorService 
         var id = context.User.RequiredUserId();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
             ?? throw new ApiException(StatusCodes.Status401Unauthorized, "auth.invalid", "The account no longer exists.");
+        accountLimiter.EnsureAllowed(context, user.NormalizedUsername);
         var ok = !string.IsNullOrEmpty(password) && password.Length <= InputRules.LoginFieldMax && accounts.CheckPassword(user, password);
         if (ok && user.TotpEnabled)
         {
@@ -27,6 +29,7 @@ public sealed class StepUp(AppDbContext db, Accounts accounts, TwoFactorService 
         }
         if (!ok)
         {
+            accountLimiter.RecordFailure(context, user.NormalizedUsername);
             await activity.RecordNowAsync(context, "auth.reauth_failed", user.Username, new { action }, ct: ct);
             throw new ApiException(StatusCodes.Status403Forbidden, "auth.reauth_failed",
                 user.TotpEnabled ? "Password or two-factor code is wrong." : "The password is wrong.",

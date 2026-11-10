@@ -13,7 +13,7 @@ namespace Cv.Server.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Policy = AuthConstants.AdminPolicy)]
-public sealed class AdminController(AppDbContext db, ActivityLogger activity, SettingsService instanceSettings) : ControllerBase
+public sealed class AdminController(AppDbContext db, ActivityLogger activity, SettingsService instanceSettings, StepUp stepUp) : ControllerBase
 {
     public const int MaxPageSize = 200;
 
@@ -26,16 +26,30 @@ public sealed class AdminController(AppDbContext db, ActivityLogger activity, Se
         var errors = new FieldErrors();
         if (body.RegistrationOpen is null) errors.Add("registrationOpen", "validation.required");
         if (body.RequireTwoFactor is null) errors.Add("requireTwoFactor", "validation.required");
+        var hosts = body.AiAllowedHosts is null ? null : Ai.AiHostList.Normalize(errors, "aiAllowedHosts", body.AiAllowedHosts);
         errors.ThrowIfAny();
 
         var before = await instanceSettings.GetAsync(ct);
-        var after = new InstanceSettings(body.RegistrationOpen!.Value, body.RequireTwoFactor!.Value);
+        var after = new InstanceSettings(body.RegistrationOpen!.Value, body.RequireTwoFactor!.Value) { AiAllowedHosts = hosts ?? before.AiAllowedHosts, UpdateChannel = before.UpdateChannel };
+        if (WeakensProtection(before, after))
+        {
+            await stepUp.VerifyAsync(HttpContext, body.Password, body.Code, "instance_settings", ct);
+        }
         if (before != after)
         {
             activity.Record(HttpContext, "settings.changed", null, new { before, after });
         }
         return await instanceSettings.SaveAsync(db, after, ct);
     }
+
+    /// <summary>
+    /// Opening the registration, dropping the 2FA requirement or widening what the server may connect to needs the password (and 2FA code)
+    /// again; a stolen admin session alone must not be able to do it. Tightening a setting asks nothing.
+    /// </summary>
+    private static bool WeakensProtection(InstanceSettings before, InstanceSettings after) =>
+        (!before.RegistrationOpen && after.RegistrationOpen)
+        || (before.RequireTwoFactor && !after.RequireTwoFactor)
+        || after.AiAllowedHosts.Except(before.AiAllowedHosts, StringComparer.Ordinal).Any();
 
     [HttpGet("activity")]
     [ServerModeOnly]

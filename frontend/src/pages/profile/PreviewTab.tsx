@@ -1,442 +1,145 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { saveBlob } from '../../api/download'
 import { profileApi } from '../../api/endpoints'
-import type { CvRenderOptions } from '../../api/types'
-import { Icon } from '../../components/ui/Icon'
+import type { CvRenderOptions, PreviewOptions } from '../../api/types'
+import { Button } from '../../components/ui/Button'
+import { useErrorDialog } from '../../components/ui/ErrorDialog'
+import { PdfPreview } from '../../components/ui/PdfPreview'
+import { Segmented } from '../../components/ui/Segmented'
+import { SelectField } from '../../components/ui/SelectField'
+import { Toggle } from '../../components/ui/Toggle'
+import { ColorSwatches } from '../../features/documents/ColorSwatches'
+import { DesignGallery } from '../../features/documents/DesignGallery'
+import { DEFAULT_DESIGN, useDocumentDesigns } from '../../features/documents/useDocumentDesigns'
+import { selectedFont, useDocumentFonts } from '../../features/documents/useDocumentFonts'
+import { usePdfPreview } from '../../hooks/usePdfPreview'
+import { PreviewContent } from './PreviewContent'
+import { usePreviewOptions } from './usePreviewOptions'
 
-const PRESET_COLORS = [
-  { label: 'Navy', hex: '#14213D' },
-  { label: 'Blue', hex: '#0284C7' },
-  { label: 'Emerald', hex: '#059669' },
-  { label: 'Indigo', hex: '#4F46E5' },
-  { label: 'Violet', hex: '#7C3AED' },
-  { label: 'Rose', hex: '#E11D48' },
-  { label: 'Gold', hex: '#B8872A' },
-  { label: 'Slate', hex: '#334155' },
-]
+/**
+ * "Preview & export": the options and the PDF. From 1536 px on the options are a narrow fixed column on the left that stays in
+ * view while the page scrolls, and the preview gets all the rest of the width and the height of the window. In a narrower
+ * window the options lie in a compact block above the preview (their groups wrap into as many columns as fit), and the
+ * preview takes the full width below them - also in a tall, narrow window, where it grows with the height.
+ */
+export function PreviewTab({ saved }: { saved?: PreviewOptions | null }) {
+  const { t } = useTranslation()
+  const fonts = useDocumentFonts()
+  const designs = useDocumentDesigns()
+  const showError = useErrorDialog()
 
-const FONTS = [
-  { label: 'Liberation Sans', value: 'Liberation Sans' },
-  { label: 'DejaVu Sans', value: 'DejaVu Sans' },
-  { label: 'Arial', value: 'Arial' },
-  { label: 'Calibri', value: 'Calibri' },
-]
+  // Starts with the remembered choice; every change is kept automatically (no save button).
+  const { options, update } = usePreviewOptions(saved)
 
-export function PreviewTab() {
-  const { t, i18n } = useTranslation()
-  const initialLang = (i18n.language?.startsWith('en') ? 'en' : 'de') as 'de' | 'en'
+  // What the master profile shows is decided on the server (the suggestion and the person's own corrections), so every render asks
+  // for it. A change of those settings is saved first and only then counted up here, so the next picture never shows the old selection.
+  const [contentRevision, setContentRevision] = useState(0)
+  const renderOptions = useMemo(() => ({ ...options, applySelection: true }), [options])
 
-  const [options, setOptions] = useState<CvRenderOptions>({
-    design: 'classic',
-    accentColor: '#14213D',
-    font: 'Liberation Sans',
-    showPhoto: true,
-    photoShape: 'rounded',
-    language: initialLang,
+  // A new picture after the last change of the options; a slower older answer can never replace a newer one.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the revision is no input of the request, it only asks for a new picture
+  const load = useCallback((signal: AbortSignal) => profileApi.getPreviewPdf(renderOptions, signal), [renderOptions, contentRevision])
+  const preview = usePdfPreview({ load, debounceMs: 250 })
+
+  const exportPdf = useMutation({
+    mutationFn: () => profileApi.exportPdf(renderOptions),
+    onSuccess: ({ blob, filename }) => saveBlob(blob, filename),
+    onError: (error) => showError(error, t('profile.preview.exportFailed')),
+  })
+  const exportDocx = useMutation({
+    mutationFn: () => profileApi.exportDocx(renderOptions),
+    onSuccess: ({ blob, filename }) => saveBlob(blob, filename),
+    onError: (error) => showError(error, t('profile.preview.exportFailed')),
   })
 
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // Track active blob url to revoke when replacing or unmounting
-  const activeUrlRef = useRef<string | null>(null)
-
-  const updateOptions = (patch: Partial<CvRenderOptions>) => {
-    setOptions((prev) => ({ ...prev, ...patch }))
-  }
-
-  // Load preview PDF when options change (with debounce)
-  useEffect(() => {
-    let isCancelled = false
-
-    const timer = setTimeout(async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const blob = await profileApi.getPreviewPdf(options)
-        if (isCancelled) return
-
-        if (activeUrlRef.current) {
-          URL.revokeObjectURL(activeUrlRef.current)
-        }
-
-        const url = URL.createObjectURL(blob)
-        activeUrlRef.current = url
-        setPdfUrl(url)
-      } catch {
-        if (!isCancelled) {
-          setError(t('profile.preview.noPdf'))
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false)
-        }
-      }
-    }, 250)
-
-    return () => {
-      isCancelled = true
-      clearTimeout(timer)
-    }
-  }, [options, t])
-
-  // Revoke object URL on unmount
-  useEffect(() => {
-    return () => {
-      if (activeUrlRef.current) {
-        URL.revokeObjectURL(activeUrlRef.current)
-        activeUrlRef.current = null
-      }
-    }
-  }, [])
-
-  const handleDownload = async () => {
-    setIsDownloading(true)
-    try {
-      const { blob, filename } = await profileApi.exportPdf(options)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch {
-      setError(t('profile.preview.noPdf'))
-    } finally {
-      setIsDownloading(false)
-    }
-  }
-
-  const handleDownloadDocx = async () => {
-    setIsDownloadingDocx(true)
-    try {
-      const { blob, filename } = await profileApi.exportDocx(options)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch {
-      setError(t('profile.preview.noPdf'))
-    } finally {
-      setIsDownloadingDocx(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const blob = await profileApi.getPreviewPdf(options)
-      if (activeUrlRef.current) {
-        URL.revokeObjectURL(activeUrlRef.current)
-      }
-      const url = URL.createObjectURL(blob)
-      activeUrlRef.current = url
-      setPdfUrl(url)
-    } catch {
-      setError(t('profile.preview.noPdf'))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">{t('profile.preview.title')}</h2>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{t('profile.preview.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50"
-            title={t('profile.preview.refresh')}
-          >
-            <Icon name="refresh" className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{t('profile.preview.refresh')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadDocx}
-            disabled={isDownloadingDocx}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50"
-            title={t('profile.preview.downloadDocx')}
-          >
-            <Icon name="download" className="w-4 h-4" />
-            <span className="hidden md:inline">{isDownloadingDocx ? t('profile.preview.downloadingDocx') : t('profile.preview.downloadDocx')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 shadow-sm"
-          >
-            <Icon name="download" className="w-4 h-4" />
-            <span>{isDownloading ? t('profile.preview.downloading') : t('profile.preview.download')}</span>
-          </button>
-        </div>
-      </div>
+    <div className="grid items-start gap-6 2xl:grid-cols-[19rem_minmax(0,1fr)]">
+      <section
+        className="card p-5 2xl:sticky 2xl:top-(--page-gutter) 2xl:max-h-[calc(100vh-2*var(--page-gutter))] 2xl:overflow-y-auto"
+        aria-label={t('profile.preview.options')}
+      >
+        <h2 className="text-base font-semibold text-ink">{t('profile.preview.title')}</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-muted">{t('profile.preview.subtitle')}</p>
 
-      {/* Main Grid: Controls on left, PDF viewer on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Controls Column */}
-        <div className="lg:col-span-4 space-y-5 bg-white dark:bg-neutral-900 p-5 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
-          {/* Design Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-              {t('profile.preview.design')}
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => updateOptions({ design: 'classic' })}
-                className={`p-2.5 text-left rounded-lg border text-xs transition-all ${
-                  options.design === 'classic'
-                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600'
-                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
-                }`}
-              >
-                <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                  {t('profile.preview.designs.classic')}
-                </div>
-                <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">
-                  {t('profile.preview.designs.classicDesc')}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => updateOptions({ design: 'modern' })}
-                className={`p-2.5 text-left rounded-lg border text-xs transition-all ${
-                  options.design === 'modern'
-                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600'
-                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
-                }`}
-              >
-                <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                  {t('profile.preview.designs.modern')}
-                </div>
-                <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">
-                  {t('profile.preview.designs.modernDesc')}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => updateOptions({ design: 'plain' })}
-                className={`p-2.5 text-left rounded-lg border text-xs transition-all ${
-                  options.design === 'plain'
-                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600'
-                    : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
-                }`}
-              >
-                <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                  {t('profile.preview.designs.plain')}
-                </div>
-                <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">
-                  {t('profile.preview.designs.plainDesc')}
-                </div>
-              </button>
-            </div>
+        <div className="mt-5 grid gap-x-8 gap-y-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr))]">
+          <div className="col-span-full">
+            <PreviewContent onChanged={() => setContentRevision((value) => value + 1)} />
           </div>
 
-          {/* Language Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-              {t('profile.preview.language')}
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => updateOptions({ language: 'de' })}
-                className={`flex-1 py-1.5 px-3 text-sm rounded-md border font-medium transition-colors ${
-                  options.language === 'de'
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
-                }`}
-              >
-                {t('profile.preview.languageDe')}
-              </button>
-              <button
-                type="button"
-                onClick={() => updateOptions({ language: 'en' })}
-                className={`flex-1 py-1.5 px-3 text-sm rounded-md border font-medium transition-colors ${
-                  options.language === 'en'
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
-                }`}
-              >
-                {t('profile.preview.languageEn')}
-              </button>
-            </div>
+          <div className="col-span-full" data-hint="preview-design">
+            <DesignGallery designs={designs} value={options.design ?? DEFAULT_DESIGN} onChange={(value) => update({ design: value })} />
           </div>
 
-          {/* Accent Color Selection */}
           <div>
-            <label className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-              {t('profile.preview.color')}
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => updateOptions({ accentColor: c.hex })}
-                  className={`h-9 rounded-md flex items-center justify-center transition-transform ${
-                    options.accentColor === c.hex ? 'ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100 scale-105' : 'hover:scale-102'
-                  }`}
-                  style={{ backgroundColor: c.hex }}
-                  title={`${c.label} (${c.hex})`}
-                >
-                  {options.accentColor === c.hex && (
-                    <Icon name="check" className="w-4 h-4 text-white drop-shadow" />
-                  )}
-                </button>
-              ))}
-            </div>
+            <p className="mb-2 text-sm font-semibold text-ink">{t('profile.preview.language')}</p>
+            <Segmented<'de' | 'en'>
+              label={t('profile.preview.language')}
+              value={options.language ?? 'de'}
+              onChange={(value) => update({ language: value })}
+              options={[
+                { value: 'de', label: t('profile.preview.languageDe') },
+                { value: 'en', label: t('profile.preview.languageEn') },
+              ]}
+            />
           </div>
 
-          {/* Font Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-              {t('profile.preview.font')}
-            </label>
-            <select
-              value={options.font || 'Liberation Sans'}
-              onChange={(e) => updateOptions({ font: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100"
-            >
-              {FONTS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
+          <div data-hint="preview-color">
+            <p className="mb-2 text-sm font-semibold text-ink">{t('profile.preview.color')}</p>
+            <ColorSwatches value={options.accentColor} onChange={(hex) => update({ accentColor: hex })} label={t('profile.preview.color')} />
+          </div>
+
+          <div data-hint="preview-font">
+            <SelectField label={t('profile.preview.font')} value={selectedFont(fonts, options.font)} onChange={(event) => update({ font: event.target.value })}>
+              {fonts.map((font) => (
+                <option key={font.family} value={font.family}>
+                  {font.family}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </div>
 
-          {/* Photo Settings */}
-          <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={options.showPhoto ?? true}
-                onChange={(e) => updateOptions({ showPhoto: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-700"
+          <div className="space-y-3">
+            <Toggle label={t('profile.preview.showPhoto')} checked={options.showPhoto ?? true} onChange={(checked) => update({ showPhoto: checked })} />
+            {/* Stays in place when the photo is off (only dimmed), so switching it never moves the controls below. */}
+            <div className={options.showPhoto ? '' : 'opacity-60'}>
+              <p className="mb-2 text-xs font-semibold text-ink-muted">{t('profile.preview.photoShape')}</p>
+              <Segmented<NonNullable<CvRenderOptions['photoShape']>>
+                label={t('profile.preview.photoShape')}
+                value={options.photoShape ?? 'rounded'}
+                disabled={!options.showPhoto}
+                onChange={(value) => update({ photoShape: value })}
+                options={[
+                  { value: 'round', label: t('profile.preview.photoShapes.round') },
+                  { value: 'rounded', label: t('profile.preview.photoShapes.rounded') },
+                  { value: 'rect', label: t('profile.preview.photoShapes.rect') },
+                ]}
               />
-              <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                {t('profile.preview.showPhoto')}
-              </span>
-            </label>
-
-            {options.showPhoto && (
-              <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1.5">
-                  {t('profile.preview.photoShape')}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateOptions({ photoShape: 'round' })}
-                    className={`flex-1 py-1 px-2 text-xs rounded border transition-colors ${
-                      options.photoShape === 'round'
-                        ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900 border-transparent'
-                        : 'border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300'
-                    }`}
-                  >
-                    {t('profile.preview.photoShapes.round')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateOptions({ photoShape: 'rounded' })}
-                    className={`flex-1 py-1 px-2 text-xs rounded border transition-colors ${
-                      options.photoShape === 'rounded'
-                        ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900 border-transparent'
-                        : 'border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300'
-                    }`}
-                  >
-                    {t('profile.preview.photoShapes.rounded')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateOptions({ photoShape: 'rect' })}
-                    className={`flex-1 py-1 px-2 text-xs rounded border transition-colors ${
-                      options.photoShape === 'rect'
-                        ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900 border-transparent'
-                        : 'border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300'
-                    }`}
-                  >
-                    {t('profile.preview.photoShapes.rect')}
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* PDF Viewer Column */}
-        <div className="lg:col-span-8 bg-neutral-100 dark:bg-neutral-950 rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden relative shadow-inner min-h-[600px] h-[calc(100vh-230px)] flex flex-col">
-          {/* Subtle status banner when loading */}
-          {isLoading && (
-            <div className="absolute top-3 right-3 z-10 bg-white/90 dark:bg-neutral-900/90 backdrop-blur px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 shadow flex items-center gap-2 text-xs text-neutral-700 dark:text-neutral-300">
-              <Icon name="refresh" className="w-3.5 h-3.5 animate-spin text-blue-600" />
-              <span>{t('profile.preview.loading')}</span>
-            </div>
-          )}
-
-          {error ? (
-            <div className="m-auto text-center p-8 max-w-md">
-              <Icon name="alertTriangle" className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{error}</p>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                className="mt-4 px-4 py-2 text-xs font-medium rounded-md bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900 hover:opacity-90"
-              >
-                {t('profile.preview.refresh')}
-              </button>
-            </div>
-          ) : pdfUrl ? (
-            <object
-              data={pdfUrl}
-              type="application/pdf"
-              className="w-full h-full flex-1"
-              aria-label="PDF Preview"
-            >
-              <div className="m-auto text-center p-8 max-w-md">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
-                  {t('profile.preview.subtitle')}
-                </p>
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  <Icon name="fileExport" className="w-4 h-4" />
-                  {t('profile.preview.openNewTab')}
-                </a>
-              </div>
-            </object>
-          ) : (
-            <div className="m-auto text-center p-8">
-              <Icon name="refresh" className="w-8 h-8 animate-spin text-neutral-400 mx-auto mb-3" />
-              <p className="text-sm text-neutral-500">{t('profile.preview.loading')}</p>
-            </div>
-          )}
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4" data-hint="preview-export">
+          <Button icon="refresh" busy={preview.loading} onClick={preview.refresh}>
+            {t('profile.preview.refresh')}
+          </Button>
+          <Button icon="download" busy={exportDocx.isPending} onClick={() => exportDocx.mutate()}>
+            {t('profile.preview.downloadDocx')}
+          </Button>
+          <Button variant="confirm" icon="download" busy={exportPdf.isPending} onClick={() => exportPdf.mutate()}>
+            {t('profile.preview.download')}
+          </Button>
         </div>
+      </section>
+
+      {/* The preview fills the height of the window below the page header (side by side: it stays in view like the options). */}
+      <div className="2xl:sticky 2xl:top-(--page-gutter)" data-hint="preview-pane">
+        <PdfPreview
+          preview={preview}
+          title={t('profile.preview.frameTitle')}
+          className="h-[max(36rem,calc(100vh-26rem))] 2xl:h-[max(36rem,calc(100vh-2*var(--page-gutter)-9rem))]"
+        />
       </div>
     </div>
   )

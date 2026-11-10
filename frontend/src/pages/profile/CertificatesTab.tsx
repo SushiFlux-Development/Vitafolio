@@ -1,17 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { Certificate, Profile } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
+import { FormDialog } from '../../components/ui/FormDialog'
 import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { DateField } from '../../components/ui/DateField'
+import { LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { MONTH_OPTIONAL, isStoredDateValid, isValid, noRule, requiredField, urlCheck } from '../../validation/rules'
 
-interface CertificateFormData {
+interface CertificateForm {
   id?: string
   title: string
   issuer: string
@@ -22,127 +27,100 @@ interface CertificateFormData {
   sortOrder: number
 }
 
-const emptyForm: CertificateFormData = {
-  title: '',
-  issuer: '',
-  issueDate: '',
-  expiryDate: '',
-  credentialUrl: '',
-  credentialId: '',
-  sortOrder: 0,
-}
+const EMPTY: CertificateForm = { title: '', issuer: '', issueDate: '', expiryDate: '', credentialUrl: '', credentialId: '', sortOrder: 0 }
+
 
 export function CertificatesTab({ profile }: { profile: Profile }) {
   const { t } = useTranslation()
+  const dates = useDateFormat()
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
+  const entry = useEntryForm<CertificateForm>()
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<CertificateFormData | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: (data: CertificateFormData) => {
+  const save = useMutation({
+    mutationFn: (data: CertificateForm) => {
       const payload = {
-        title: data.title,
-        issuer: data.issuer || null,
-        issueDate: data.issueDate || null,
-        expiryDate: data.expiryDate || null,
-        credentialUrl: data.credentialUrl || null,
-        credentialId: data.credentialId || null,
+        title: data.title.trim(),
+        issuer: data.issuer.trim() || null,
+        issueDate: data.issueDate.trim() || null,
+        expiryDate: data.expiryDate.trim() || null,
+        credentialUrl: data.credentialUrl.trim() || null,
+        credentialId: data.credentialId.trim() || null,
         sortOrder: data.sortOrder,
       }
       return data.id ? profileApi.updateCertificate(data.id, payload) : profileApi.addCertificate(payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setDialogOpen(false)
-      setEditingItem(null)
+      refresh()
+      entry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => profileApi.deleteCertificate(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDelete = async (cert: Certificate) => {
-    const ok = await confirm({
-      title: t('profile.certificates.delete'),
-      message: t('profile.certificates.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
+  const askDelete = async (certificate: Certificate) => {
+    const ok = await confirm({ title: t('profile.certificates.delete'), message: t('profile.certificates.deleteConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) remove.mutate(certificate.id)
+  }
+
+  const edit = (certificate: Certificate) =>
+    entry.start({
+      id: certificate.id,
+      title: certificate.title,
+      issuer: certificate.issuer ?? '',
+      issueDate: certificate.issueDate ?? '',
+      expiryDate: certificate.expiryDate ?? '',
+      credentialUrl: certificate.credentialUrl ?? '',
+      credentialId: certificate.credentialId ?? '',
+      sortOrder: certificate.sortOrder,
     })
-    if (ok) deleteMutation.mutate(cert.id)
-  }
 
-  const handleOpenAdd = () => {
-    setEditingItem({ ...emptyForm, sortOrder: profile.certificates.length })
-    setDialogOpen(true)
-  }
-
-  const handleOpenEdit = (cert: Certificate) => {
-    setEditingItem({
-      id: cert.id,
-      title: cert.title,
-      issuer: cert.issuer ?? '',
-      issueDate: cert.issueDate ?? '',
-      expiryDate: cert.expiryDate ?? '',
-      credentialUrl: cert.credentialUrl ?? '',
-      credentialId: cert.credentialId ?? '',
-      sortOrder: cert.sortOrder,
-    })
-    setDialogOpen(true)
-  }
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem) saveMutation.mutate(editingItem)
+  const form = entry.form
+  const submit = () => {
+    if (!form) return
+    entry.markAttempted()
+    const valid = isValid(requiredField, form.title) && isStoredDateValid(MONTH_OPTIONAL, form.issueDate) && isStoredDateValid(MONTH_OPTIONAL, form.expiryDate) && isValid(urlCheck, form.credentialUrl)
+    if (valid) save.mutate(form)
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.certificates.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.certificates.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={handleOpenAdd}>
-          {t('profile.certificates.add')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.certificates.title')}
+        subtitle={t('profile.certificates.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={() => entry.start({ ...EMPTY, sortOrder: profile.certificates.length })}>
+            {t('profile.certificates.add')}
+          </Button>
+        }
+      />
 
       {profile.certificates.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="circleCheck" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.certificates.empty')}</p>
-        </div>
+        <EmptyState icon="circleCheck" title={t('profile.certificates.empty')} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {profile.certificates.map((cert) => (
-            <article key={cert.id} className="card flex flex-col justify-between p-5">
+        <ul className="card-grid [--card-min:26rem]">
+          {profile.certificates.map((certificate) => (
+            <li key={certificate.id} className="card flex flex-col justify-between gap-4 p-5">
               <div>
-                <h3 className="text-base font-semibold text-ink">{cert.title}</h3>
-                {cert.issuer && <p className="mt-1 text-sm font-medium text-ink-muted">{cert.issuer}</p>}
+                <h3 className="text-base font-semibold text-ink">{certificate.title}</h3>
+                {certificate.issuer && <p className="mt-1 text-sm font-medium text-ink-muted">{certificate.issuer}</p>}
 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-                  {cert.issueDate && <span>Ausgestellt: {cert.issueDate}</span>}
-                  {cert.expiryDate && <span>Gültig bis: {cert.expiryDate}</span>}
-                  {cert.credentialId && <span>ID: {cert.credentialId}</span>}
+                  {certificate.issueDate && <span>{t('profile.certificates.issuedOn', { date: dates.stored(certificate.issueDate) })}</span>}
+                  {certificate.expiryDate && <span>{t('profile.certificates.validUntil', { date: dates.stored(certificate.expiryDate) })}</span>}
+                  {certificate.credentialId && <span>{t('profile.certificates.idLine', { id: certificate.credentialId })}</span>}
                 </div>
 
-                {cert.credentialUrl && (
+                {certificate.credentialUrl && /^https?:\/\//i.test(certificate.credentialUrl) && (
                   <div className="mt-3">
-                    <a
-                      href={cert.credentialUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indicator hover:underline"
-                    >
+                    <a href={certificate.credentialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold underline">
                       <Icon name="world" size={14} />
                       {t('profile.certificates.credentialUrl')}
                     </a>
@@ -150,85 +128,80 @@ export function CertificatesTab({ profile }: { profile: Profile }) {
                 )}
               </div>
 
-              <div className="mt-4 flex justify-end gap-1.5 border-t border-line pt-3">
-                <Button variant="secondary" small icon="pencil" onClick={() => handleOpenEdit(cert)}>
-                  {t('profile.certificates.edit')}
-                </Button>
-                <Button variant="danger-outline" small icon="trash" onClick={() => void handleDelete(cert)}>
-                  {t('profile.certificates.delete')}
-                </Button>
+              <div className="flex justify-end border-t border-line pt-3">
+                <ItemActions
+                  itemName={certificate.title}
+                  editLabel={t('profile.certificates.edit')}
+                  deleteLabel={t('profile.certificates.delete')}
+                  onEdit={() => edit(certificate)}
+                  onDelete={() => void askDelete(certificate)}
+                />
               </div>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={editingItem?.id ? t('profile.certificates.edit') : t('profile.certificates.add')}
+      <FormDialog
+        open={entry.open}
+        onClose={entry.close}
+        onSubmit={submit}
+        title={form?.id ? t('profile.certificates.edit') : t('profile.certificates.add')}
         icon="circleCheck"
-        size="md"
+        busy={save.isPending}
+        dirty={entry.dirty}
       >
-        {editingItem && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <TextField
-              label={t('profile.certificates.certTitle')}
-              value={editingItem.title}
-              onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-              placeholder="z. B. AWS Certified Solutions Architect"
-              required
+        {form && (
+          <>
+            <LiveTextField
+              label={t('profile.certificates.certTitle')} required
+              value={form.title}
+              onValueChange={(value) => entry.patch({ title: value })}
+              check={requiredField}
+              attempted={entry.attempted}
+              placeholder={t('profile.certificates.titlePlaceholder')}
+              data-autofocus
             />
+            <LiveTextField label={t('profile.certificates.issuer')} value={form.issuer} onValueChange={(value) => entry.patch({ issuer: value })} check={noRule} placeholder={t('profile.certificates.issuerPlaceholder')} />
 
-            <TextField
-              label={t('profile.certificates.issuer')}
-              value={editingItem.issuer}
-              onChange={(e) => setEditingItem({ ...editingItem, issuer: e.target.value })}
-              placeholder="z. B. Amazon Web Services, TÜV, IHK"
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <DateField
                 label={t('profile.certificates.issueDate')}
-                value={editingItem.issueDate}
-                onChange={(e) => setEditingItem({ ...editingItem, issueDate: e.target.value })}
-                placeholder="YYYY-MM"
+                spec={MONTH_OPTIONAL}
+                value={form.issueDate}
+                onValueChange={(value) => entry.patch({ issueDate: value })}
+                attempted={entry.attempted}
               />
-              <TextField
+              <DateField
                 label={t('profile.certificates.expiryDate')}
-                value={editingItem.expiryDate}
-                onChange={(e) => setEditingItem({ ...editingItem, expiryDate: e.target.value })}
-                placeholder="YYYY-MM"
+                spec={MONTH_OPTIONAL}
+                value={form.expiryDate}
+                onValueChange={(value) => entry.patch({ expiryDate: value })}
+                attempted={entry.attempted}
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <LiveTextField
                 label={t('profile.certificates.credentialUrl')}
-                value={editingItem.credentialUrl}
-                onChange={(e) => setEditingItem({ ...editingItem, credentialUrl: e.target.value })}
-                placeholder="https://..."
+                type="url"
+                value={form.credentialUrl}
+                onValueChange={(value) => entry.patch({ credentialUrl: value })}
+                check={urlCheck}
+                attempted={entry.attempted}
+                placeholder="https://…"
               />
-              <TextField
+              <LiveTextField
                 label={t('profile.certificates.credentialId')}
-                value={editingItem.credentialId}
-                onChange={(e) => setEditingItem({ ...editingItem, credentialId: e.target.value })}
-                placeholder="Zertifikats-ID"
+                value={form.credentialId}
+                onValueChange={(value) => entry.patch({ credentialId: value })}
+                check={noRule}
+                placeholder={t('profile.certificates.credentialIdPlaceholder')}
               />
             </div>
-
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+          </>
         )}
-      </Dialog>
+      </FormDialog>
     </div>
   )
 }

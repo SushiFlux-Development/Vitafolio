@@ -5,11 +5,11 @@
 $ErrorActionPreference = 'Stop'
 $RootDir = Split-Path -Parent $PSScriptRoot
 
-$image = 'mcr.microsoft.com/playwright:v1.64.1-noble'
+$image = 'mcr.microsoft.com/playwright:v1.65.0-noble'
 $repo = $RootDir -replace '\\', '/'
 # The script is TypeScript (Node in the container runs it directly); the temporary package must be an ES module
 $inner = 'mkdir -p /tmp/ic && cd /tmp/ic && npm init -y >/dev/null 2>&1 && npm pkg set type=module' +
-    ' && npm i --no-audit --no-fund playwright@1.64.1 >/dev/null 2>&1' +
+    ' && npm i --no-audit --no-fund playwright@1.65.0 >/dev/null 2>&1' +
     ' && cp /repo/scripts/build-icon.ts /tmp/ic/ && node /tmp/ic/build-icon.ts /repo/branding/logo.svg /repo/src/Cv.Desktop/Assets/app.ico'
 
 New-Item -ItemType Directory -Force -Path (Join-Path $RootDir 'src\Cv.Desktop\Assets') | Out-Null

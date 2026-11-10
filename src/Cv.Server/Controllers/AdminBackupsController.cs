@@ -7,7 +7,11 @@ using Cv.Server.Errors;
 using Cv.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Net.Http.Headers;
 
 namespace Cv.Server.Controllers;
 
@@ -26,7 +30,8 @@ public sealed class AdminBackupsController(
     TimeProvider time,
     ILogger<AdminBackupsController> logger) : ControllerBase
 {
-    public const long MaxUploadBytes = 512L * 1024 * 1024;
+    // Generous: only the step-up fields travel next to the file
+    private const int MaxFormFieldChars = 4096;
 
     /// <summary>At most this many uploaded backups are kept (uploads are never pruned automatically; delete old ones first).</summary>
     public const int MaxUploadedBackups = 10;
@@ -80,45 +85,91 @@ public sealed class AdminBackupsController(
         return await FileAsync(entry, ct);
     }
 
+    /// <summary>
+    /// The body is streamed straight into the backup folder instead of being buffered by the framework: buffered form files land in the system
+    /// temp folder, which is a small tmpfs in the container, and a backup can be gigabytes.
+    /// </summary>
     [HttpPost("upload")]
     [EnableRateLimiting(RateLimitPolicies.StepUp)]
-    [RequestSizeLimit(MaxUploadBytes + 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadBytes)]
-    public async Task<IActionResult> Upload(IFormFile? file, [FromForm] string? password, [FromForm] string? code,
-        [FromServices] StepUp stepUp, CancellationToken ct)
+    [DisableRequestSizeLimit]
+    [DisableFormValueBinding]
+    public async Task<IActionResult> Upload([FromServices] StepUp stepUp, CancellationToken ct)
     {
-        await stepUp.VerifyAsync(HttpContext, password, code, "backup.upload", ct);
-        if (backups.List().Count(e => e.Tier == BackupService.TierUploaded) >= MaxUploadedBackups)
-        {
-            throw new ApiException(StatusCodes.Status409Conflict, "backup.upload_limit",
-                $"There are already {MaxUploadedBackups} uploaded backups. Delete one before uploading another.",
-                new Dictionary<string, object?> { ["max"] = MaxUploadedBackups });
-        }
-        if (file is null || file.Length == 0) throw ApiException.Field("file", "validation.required", "Choose a backup file to upload.");
-        if (file.Length > MaxUploadBytes)
-        {
-            throw ApiException.Field("file", "validation.file_too_large", "The file is larger than 512 MB.", StatusCodes.Status413PayloadTooLarge);
-        }
-
         var incoming = Path.Combine(backups.Root, "incoming");
         Directory.CreateDirectory(incoming);
-        var temp = Path.Combine(incoming, $"upload-{Guid.NewGuid():N}.db");
+        var temp = Path.Combine(incoming, $"upload-{Guid.NewGuid():N}.part");
         try
         {
-            await using (var target = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            var form = await ReceiveAsync(temp, ct);
+            await stepUp.VerifyAsync(HttpContext, form.Password, form.Code, "backup.upload", ct);
+            if (backups.List().Count(e => e.Tier == BackupService.TierUploaded) >= MaxUploadedBackups)
             {
-                await file.CopyToAsync(target, ct);
+                throw new ApiException(StatusCodes.Status409Conflict, "backup.upload_limit",
+                    $"There are already {MaxUploadedBackups} uploaded backups. Delete one before uploading another.",
+                    new Dictionary<string, object?> { ["max"] = MaxUploadedBackups });
             }
+            if (form.FileBytes == 0) throw ApiException.Field("file", "validation.required", "Choose a backup file to upload.");
+
             var (check, entry, detail) = await backups.StoreUploadAsync(temp, KnownMigrations.All, ct);
-            RestoreService.ThrowIfUnusable(check, detail, logger);
+            RestoreService.ThrowIfUnusable(check, detail, logger, settings.BackupLimits);
             await activity.RecordNowAsync(HttpContext, "backup.uploaded", entry!.File,
-                new { originalName = Truncate(file.FileName, 128), sizeBytes = entry.SizeBytes }, ct: ct);
+                new { originalName = Truncate(form.FileName, 128), sizeBytes = entry.SizeBytes }, ct: ct);
             return StatusCode(StatusCodes.Status201Created, entry);
         }
         finally
         {
             BackupService.TryDelete(temp);
         }
+    }
+
+    private sealed record UploadForm(long FileBytes, string? FileName, string? Password, string? Code);
+
+    /// <summary>Reads the multipart body by hand: the file goes to <paramref name="target"/> with its size enforced while it arrives.</summary>
+    private async Task<UploadForm> ReceiveAsync(string target, CancellationToken ct)
+    {
+        var boundary = Request.ContentType is { } contentType && MediaTypeHeaderValue.TryParse(contentType, out var media) && media.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase)
+            ? HeaderUtilities.RemoveQuotes(media.Boundary).Value
+            : null;
+        if (string.IsNullOrEmpty(boundary)) throw ApiException.Field("file", "validation.required", "Choose a backup file to upload.");
+
+        long fileBytes = 0;
+        string? fileName = null, password = null, code = null;
+        var reader = new MultipartReader(boundary, Request.Body);
+        while (await reader.ReadNextSectionAsync(ct) is { } section)
+        {
+            if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)) continue;
+            var name = HeaderUtilities.RemoveQuotes(disposition.Name).Value;
+            if (disposition.IsFileDisposition() && string.Equals(name, "file", StringComparison.Ordinal) && fileName is null)
+            {
+                fileName = disposition.FileNameStar.Value ?? HeaderUtilities.RemoveQuotes(disposition.FileName).Value ?? "";
+                await using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await section.Body.ReadAsync(buffer, ct)) > 0)
+                {
+                    fileBytes += read;
+                    if (fileBytes > settings.BackupLimits.MaxBytes) RestoreService.ThrowIfUnusable(BackupCheck.TooLarge, "upload", logger, settings.BackupLimits);
+                    await output.WriteAsync(buffer.AsMemory(0, read), ct);
+                }
+            }
+            else if (string.Equals(name, "password", StringComparison.Ordinal))
+            {
+                password = await ReadFieldAsync(section, ct);
+            }
+            else if (string.Equals(name, "code", StringComparison.Ordinal))
+            {
+                code = await ReadFieldAsync(section, ct);
+            }
+        }
+        return new UploadForm(fileBytes, fileName, password, code);
+    }
+
+    private static async Task<string> ReadFieldAsync(MultipartSection section, CancellationToken ct)
+    {
+        using var reader = new StreamReader(section.Body, Encoding.UTF8, leaveOpen: true);
+        var buffer = new char[MaxFormFieldChars + 1];
+        var length = await reader.ReadBlockAsync(buffer.AsMemory(), ct);
+        return new string(buffer, 0, Math.Min(length, MaxFormFieldChars));
     }
 
     /// <summary>Deletes one backup file (step-up like a restore). Refused while a backup or restore is running.</summary>
@@ -151,7 +202,8 @@ public sealed class AdminBackupsController(
     private object Describe(BackupSettings value)
     {
         var now = time.GetUtcNow().UtcDateTime;
-        var runs = BackupSchedule.NextRuns(value, now, time.LocalTimeZone, TimeSpan.FromDays(7));
+        // The week preview has one row per calendar day: the list ends with the seventh day, not 168 hours from now
+        var runs = BackupSchedule.NextRunsInDays(value, now, time.LocalTimeZone, 7);
         return new
         {
             value.AutomaticEnabled,
@@ -162,8 +214,9 @@ public sealed class AdminBackupsController(
             value.KeepRecent,
             value.KeepDailyDays,
             nextRuns = runs,
-            timeZone = time.LocalTimeZone.Id,
+            timeZone = BackupSchedule.BrowserZoneId(time.LocalTimeZone),
             directory = settings.BackupDirectory,
+            maxUploadBytes = settings.BackupLimits.MaxBytes,
         };
     }
 
@@ -177,8 +230,9 @@ public sealed class AdminBackupsController(
     {
         await activity.RecordNowAsync(HttpContext, "backup.downloaded", entry.File, new { backup = entry.Id }, ct: ct);
         var local = TimeZoneInfo.ConvertTimeFromUtc(entry.CreatedAt, time.LocalTimeZone);
-        var name = $"{Slug(Branding.ProductName)}-backup-{local.ToString("yyyy-MM-dd-HHmm", CultureInfo.InvariantCulture)}.db";
-        return PhysicalFile(entry.FullPath, "application/vnd.sqlite3", name);
+        var database = entry.Format == BackupService.FormatDatabase;
+        var name = $"{Slug(Branding.ProductName)}-backup-{local.ToString("yyyy-MM-dd-HHmm", CultureInfo.InvariantCulture)}{(database ? BackupService.DatabaseExtension : BackupService.ArchiveExtension)}";
+        return PhysicalFile(entry.FullPath, database ? "application/vnd.sqlite3" : "application/zip", name);
     }
 
     private static string Slug(string name)
@@ -189,4 +243,20 @@ public sealed class AdminBackupsController(
     }
 
     private static string? Truncate(string? value, int max) => value is null || value.Length <= max ? value : value[..max];
+}
+
+/// <summary>MVC would otherwise read (and buffer) the whole form before the action starts, which is exactly what a streaming upload must avoid.</summary>
+[AttributeUsage(AttributeTargets.Method)]
+internal sealed class DisableFormValueBindingAttribute : Attribute, IResourceFilter
+{
+    public void OnResourceExecuting(ResourceExecutingContext context)
+    {
+        context.ValueProviderFactories.RemoveType<FormValueProviderFactory>();
+        context.ValueProviderFactories.RemoveType<FormFileValueProviderFactory>();
+        context.ValueProviderFactories.RemoveType<JQueryFormValueProviderFactory>();
+    }
+
+    public void OnResourceExecuted(ResourceExecutedContext context)
+    {
+    }
 }

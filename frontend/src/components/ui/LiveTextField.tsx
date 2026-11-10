@@ -1,21 +1,14 @@
-import { useState } from 'react'
 import type { ChangeEvent, FocusEvent } from 'react'
-import { useTranslation } from 'react-i18next'
-import type { Check } from '../../validation/rules'
+import { TextAreaField } from './TextAreaField'
+import type { TextAreaFieldProps } from './TextAreaField'
 import { TextField } from './TextField'
 import type { TextFieldProps } from './TextField'
+import { useLiveCheck } from './useLiveCheck'
+import type { LiveOptions } from './useLiveCheck'
 
-interface LiveTextFieldProps extends Omit<TextFieldProps, 'error' | 'value' | 'onChange' | 'reserve'> {
+interface LiveTextFieldProps extends Omit<TextFieldProps, 'error' | 'value' | 'onChange' | 'reserve'>, LiveOptions {
   value: string
   onValueChange: (value: string) => void
-  /** The rule for this field; it is evaluated on every keystroke. */
-  check: Check
-  /** A submit was tried: every problem is shown, also in fields the user never touched. */
-  attempted?: boolean
-  /** The server's answer to the last submit for this field (taken name, wrong code, ...). */
-  serverError?: string | undefined
-  /** Translation keys of the answers the server can give for this field, so their room is reserved up front. */
-  serverKeys?: readonly string[]
 }
 
 /**
@@ -27,28 +20,40 @@ interface LiveTextFieldProps extends Omit<TextFieldProps, 'error' | 'value' | 'o
  * The room under the field is reserved for the longest message the rule or the server can produce, so showing one
  * moves nothing (see TextField "reserve").
  */
-export function LiveTextField({ value, onValueChange, check, attempted = false, serverError, serverKeys = [], onBlur, ...field }: LiveTextFieldProps) {
-  const { t } = useTranslation()
-  const [touched, setTouched] = useState(false)
-  const [left, setLeft] = useState(false)
-
-  const problem = check(value, { settled: attempted || left })
-  // "Touched" is derived while rendering: the first typed character is enough, and clearing the field again keeps it
-  // touched, so a field emptied by the user says "required" instead of silently going back to neutral.
-  const show = touched || value !== '' || attempted
-  if (!touched && value !== '') setTouched(true)
-  const liveError = problem && show ? t(problem.key, problem.values) : undefined
-  const reserve = [...check.problems.map((possible) => t(possible.key, possible.values)), ...serverKeys.map((key) => t(key))]
-
+export function LiveTextField({ value, onValueChange, check, attempted, serverError, serverKeys, onBlur, ...field }: LiveTextFieldProps) {
+  const live = useLiveCheck(value, { check, attempted, serverError, serverKeys })
   return (
     <TextField
       {...field}
       value={value}
-      error={liveError ?? serverError}
-      reserve={reserve}
+      error={live.error}
+      reserve={live.reserve}
       onChange={(event: ChangeEvent<HTMLInputElement>) => onValueChange(event.target.value)}
       onBlur={(event: FocusEvent<HTMLInputElement>) => {
-        setLeft(true)
+        live.settle()
+        onBlur?.(event)
+      }}
+    />
+  )
+}
+
+interface LiveTextAreaFieldProps extends Omit<TextAreaFieldProps, 'error' | 'value' | 'onChange' | 'reserve'>, LiveOptions {
+  value: string
+  onValueChange: (value: string) => void
+}
+
+/** The multi-line twin of {@link LiveTextField}: same rules, same timing, same reserved room. */
+export function LiveTextAreaField({ value, onValueChange, check, attempted, serverError, serverKeys, onBlur, ...field }: LiveTextAreaFieldProps) {
+  const live = useLiveCheck(value, { check, attempted, serverError, serverKeys })
+  return (
+    <TextAreaField
+      {...field}
+      value={value}
+      error={live.error}
+      reserve={live.reserve}
+      onChange={(event) => onValueChange(event.target.value)}
+      onBlur={(event) => {
+        live.settle()
         onBlur?.(event)
       }}
     />

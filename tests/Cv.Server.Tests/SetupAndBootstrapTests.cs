@@ -68,7 +68,7 @@ public sealed class SetupAndBootstrapTests(ServerFixture server) : IClassFixture
         Assert.Equal("registration.closed", await register.CodeAsync());
 
         // ... and opens with the database-backed setting
-        var put = await client.PutAsync("/api/admin/settings", new { registrationOpen = true, requireTwoFactor = false });
+        var put = await client.PutAsync("/api/admin/settings", new { registrationOpen = true, requireTwoFactor = false, password = ServerFixture.AdminPassword });
         Assert.Equal(HttpStatusCode.OK, put.StatusCode);
         Assert.True((await (await client.GetAsync("/api/bootstrap")).JsonAsync()).GetProperty("registrationOpen").GetBoolean());
         var registered = await server.Client().PostAsync("/api/auth/register", new { username = "guest", displayName = "Guest", password = "guest-password-1" });
@@ -92,7 +92,7 @@ public sealed class SetupAndBootstrapTests(ServerFixture server) : IClassFixture
         Assert.Equal("dev", version.GetProperty("channel").GetString());
         var shortVersion = version.GetProperty("short").GetString()!;
         Assert.StartsWith(shortVersion, version.GetProperty("version").GetString());
-        Assert.Matches(@"-dev\)?$",version.GetProperty("version").GetString());
+        Assert.EndsWith("(</>)", version.GetProperty("version").GetString(), StringComparison.Ordinal);
 
         var unknown = await client.GetAsync("/api/does-not-exist");
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
@@ -103,6 +103,25 @@ public sealed class SetupAndBootstrapTests(ServerFixture server) : IClassFixture
         Assert.Equal("auth.required", await anonymous.CodeAsync());
         Assert.Equal("nosniff", anonymous.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Contains("frame-ancestors 'none'", anonymous.Headers.GetValues("Content-Security-Policy").Single());
+    }
+
+    [Fact]
+    public async Task Content_security_policy_allows_the_pdf_preview_frame_and_nothing_wider()
+    {
+        var client = server.Client();
+        var response = await client.GetAsync("/api/auth/me");
+        var policy = response.Headers.GetValues("Content-Security-Policy").Single();
+        var directives = policy.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToDictionary(directive => directive.Split(' ')[0], directive => directive.Split(' ').Skip(1).ToArray());
+
+        // The preview iframe loads a blob: URL made by the page itself - exactly that source, no wildcard, no data:, no foreign host.
+        Assert.Equal(new[] { "blob:" }, directives["frame-src"]);
+        // Plugins and objects stay blocked, nobody may frame the app, and everything else still falls back to the own origin.
+        Assert.Equal(new[] { "'none'" }, directives["object-src"]);
+        Assert.Equal(new[] { "'none'" }, directives["frame-ancestors"]);
+        Assert.Equal(new[] { "'self'" }, directives["default-src"]);
+        Assert.Equal(new[] { "'self'" }, directives["script-src"]);
+        Assert.Equal(new[] { "'self'" }, directives["connect-src"]);
     }
 
     [Fact]

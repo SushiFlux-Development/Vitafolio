@@ -1,6 +1,9 @@
 import { createHmac } from 'node:crypto'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect } from '@playwright/test'
-import type { APIRequestContext, Browser, BrowserContext, Locator, Page } from '@playwright/test'
+import type { APIRequestContext, Browser, BrowserContext, Download, Locator, Page, Route } from '@playwright/test'
 
 /**
  * The first account of the E2E instance (created by the setup test, an administrator). The suite runs serially and every
@@ -34,7 +37,67 @@ export async function openApp(page: Page, path = '/') {
 }
 
 /** For tests that sign in or out themselves: an empty browser, so the saved session stays untouched. */
-export const SIGNED_OUT = { cookies: [], origins: [] }
+/**
+ * Lets every PUT to the addresses matching `glob` fail with a server error ("database locked"), until the returned function is
+ * called. For the forms that save by themselves: what happens to the input while the server does not take it.
+ */
+export async function failPuts(page: Page, glob: string): Promise<() => Promise<void>> {
+  const handler = (route: Route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ status: 500, code: 'internal', detail: 'Datenbank gesperrt' }) })
+      : route.fallback()
+  await page.route(glob, handler)
+  return () => page.unroute(glob, handler)
+}
+
+// ---- the live helper ---------------------------------------------------------------------------------------------------------------
+// A browser that has never seen the introduction opens it by itself, and a first visit opens the hints of a page: that would cover the
+// page in every test with a fresh window, and in every manual screenshot. So every window of the suite starts as one that has seen it
+// all. Only e2e/live-helper.spec.ts forgets this on purpose. The names are those of src/features/live-helper/storage.ts.
+
+const INTRO_KEY = 'cv.helper.intro'
+const HINTS_KEY = 'cv.helper.hints'
+const ALL_SCREENS = '*'
+
+/** The local storage entries of a browser that has seen the introduction and the hints of every screen. */
+export const HELPER_SEEN = [
+  { name: INTRO_KEY, value: '1' },
+  { name: HINTS_KEY, value: JSON.stringify({ [ALL_SCREENS]: true }) },
+]
+
+/** The address the suite runs against: storage belongs to one origin, so the entries above are saved for exactly this one. */
+const BASE_ORIGIN = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5245').origin
+
+/** Marks the live helper as seen in a window (or a whole context) before any page script runs; for windows created without {@link SIGNED_OUT}. */
+export async function markHelperSeen(target: Page | BrowserContext): Promise<void> {
+  await target.addInitScript(
+    ([intro, hints]) => {
+      localStorage.setItem(intro!.name, intro!.value)
+      localStorage.setItem(hints!.name, hints!.value)
+    },
+    HELPER_SEEN,
+  )
+}
+
+/**
+ * Sets what the live helper has seen in the open page; the next load behaves accordingly. Nothing at all (the default) is the very first
+ * start of a browser: the introduction opens by itself. "introDone" keeps the introduction away, "seen" names the screens whose hints
+ * count as seen already (all others show theirs on the first visit).
+ */
+export async function setHelperState(page: Page, state: { introDone?: boolean; seen?: readonly string[] } = {}): Promise<void> {
+  await page.evaluate(
+    ([intro, hints, introDone, seen]) => {
+      if (introDone) localStorage.setItem(intro as string, '1')
+      else localStorage.removeItem(intro as string)
+      if ((seen as string[]).length > 0) localStorage.setItem(hints as string, JSON.stringify(Object.fromEntries((seen as string[]).map((screen) => [screen, true]))))
+      else localStorage.removeItem(hints as string)
+    },
+    [INTRO_KEY, HINTS_KEY, state.introDone ?? false, [...(state.seen ?? [])]] as const,
+  )
+}
+
+/** No session, no cookies - and the live helper already seen (see above), so a fresh window shows the page and not the introduction. */
+export const SIGNED_OUT = { cookies: [], origins: [{ origin: BASE_ORIGIN, localStorage: HELPER_SEEN }] }
 
 export async function signOut(page: Page) {
   await page.getByTestId('sign-out').click()
@@ -256,9 +319,13 @@ export async function signInWithRecoveryCode(browser: Browser, username: string,
 export interface InstanceSettings {
   registrationOpen: boolean
   requireTwoFactor: boolean
+  /** Hosts an administrator allowed for own AI services (server mode); left out = unchanged on a write. */
+  aiAllowedHosts?: string[]
 }
 
-export const setInstanceSettings = (who: Requester, settings: InstanceSettings) => apiOk<InstanceSettings>(who, 'PUT', '/api/admin/settings', settings)
+/** Sets the instance switches through the API. Weakening one needs the step-up, so the credentials go along by default. */
+export const setInstanceSettings = (who: Requester, settings: InstanceSettings, credentials: { password?: string; code?: string } = { password: OWNER.password }) =>
+  apiOk<InstanceSettings>(who, 'PUT', '/api/admin/settings', { ...settings, ...credentials })
 
 /** Opens a page of an account that is already signed in (waits for the app shell). */
 export async function openAs(page: Page, displayName: string, path = '/') {
@@ -266,10 +333,11 @@ export async function openAs(page: Page, displayName: string, path = '/') {
   await expect(page.getByTestId('current-user')).toContainText(displayName)
 }
 
-/** Types the current password into the step-up dialog and presses its confirm button. */
-export async function confirmStepUp(page: Page, password: string = OWNER.password) {
+/** Types the current password (and, for an account with two-factor, a code) into the step-up dialog and presses its confirm button. */
+export async function confirmStepUp(page: Page, password: string = OWNER.password, code?: string) {
   const dialog = page.getByRole('alertdialog')
   await dialog.locator('input[name="reauthPassword"]').fill(password)
+  if (code !== undefined) await dialog.locator('input[name="reauthCode"]').fill(code)
   await page.getByTestId('reauth-confirm').click()
 }
 
@@ -339,4 +407,27 @@ export const readBackupSettings = (who: Requester) => apiOk<BackupSettingsInfo>(
 export async function writeBackupSettings(who: Requester, info: BackupSettingsInfo) {
   const { nextRuns: _runs, timeZone: _zone, directory: _directory, ...editable } = info
   await apiOk(who, 'PUT', '/api/admin/backups/settings', editable)
+}
+
+// ---- downloads ---------------------------------------------------------------------------------------------------------------------
+
+/** The bytes of a download. The browser runs in a container, so the file is fetched with saveAs() into a temporary folder that is removed again. */
+export async function readDownload(download: Download): Promise<Buffer> {
+  const folder = mkdtempSync(join(tmpdir(), 'cv-e2e-download-'))
+  try {
+    const path = join(folder, 'file')
+    await download.saveAs(path)
+    return readFileSync(path)
+  } finally {
+    rmSync(folder, { recursive: true, force: true })
+  }
+}
+
+// ---- documents -----------------------------------------------------------------------------------------------------------------
+
+/** A real PDF (the account's own CV, rendered by the server): what an uploaded attachment has to be. */
+export async function cvPdfBytes(who: Requester): Promise<Buffer> {
+  const response = await who.request.fetch('/api/profile/export/pdf', { method: 'POST', headers: { 'X-Cv-Request': '1' }, data: {} })
+  if (!response.ok()) throw new Error(`CV export failed: ${response.status()} ${await response.text()}`)
+  return response.body()
 }

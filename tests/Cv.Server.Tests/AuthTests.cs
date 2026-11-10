@@ -54,13 +54,21 @@ public sealed class AuthTests(ServerFixture server) : IClassFixture<ServerFixtur
 
         var setup = await (await client.PostAsync("/api/account/2fa/totp/setup")).JsonAsync();
         var secret = Base32.Decode(setup.GetProperty("secret").GetString()!);
+        // The server's clock stands still for this test. With the real clock the "current" 30-second step could change between enabling
+        // and the replay check, and the code "of the same step" would then really be a new, unused one. Frozen, the server sees one step
+        // for every request here; it accepts that step and the one before and after it.
+        using var frozen = server.Clock.Freeze();
+        var baseStep = Totp.Step(server.Clock.GetUtcNow());
         Assert.StartsWith("otpauth://totp/", setup.GetProperty("otpauthUri").GetString());
 
-        var wrongEnable = await client.PostAsync("/api/account/2fa/totp/enable", new { code = "000000" == Code(secret, 0) ? "111111" : "000000", currentPassword = "user-password-123" });
+        // A wrong code that is certainly not the code of any step the server accepts
+        var accepted = Enumerable.Range(-1, 3).Select(offset => Code(secret, baseStep, offset)).ToHashSet();
+        var wrongCode = new[] { "000000", "111111", "222222" }.First(candidate => !accepted.Contains(candidate));
+        var wrongEnable = await client.PostAsync("/api/account/2fa/totp/enable", new { code = wrongCode, currentPassword = "user-password-123" });
         Assert.Equal(HttpStatusCode.BadRequest, wrongEnable.StatusCode);
         Assert.Equal("auth.twofactor_invalid", await wrongEnable.CodeAsync());
 
-        var enable = await client.PostAsync("/api/account/2fa/totp/enable", new { code = Code(secret, 0), currentPassword = "user-password-123" });
+        var enable = await client.PostAsync("/api/account/2fa/totp/enable", new { code = Code(secret, baseStep, 0), currentPassword = "user-password-123" });
         Assert.Equal(HttpStatusCode.OK, enable.StatusCode);
         var recovery = (await enable.JsonAsync()).GetProperty("recoveryCodes").EnumerateArray().Select(c => c.GetString()!).ToList();
         Assert.Equal(10, recovery.Count);
@@ -73,11 +81,11 @@ public sealed class AuthTests(ServerFixture server) : IClassFixture<ServerFixtur
         var challenge = step1.GetProperty("challengeId").GetString();
 
         // The step used for enabling cannot be used again; the next step can - once
-        var replayOfEnable = await first.PostAsync("/api/auth/login/2fa", new { challengeId = challenge, code = Code(secret, 0) });
+        var replayOfEnable = await first.PostAsync("/api/auth/login/2fa", new { challengeId = challenge, code = Code(secret, baseStep, 0) });
         Assert.Equal(HttpStatusCode.Unauthorized, replayOfEnable.StatusCode);
         Assert.Equal("twofactor.code_already_used", await replayOfEnable.CodeAsync());
 
-        var next = Code(secret, 1);
+        var next = Code(secret, baseStep, 1);
         var ok = await first.PostAsync("/api/auth/login/2fa", new { challengeId = challenge, code = next });
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
         Assert.True((await ok.JsonAsync()).GetProperty("user").GetProperty("twoFactorEnabled").GetBoolean());
@@ -102,6 +110,35 @@ public sealed class AuthTests(ServerFixture server) : IClassFixture<ServerFixtur
         // An unknown challenge is refused
         var bogus = await third.PostAsync("/api/auth/login/2fa", new { challengeId = "not-a-challenge", code = recovery[4] });
         Assert.Equal("auth.challenge_invalid", await bogus.CodeAsync());
+    }
+
+    [Fact]
+    public async Task A_used_two_factor_code_stays_used_when_the_next_time_step_has_begun()
+    {
+        var admin = await server.AdminAsync();
+        var (client, _) = await server.UserAsync(admin, "tara");
+        var setup = await (await client.PostAsync("/api/account/2fa/totp/setup")).JsonAsync();
+        var secret = Base32.Decode(setup.GetProperty("secret").GetString()!);
+
+        // The code is accepted in the last second of its 30-second step and the replay arrives two seconds later, in the next step. That
+        // is the boundary a real clock only hit now and then; with the frozen clock it is hit every time.
+        var step = Totp.Step(server.Clock.GetUtcNow());
+        using var frozen = server.Clock.Freeze(DateTimeOffset.FromUnixTimeSeconds(((step + 1) * Totp.StepSeconds) - 1));
+        var enable = await client.PostAsync("/api/account/2fa/totp/enable", new { code = Code(secret, step, 0), currentPassword = "user-password-123" });
+        Assert.Equal(HttpStatusCode.OK, enable.StatusCode);
+
+        server.Clock.Advance(TimeSpan.FromSeconds(2));
+        Assert.Equal(step + 1, Totp.Step(server.Clock.GetUtcNow()));
+
+        var login = server.Client();
+        var challenge = (await (await login.PostAsync("/api/auth/login", new { username = "tara", password = "user-password-123" })).JsonAsync()).GetProperty("challengeId").GetString();
+        var replay = await login.PostAsync("/api/auth/login/2fa", new { challengeId = challenge, code = Code(secret, step, 0) });
+        Assert.Equal(HttpStatusCode.Unauthorized, replay.StatusCode);
+        Assert.Equal("twofactor.code_already_used", await replay.CodeAsync());
+
+        // The code of the step that has begun now is a new one and works - once
+        var fresh = await login.PostAsync("/api/auth/login/2fa", new { challengeId = challenge, code = Code(secret, step, 1) });
+        Assert.Equal(HttpStatusCode.OK, fresh.StatusCode);
     }
 
     [Fact]
@@ -168,7 +205,7 @@ public sealed class AuthTests(ServerFixture server) : IClassFixture<ServerFixtur
         Assert.Equal(HttpStatusCode.NotFound, (await laptop.DeleteAsync($"/api/account/sessions/{foreign}")).StatusCode);
     }
 
-    private static string Code(byte[] secret, int stepsAhead) => Totp.Compute(secret, Totp.Step(DateTimeOffset.UtcNow) + stepsAhead);
+    private static string Code(byte[] secret, long baseStep, int stepsAhead) => Totp.Compute(secret, baseStep + stepsAhead);
 }
 
 /// <summary>Instance setting "requireTwoFactor": separate server, because it affects every account.</summary>

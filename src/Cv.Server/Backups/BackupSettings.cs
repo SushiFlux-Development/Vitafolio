@@ -36,12 +36,13 @@ public sealed record BackupSettings
     /// <summary>A planned run missed while the server was not running is made right after the next start.</summary>
     public bool CatchUpMissed { get; init; } = true;
 
-    public int KeepRecent { get; init; } = 20;
+    /// <summary>Default 2: the newest backup and the one before it, so a mistaken deletion can still be undone from the older one.</summary>
+    public int KeepRecent { get; init; } = 2;
 
-    /// <summary>0 = keep no daily copies.</summary>
-    public int KeepDailyDays { get; init; } = 60;
+    /// <summary>0 = keep no daily copies (the default).</summary>
+    public int KeepDailyDays { get; init; } = 0;
 
-    public const int KeepRecentMin = 5;
+    public const int KeepRecentMin = 2;
     public const int KeepRecentMax = 500;
     public const int KeepDailyMax = 3650;
     public const int IntervalMin = 1;
@@ -122,13 +123,35 @@ public static class BackupSchedule
         text is { Length: 5 } && TimeSpan.TryParseExact(text, "hh\\:mm", CultureInfo.InvariantCulture, out var t) && t < TimeSpan.FromDays(1) ? t : null;
 
     /// <summary>The planned runs in (now, now + horizon], UTC, ascending. Empty when automatic backups or the schedule are off.</summary>
-    public static IReadOnlyList<DateTime> NextRuns(BackupSettings settings, DateTime nowUtc, TimeZoneInfo zone, TimeSpan horizon)
+    public static IReadOnlyList<DateTime> NextRuns(BackupSettings settings, DateTime nowUtc, TimeZoneInfo zone, TimeSpan horizon) =>
+        RunsBefore(settings, nowUtc, nowUtc + horizon, inclusive: true, zone);
+
+    /// <summary>
+    /// The planned runs from now to the end of the <paramref name="days"/>-th calendar day in the zone (today counts as the first day), UTC,
+    /// ascending. This is the window of the week preview, which draws one row per calendar day: a window of 7 x 24 hours would report a run
+    /// early on the same weekday next week that the preview has no row for.
+    /// </summary>
+    public static IReadOnlyList<DateTime> NextRunsInDays(BackupSettings settings, DateTime nowUtc, TimeZoneInfo zone, int days) =>
+        RunsBefore(settings, nowUtc, EndOfDay(nowUtc, zone, days), inclusive: false, zone);
+
+    /// <summary>
+    /// The name of a zone as the browser understands it (IANA, "Europe/Berlin"). On Windows <see cref="TimeZoneInfo.Id"/> is the Windows name
+    /// ("W. Europe Standard Time"), which <c>Intl.DateTimeFormat</c> rejects: the week preview would then silently fall back to the browser's
+    /// own zone and start its days at another midnight than the server does.
+    /// </summary>
+    public static string BrowserZoneId(TimeZoneInfo zone) =>
+        !zone.HasIanaId && TimeZoneInfo.TryConvertWindowsIdToIanaId(zone.Id, out var iana) ? iana : zone.Id;
+
+    /// <summary>Midnight (local time of the zone) that ends the <paramref name="days"/>-th calendar day counted from the day of <paramref name="nowUtc"/>.</summary>
+    public static DateTime EndOfDay(DateTime nowUtc, TimeZoneInfo zone, int days) =>
+        ToUtc(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, zone).Date.AddDays(days), zone);
+
+    private static List<DateTime> RunsBefore(BackupSettings settings, DateTime nowUtc, DateTime end, bool inclusive, TimeZoneInfo zone)
     {
         var result = new List<DateTime>();
         if (!settings.AutomaticEnabled) return result;
-        var end = nowUtc + horizon;
         var cursor = nowUtc;
-        while (Next(settings.Schedule, cursor, zone) is { } next && next <= end)
+        while (Next(settings.Schedule, cursor, zone) is { } next && (inclusive ? next <= end : next < end))
         {
             result.Add(next);
             cursor = next;

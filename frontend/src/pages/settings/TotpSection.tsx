@@ -11,7 +11,6 @@ import { TotpSetup } from '../../components/forms/TotpSetup'
 import { AlertSlot } from '../../components/ui/AlertSlot'
 import { Button } from '../../components/ui/Button'
 import { LiveTextField } from '../../components/ui/LiveTextField'
-import { ErrorNotice } from '../../components/ui/Notice'
 import { isLoginCodeComplete, loginCodeCheck, required } from '../../validation/rules'
 import { useServerErrors } from '../../validation/useServerErrors'
 
@@ -107,9 +106,13 @@ function DisableForm() {
           {t('settings.totp.disable')}
         </Button>
       </div>
-      <AlertSlot reserve={reserveFor(t, ['twofactor.required_by_admin', 'rate_limited'])}>
-        {server.hasGeneralError && <ErrorNotice error={server.error} title={t('settings.totp.disableFailed')} />}
-      </AlertSlot>
+      <AlertSlot
+        reserve={reserveFor(t, ['twofactor.required_by_admin'])}
+        error={server.hasGeneralError ? server.error : null}
+        errorTitle={t('settings.totp.disableFailed')}
+        normalCodes={['twofactor.required_by_admin']}
+        onDismiss={() => server.setError(null)}
+      />
     </form>
   )
 }

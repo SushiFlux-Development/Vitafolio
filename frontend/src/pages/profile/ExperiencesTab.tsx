@@ -1,19 +1,26 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { Experience, Profile } from '../../api/types'
+import { AiAssistantModal } from '../../components/ai/AiAssistantModal'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
-import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { FormDialog } from '../../components/ui/FormDialog'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { DateField } from '../../components/ui/DateField'
+import { LiveTextAreaField, LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
 import { Toggle } from '../../components/ui/Toggle'
+import { replaceBullet } from '../../features/ai/bullets'
 import { GapAnalyzerCard } from '../../features/profile/GapAnalyzerCard'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { MONTH_OPTIONAL, MONTH_REQUIRED, isStoredDateValid, isValid, noRule, requiredField } from '../../validation/rules'
 
-interface ExperienceFormData {
+interface ExperienceForm {
   id?: string
   jobTitle: string
   employer: string
@@ -27,7 +34,7 @@ interface ExperienceFormData {
   sortOrder: number
 }
 
-const emptyForm: ExperienceFormData = {
+const EMPTY: ExperienceForm = {
   jobTitle: '',
   employer: '',
   employmentType: '',
@@ -42,283 +49,213 @@ const emptyForm: ExperienceFormData = {
 
 export function ExperiencesTab({ profile }: { profile: Profile }) {
   const { t } = useTranslation()
+  const dates = useDateFormat()
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
+  const entry = useEntryForm<ExperienceForm>()
+  const [aiOpen, setAiOpen] = useState(false)
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<ExperienceFormData | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: (data: ExperienceFormData) => {
+  const save = useMutation({
+    mutationFn: (data: ExperienceForm) => {
       const payload = {
-        jobTitle: data.jobTitle,
-        employer: data.employer,
-        employmentType: data.employmentType || null,
-        city: data.city || null,
-        country: data.country || null,
-        startDate: data.startDate,
-        endDate: data.isCurrent ? null : data.endDate || null,
+        jobTitle: data.jobTitle.trim(),
+        employer: data.employer.trim(),
+        employmentType: data.employmentType.trim() || null,
+        city: data.city.trim() || null,
+        country: data.country.trim() || null,
+        startDate: data.startDate.trim(),
+        endDate: data.isCurrent ? null : data.endDate.trim() || null,
         isCurrent: data.isCurrent,
-        description: data.description || null,
+        description: data.description.trim() || null,
         sortOrder: data.sortOrder,
       }
       return data.id ? profileApi.updateExperience(data.id, payload) : profileApi.addExperience(payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setDialogOpen(false)
-      setEditingItem(null)
+      refresh()
+      entry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => profileApi.deleteExperience(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDelete = async (exp: Experience) => {
-    const ok = await confirm({
-      title: t('profile.experiences.delete'),
-      message: t('profile.experiences.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteMutation.mutate(exp.id)
-  }
-
-  const reorderMutation = useMutation({
+  const reorder = useMutation({
     mutationFn: (ids: string[]) => profileApi.reorderExperiences(ids),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const handleOpenAdd = () => {
-    setEditingItem({ ...emptyForm, sortOrder: profile.experiences.length })
-    setDialogOpen(true)
+  const askDelete = async (experience: Experience) => {
+    const ok = await confirm({ title: t('profile.experiences.delete'), message: t('profile.experiences.deleteConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) remove.mutate(experience.id)
   }
 
-  const handleQuickAddFromGap = (start: string, end: string, title: string) => {
-    setEditingItem({
-      ...emptyForm,
-      jobTitle: title,
-      employer: 'Selbststudium / Orientierung',
-      startDate: start,
-      endDate: end,
-      isCurrent: false,
-      sortOrder: profile.experiences.length,
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= profile.experiences.length) return
+    const ids = profile.experiences.map((experience) => experience.id)
+    const [moved] = ids.splice(index, 1)
+    if (moved) ids.splice(target, 0, moved)
+    reorder.mutate(ids)
+  }
+
+  const edit = (experience: Experience) =>
+    entry.start({
+      id: experience.id,
+      jobTitle: experience.jobTitle,
+      employer: experience.employer,
+      employmentType: experience.employmentType ?? '',
+      city: experience.city ?? '',
+      country: experience.country ?? '',
+      startDate: experience.startDate,
+      endDate: experience.endDate ?? '',
+      isCurrent: experience.isCurrent,
+      description: experience.description ?? '',
+      sortOrder: experience.sortOrder,
     })
-    setDialogOpen(true)
-  }
 
-  const handleOpenEdit = (exp: Experience) => {
-    setEditingItem({
-      id: exp.id,
-      jobTitle: exp.jobTitle,
-      employer: exp.employer,
-      employmentType: exp.employmentType ?? '',
-      city: exp.city ?? '',
-      country: exp.country ?? '',
-      startDate: exp.startDate,
-      endDate: exp.endDate ?? '',
-      isCurrent: exp.isCurrent,
-      description: exp.description ?? '',
-      sortOrder: exp.sortOrder,
-    })
-    setDialogOpen(true)
-  }
+  // The entry for a gap is written in the interface language, like everything else the user did not type.
+  const fillGap = (start: string, end: string, title: string) =>
+    entry.start({ ...EMPTY, jobTitle: title, employer: t('profile.gaps.employer'), startDate: start, endDate: end, sortOrder: profile.experiences.length })
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    if (targetIndex < 0 || targetIndex >= profile.experiences.length) return
-
-    const reordered = [...profile.experiences]
-    const [moved] = reordered.splice(index, 1)
-    if (moved) reordered.splice(targetIndex, 0, moved)
-
-    reorderMutation.mutate(reordered.map((e) => e.id))
-  }
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem) saveMutation.mutate(editingItem)
+  const form = entry.form
+  const submit = () => {
+    if (!form) return
+    entry.markAttempted()
+    const valid = isValid(requiredField, form.jobTitle) && isValid(requiredField, form.employer) && isStoredDateValid(MONTH_REQUIRED, form.startDate) && (form.isCurrent || isStoredDateValid(MONTH_OPTIONAL, form.endDate))
+    if (valid) save.mutate(form)
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.experiences.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.experiences.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={handleOpenAdd}>
-          {t('profile.experiences.add')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.experiences.title')}
+        subtitle={t('profile.experiences.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={() => entry.start({ ...EMPTY, sortOrder: profile.experiences.length })} data-hint="experiences-add">
+            {t('profile.experiences.add')}
+          </Button>
+        }
+      />
 
-      <GapAnalyzerCard profile={profile} onQuickAdd={handleQuickAddFromGap} />
+      <GapAnalyzerCard profile={profile} onQuickAdd={fillGap} />
 
       {profile.experiences.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="briefcase" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.experiences.empty')}</p>
-        </div>
+        <EmptyState icon="briefcase" title={t('profile.experiences.empty')} />
       ) : (
-        <div className="space-y-3">
-          {profile.experiences.map((exp, idx) => (
-            <article key={exp.id} className="card relative flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-start">
+        <ul className="card-grid gap-3 [--card-min:32rem]">
+          {profile.experiences.map((experience, index) => (
+            <li key={experience.id} className="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-start">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <h3 className="text-base font-semibold text-ink">{exp.jobTitle}</h3>
-                  <span className="text-sm font-medium text-ink-muted">bei {exp.employer}</span>
-                  {exp.employmentType && <span className="badge badge-select text-xs">{exp.employmentType}</span>}
+                  <h3 className="text-base font-semibold text-ink">{experience.jobTitle}</h3>
+                  <span className="text-sm font-medium text-ink-muted">{t('profile.experiences.at', { employer: experience.employer })}</span>
+                  {experience.employmentType && <span className="badge badge-select">{experience.employmentType}</span>}
                 </div>
-
                 <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-ink-muted">
                   <span>
-                    {exp.startDate} – {exp.isCurrent ? t('profile.experiences.isCurrent') : exp.endDate || '–'}
+                    {dates.stored(experience.startDate)} – {experience.isCurrent ? t('profile.experiences.isCurrent') : dates.stored(experience.endDate) || '–'}
                   </span>
-                  {(exp.city || exp.country) && <span>{[exp.city, exp.country].filter(Boolean).join(', ')}</span>}
+                  {(experience.city || experience.country) && <span>{[experience.city, experience.country].filter(Boolean).join(', ')}</span>}
                 </div>
-
-                {exp.description && <p className="mt-3 whitespace-pre-line text-sm text-ink">{exp.description}</p>}
+                {experience.description && <p className="mt-3 text-sm whitespace-pre-line text-ink">{experience.description}</p>}
               </div>
 
-              <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-start">
-                <Button
-                  variant="ghost"
-                  small
-                  icon="chevronLeft"
-                  className="-rotate-90"
-                  disabled={idx === 0 || reorderMutation.isPending}
-                  onClick={() => handleMove(idx, 'up')}
-                  aria-label={t('profile.experiences.moveUp')}
-                >
-                  <span className="sr-only">{t('profile.experiences.moveUp')}</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  small
-                  icon="chevronLeft"
-                  className="rotate-90"
-                  disabled={idx === profile.experiences.length - 1 || reorderMutation.isPending}
-                  onClick={() => handleMove(idx, 'down')}
-                  aria-label={t('profile.experiences.moveDown')}
-                >
-                  <span className="sr-only">{t('profile.experiences.moveDown')}</span>
-                </Button>
-                <Button variant="secondary" small icon="pencil" onClick={() => handleOpenEdit(exp)}>
-                  {t('profile.experiences.edit')}
-                </Button>
-                <Button variant="danger-outline" small icon="trash" onClick={() => void handleDelete(exp)}>
-                  {t('profile.experiences.delete')}
-                </Button>
-              </div>
-            </article>
+              <ItemActions
+                itemName={experience.jobTitle}
+                editLabel={t('profile.experiences.edit')}
+                deleteLabel={t('profile.experiences.delete')}
+                onEdit={() => edit(experience)}
+                onDelete={() => void askDelete(experience)}
+                onMoveUp={() => move(index, -1)}
+                onMoveDown={() => move(index, 1)}
+                disableMoveUp={index === 0}
+                disableMoveDown={index === profile.experiences.length - 1}
+                busy={reorder.isPending}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={editingItem?.id ? t('profile.experiences.edit') : t('profile.experiences.add')}
+      <FormDialog
+        open={entry.open}
+        onClose={entry.close}
+        onSubmit={submit}
+        title={form?.id ? t('profile.experiences.edit') : t('profile.experiences.add')}
         icon="briefcase"
-        size="md"
+        busy={save.isPending}
+        dirty={entry.dirty}
       >
-        {editingItem && (
-          <form id="exp-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
-                label={t('profile.experiences.jobTitle')}
-                value={editingItem.jobTitle}
-                onChange={(e) => setEditingItem({ ...editingItem, jobTitle: e.target.value })}
-                required
-              />
-              <TextField
-                label={t('profile.experiences.employer')}
-                value={editingItem.employer}
-                onChange={(e) => setEditingItem({ ...editingItem, employer: e.target.value })}
-                required
-              />
+        {form && (
+          <>
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <LiveTextField label={t('profile.experiences.jobTitle')} required value={form.jobTitle} onValueChange={(value) => entry.patch({ jobTitle: value })} check={requiredField} attempted={entry.attempted} data-autofocus />
+              <LiveTextField label={t('profile.experiences.employer')} required value={form.employer} onValueChange={(value) => entry.patch({ employer: value })} check={requiredField} attempted={entry.attempted} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+              <LiveTextField
                 label={t('profile.experiences.employmentType')}
-                value={editingItem.employmentType}
-                onChange={(e) => setEditingItem({ ...editingItem, employmentType: e.target.value })}
+                value={form.employmentType}
+                onValueChange={(value) => entry.patch({ employmentType: value })}
+                check={noRule}
                 placeholder={t('profile.experiences.employmentTypePlaceholder')}
               />
-              <TextField
-                label={t('profile.experiences.city')}
-                value={editingItem.city}
-                onChange={(e) => setEditingItem({ ...editingItem, city: e.target.value })}
-              />
-              <TextField
-                label={t('profile.experiences.country')}
-                value={editingItem.country}
-                onChange={(e) => setEditingItem({ ...editingItem, country: e.target.value })}
-              />
+              <LiveTextField label={t('profile.experiences.city')} value={form.city} onValueChange={(value) => entry.patch({ city: value })} check={noRule} />
+              <LiveTextField label={t('profile.experiences.country')} value={form.country} onValueChange={(value) => entry.patch({ country: value })} check={noRule} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <DateField
                 label={t('profile.experiences.startDate')}
-                value={editingItem.startDate}
-                onChange={(e) => setEditingItem({ ...editingItem, startDate: e.target.value })}
-                placeholder="YYYY-MM"
-                required
+                spec={MONTH_REQUIRED}
+                value={form.startDate}
+                onValueChange={(value) => entry.patch({ startDate: value })}
+                attempted={entry.attempted}
               />
-              {!editingItem.isCurrent && (
-                <TextField
-                  label={t('profile.experiences.endDate')}
-                  value={editingItem.endDate}
-                  onChange={(e) => setEditingItem({ ...editingItem, endDate: e.target.value })}
-                  placeholder="YYYY-MM"
-                />
-              )}
+              {/* Stays in place when "current position" is on (only disabled): the form must not change shape. */}
+              <DateField
+                label={t('profile.experiences.endDate')}
+                spec={MONTH_OPTIONAL}
+                value={form.isCurrent ? '' : form.endDate}
+                onValueChange={(value) => entry.patch({ endDate: value })}
+                attempted={entry.attempted}
+                disabled={form.isCurrent}
+              />
             </div>
 
-            <div className="pt-1">
-              <Toggle
-                label={t('profile.experiences.isCurrent')}
-                checked={editingItem.isCurrent}
-                onChange={(checked) => setEditingItem({ ...editingItem, isCurrent: checked })}
-              />
-            </div>
+            <Toggle label={t('profile.experiences.isCurrent')} checked={form.isCurrent} onChange={(checked) => entry.patch({ isCurrent: checked })} />
 
             <div>
-              <label htmlFor="exp-desc" className="block text-sm font-medium text-ink">
-                {t('profile.experiences.description')}
-              </label>
-              <textarea
-                id="exp-desc"
-                rows={4}
-                value={editingItem.description}
-                onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                className="input mt-1.5 w-full resize-y"
-              />
+              <LiveTextAreaField label={t('profile.experiences.description')} rows={4} value={form.description} onValueChange={(value) => entry.patch({ description: value })} check={noRule} />
+              <div className="mt-2">
+                <Button small icon="sparkles" disabled={form.description.trim() === ''} onClick={() => setAiOpen(true)} data-testid="description-ai">
+                  {t('ai.entry.improveBullets')}
+                </Button>
+              </div>
             </div>
-
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+          </>
         )}
-      </Dialog>
+      </FormDialog>
+
+      {form && aiOpen && (
+        <AiAssistantModal
+          open
+          onClose={() => setAiOpen(false)}
+          task="improve_bullet"
+          initialJobTitle={form.jobTitle}
+          initialText={form.description}
+          onApplyBullet={(result, source) => entry.patch({ description: replaceBullet(form.description, source, result.improved) })}
+        />
+      )}
     </div>
   )
 }

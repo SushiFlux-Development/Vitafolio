@@ -1,184 +1,134 @@
 name: Release
 
-# Four-tier push model (Dev, Nightly, Beta, Release):
-#   Release (v2026.11.12)                -> Publishes public GitHub Release. Docker tags: <version>, :latest, :beta, :nightly
-#   Beta (v2026.11.12.13.557-beta)       -> Publishes public GitHub Pre-Release. Docker tags: <version>, :beta, :nightly
-#   Nightly (v2026.11.12.13.557-nightly) -> Publishes public GitHub Pre-Release. Docker tags: <version>, :nightly
-#   Dev-Build (v2026.11.12.13.557-dev)   -> Private DRAFT GitHub Release (own testing only). Docker tags: <version>, :dev
+# Three channels are built and published; a development build is never tagged, built or published (it only runs locally).
 #
-# Docker tag hierarchy (Unraid CA branch channels, user rule 2026-11-07):
-#   - Nightly-Build:                 version tag + :nightly
-#   - Beta-Release:                  version tag + :beta + :nightly
-#   - Release (Öffentlich / Stable): version tag + :latest + :beta + :nightly
-#   - Dev-Build:                     version tag + :dev (rein privat / Draft)
+#   Release  v2026.11.12                    public release     Docker: <version>, latest, beta, nightly
+#   Beta     v2026.11.12.13.557-beta        public pre-release Docker: <version>, beta
+#   Nightly  v2026.11.12.13.557-nightly     public pre-release Docker: <version>, nightly
 #
-# Platform scope: specified in annotated tag message: "platform: unraid", "platform: windows-desktop", "platform: all"
+# The tag must belong to the commit it sits on (scripts/release-meta.sh compares it with version.txt of that commit) and CHANGELOG.md must
+# have the entry of this version in English and German (scripts/release-notes.sh); otherwise the run stops before anything is built or pushed.
+# The title of the GitHub release is the readable version (five segments, the channel symbol in parentheses, scripts/version-display.sh);
+# its text is only that entry of CHANGELOG.md.
+#
+# Docker image: ghcr.io/<owner>/<name> from "repository" in branding.json (lower case). Whoever pushes needs write access to that GHCR package. A package
+# that was created by another repository (the repository before the history was restarted) keeps its link to that one: in the browser, in the
+# settings of the package, give this repository write access before the first Beta/Nightly/Release run, otherwise the push is refused.
+# Only the owner of the package can do this in the browser.
+#
+# Which targets are built is one line in the message of the annotated tag: "platform: unraid", "platform: windows-desktop" or "platform: all"
+# (no line = all). The platform is never part of the tag name or of the release title.
+#
+# Order: facts and notes and the tests (ci.yml, called as a job; nothing below runs unless they passed) -> licence check -> Windows installer -> Docker image (the moving tags latest/beta/nightly only move when everything before
+# was green) -> one release is created as a draft with all files, checked, and only then made public.
 on:
   push:
     tags:
       - "v*"
 
-env:
-  IMAGE_NAME: ghcr.io/sushifluxdevelop/vitafolio
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   inspect:
-    name: Inspect Tag and Determine Targets
+    name: Check the tag and read the facts
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.version.outputs.tag }}
-      is_beta: ${{ steps.version.outputs.is_beta }}
-      is_nightly: ${{ steps.version.outputs.is_nightly }}
-      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
-      is_dev: ${{ steps.version.outputs.is_dev }}
-      builds_unraid: ${{ steps.version.outputs.builds_unraid }}
-      builds_windows: ${{ steps.version.outputs.builds_windows }}
-      docker_tag: ${{ steps.version.outputs.docker_tag }}
-      template_tag: ${{ steps.version.outputs.template_tag }}
-      release_name: ${{ steps.version.outputs.release_name }}
+      tag: ${{ steps.meta.outputs.tag }}
+      channel: ${{ steps.meta.outputs.channel }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      version_short: ${{ steps.meta.outputs.version_short }}
+      build_id: ${{ steps.meta.outputs.build_id }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      display: ${{ steps.meta.outputs.display }}
+      template_tag: ${{ steps.meta.outputs.template_tag }}
+      repository: ${{ steps.meta.outputs.repository }}
+      docker_tags: ${{ steps.meta.outputs.docker_tags }}
+      product: ${{ steps.meta.outputs.product }}
+      company: ${{ steps.meta.outputs.company }}
+      builds_unraid: ${{ steps.platform.outputs.builds_unraid }}
+      builds_windows: ${{ steps.platform.outputs.builds_windows }}
+      platform_label: ${{ steps.platform.outputs.label }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Parse tag and platform scope
-        id: version
+      # actions/checkout can flatten an annotated tag into a plain reference to its commit; the platform line lives in the tag's message
+      - name: Fetch the annotated tag
+        run: git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+
+      - name: Read the facts of the tag
+        id: meta
         run: |
-          tag="${GITHUB_REF_NAME}"
-          is_beta=false
-          is_nightly=false
-          is_prerelease=false
-          is_dev=false
-          if [[ "$tag" == *-beta ]]; then
-            is_beta=true
-            is_prerelease=true
-          elif [[ "$tag" == *-nightly ]]; then
-            is_nightly=true
-            is_prerelease=true
-          elif [[ "$tag" == *-dev ]]; then
-            is_dev=true
-          elif [[ "$tag" == *-rc* ]]; then
-            echo "::error::Release candidates were replaced by betas (tag v<year>.<month>.<commit>.<prompts>.<lines>-beta); $tag cannot be built any more"
-            exit 1
-          fi
+          sh scripts/release-meta.sh "$GITHUB_REF_NAME" . > "$RUNNER_TEMP/meta.txt"
+          cat "$RUNNER_TEMP/meta.txt"
+          cat "$RUNNER_TEMP/meta.txt" >> "$GITHUB_OUTPUT"
 
-          git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}" || true
-          platform="$(git tag -l --format='%(contents)' "$tag" | sed -n 's/^platform:[[:space:]]*//p' | head -n1 | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-
-          builds_unraid=false
-          builds_windows=false
-          case ",${platform}," in
-            ",,"|*,all,*)
-              builds_unraid=true
-              builds_windows=true
-              ;;
-            *)
-              if [[ ",${platform}," == *,unraid,* ]]; then builds_unraid=true; fi
-              if [[ ",${platform}," == *,windows-desktop,* || ",${platform}," == *,windows,* || ",${platform}," == *,windows-all,* ]]; then builds_windows=true; fi
-              ;;
-          esac
-
-          echo "Build-Scope: platform='${platform:-all}' builds_unraid=$builds_unraid builds_windows=$builds_windows"
-
-          target_label=""
-          if [[ -z "$platform" || ",${platform}," == *,all,* ]]; then
-            target_label="All"
-          else
-            IFS=',' read -ra ids <<< "$platform"
-            for id in "${ids[@]}"; do
-              case "$id" in
-                unraid) name="Unraid" ;;
-                windows-desktop|windows) name="Windows Desktop" ;;
-                *) name="$id" ;;
-              esac
-              target_label="${target_label:+$target_label, }$name"
-            done
-          fi
-
-          docker_tag="${tag#v}"
-          template_tag="$docker_tag"
-          if [[ "$is_beta" == "true" ]]; then template_tag="beta"; fi
-          if [[ "$is_nightly" == "true" ]]; then template_tag="nightly"; fi
-          if [[ "$is_dev" == "true" ]]; then template_tag="dev"; fi
-          if [[ "$is_prerelease" == "false" && "$is_dev" == "false" ]]; then template_tag="latest"; fi
-
-          {
-            echo "tag=$tag"
-            echo "is_beta=$is_beta"
-            echo "is_nightly=$is_nightly"
-            echo "is_prerelease=$is_prerelease"
-            echo "is_dev=$is_dev"
-            echo "builds_unraid=$builds_unraid"
-            echo "builds_windows=$builds_windows"
-            echo "docker_tag=$docker_tag"
-            echo "template_tag=$template_tag"
-            echo "release_name=$tag ($target_label)"
-          } >> "$GITHUB_OUTPUT"
-
-  docker:
-    name: Build & Push Docker Image
-    needs: inspect
-    if: needs.inspect.outputs.builds_unraid == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-      - name: Log in to GHCR
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ needs.inspect.outputs.docker_tag }}
-            ${{ needs.inspect.outputs.is_dev == 'true' && format('{0}:dev', env.IMAGE_NAME) || format('{0}:nightly', env.IMAGE_NAME) }}
-            ${{ (needs.inspect.outputs.is_beta == 'true' || (needs.inspect.outputs.is_prerelease == 'false' && needs.inspect.outputs.is_dev == 'false')) && format('{0}:beta', env.IMAGE_NAME) || '' }}
-            ${{ needs.inspect.outputs.is_prerelease == 'false' && needs.inspect.outputs.is_dev == 'false' && format('{0}:latest', env.IMAGE_NAME) || '' }}
-          build-args: |
-            APP_TITLE=Vitafolio
-            APP_VERSION=${{ needs.inspect.outputs.tag }}
-            APP_CHANNEL=${{ needs.inspect.outputs.is_beta == 'true' && 'beta' || (needs.inspect.outputs.is_nightly == 'true' && 'nightly' || (needs.inspect.outputs.is_dev == 'true' && 'dev' || 'release')) }}
-            VCS_REF=${{ github.sha }}
-
-      - name: Render Unraid template
+      - name: Read the platform of the tag
+        id: platform
         run: |
-          sed "s/__VERSION__/${{ needs.inspect.outputs.template_tag }}/g" \
-            unraid/vitafolio.xml.template > unraid/vitafolio.xml
+          sh scripts/release-platform.sh "$GITHUB_REF_NAME" . > "$RUNNER_TEMP/platform.txt"
+          cat "$RUNNER_TEMP/platform.txt"
+          cat "$RUNNER_TEMP/platform.txt" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Unraid template artifact
+      - name: Extract the release notes from CHANGELOG.md
+        run: |
+          sh scripts/release-notes.sh "$GITHUB_REF_NAME" CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          cat "$RUNNER_TEMP/release-notes.md"
+
+      - name: Keep the release notes for the last job
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: unraid-template
-          path: unraid/vitafolio.xml
+          name: release-notes
+          path: ${{ runner.temp }}/release-notes.md
+          if-no-files-found: error
 
-      - name: Attach Unraid template to release
-        uses: softprops/action-gh-release@v3
+  # The same checks as on every push (ci.yml). Everything that builds or publishes depends on this job, directly or through "licenses".
+  tests:
+    name: Tests
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  licenses:
+    name: Check the third-party licences
+    needs: [inspect, tests]
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          tag_name: ${{ needs.inspect.outputs.tag }}
-          name: ${{ needs.inspect.outputs.release_name }}
-          draft: true
-          prerelease: ${{ needs.inspect.outputs.is_prerelease }}
-          files: unraid/vitafolio.xml
+          global-json-file: global.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --no-fund --no-audit --prefix frontend
+          dotnet restore Cv.slnx
+
+      # Fails on an unknown or not allowed licence, on a licence the owner has not approved yet (--strict; scripts/license-policy.json), on a
+      # missing licence text and when THIRD-PARTY-NOTICES.md is out of date (run scripts/build-notices.ps1 to renew it)
+      - name: Check the licences
+        run: node scripts/generate-third-party-notices.ts --check --strict
 
   windows:
-    name: Build Windows Desktop Installer
-    needs: inspect
-    if: needs.inspect.outputs.builds_windows == 'true'
+    name: Build the Windows installer
+    needs: [inspect, licenses]
+    if: ${{ needs.inspect.outputs.builds_windows == 'true' }}
     runs-on: windows-latest
-    permissions:
-      contents: write
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -199,53 +149,147 @@ jobs:
         working-directory: frontend
         run: npm ci --no-fund --no-audit
 
-      - name: Build Windows installer
+      - name: Build the installer
         shell: powershell
+        env:
+          CHANNEL: ${{ needs.inspect.outputs.channel }}
         run: |
-          $flag = if ('${{ needs.inspect.outputs.is_beta }}' -eq 'true') { '-Beta' } elseif ('${{ needs.inspect.outputs.is_nightly }}' -eq 'true') { '-Nightly' } elseif ('${{ needs.inspect.outputs.is_dev }}' -eq 'true') { '-Dev' } else { '' }
-          if ($flag) {
-            .\scripts\build-windows.ps1 $flag
-          } else {
-            .\scripts\build-windows.ps1
-          }
+          if ($env:CHANNEL -eq 'beta') { .\scripts\build-windows.ps1 -Beta }
+          elseif ($env:CHANNEL -eq 'nightly') { .\scripts\build-windows.ps1 -Nightly }
+          else { .\scripts\build-windows.ps1 }
 
-      - name: Upload Windows artifacts
+      # The program finds its update through the feed file of the release (UpdateChannels.PackageFeedName): releases.win.json for a release,
+      # releases.beta.json for a beta, releases.nightly.json for a nightly
+      - name: Check the installer files
+        shell: powershell
+        env:
+          CHANNEL: ${{ needs.inspect.outputs.channel }}
+          PRODUCT: ${{ needs.inspect.outputs.product }}
+        run: |
+          $feed = if ($env:CHANNEL -eq 'release') { 'releases.win.json' } else { "releases.$($env:CHANNEL).json" }
+          $names = @(Get-ChildItem -LiteralPath artifacts\windows | ForEach-Object { $_.Name })
+          Write-Host ($names -join "`n")
+          if ($names -notcontains $feed) { throw "Die Update-Datei $feed fehlt." }
+          if ($names -notcontains "$($env:PRODUCT)-win-Setup.exe") { throw 'Der Installer fehlt.' }
+          if (-not ($names | Where-Object { $_ -like '*-full.nupkg' })) { throw 'Das Update-Paket (full.nupkg) fehlt.' }
+
+      - name: Keep the Windows files for the last job
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: windows-release
           path: artifacts/windows/*
+          if-no-files-found: error
 
-      - name: Attach Windows artifacts to release
-        uses: softprops/action-gh-release@v3
+  docker:
+    name: Build and push the Docker image
+    needs: [inspect, tests, licenses, windows]
+    # Only after the Windows installer (when it is built at all) went through: the moving tags must not move for a half-finished release
+    if: ${{ !cancelled() && needs.inspect.outputs.builds_unraid == 'true' && needs.tests.result == 'success' && needs.licenses.result == 'success' && (needs.windows.result == 'success' || needs.windows.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          tag_name: ${{ needs.inspect.outputs.tag }}
-          name: ${{ needs.inspect.outputs.release_name }}
-          draft: true
-          prerelease: ${{ needs.inspect.outputs.is_prerelease }}
-          files: artifacts/windows/*
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read the build date
+        id: date
+        run: echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      # linux/amd64 only: the Typst engine ships a native library for linux-x64 and win-x64, not for arm64
+      - name: Build and push the image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ needs.inspect.outputs.docker_tags }}
+          build-args: |
+            APP_TITLE=${{ needs.inspect.outputs.product }}
+            APP_COMPANY=${{ needs.inspect.outputs.company }}
+            REPOSITORY=${{ needs.inspect.outputs.repository }}
+            APP_VERSION=${{ needs.inspect.outputs.version_short }}
+            APP_VERSION_DETAIL=${{ needs.inspect.outputs.build_id }}
+            APP_CHANNEL=${{ needs.inspect.outputs.channel }}
+            IMAGE_TAG=${{ needs.inspect.outputs.image_tag }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.date.outputs.build_date }}
+
+      - name: Render the Unraid template
+        env:
+          TEMPLATE_TAG: ${{ needs.inspect.outputs.template_tag }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/unraid"
+          sh scripts/render-unraid-template.sh "$TEMPLATE_TAG" . > "$RUNNER_TEMP/unraid/vitafolio.xml"
+
+      - name: Keep the Unraid template for the last job
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: unraid-template
+          path: ${{ runner.temp }}/unraid/vitafolio.xml
+          if-no-files-found: error
 
   publish:
-    name: Finalize GitHub Release
-    needs: [inspect, docker, windows]
-    if: always() && (needs.docker.result == 'success' || needs.docker.result == 'skipped') && (needs.windows.result == 'success' || needs.windows.result == 'skipped')
+    name: Create the GitHub release
+    needs: [inspect, tests, licenses, windows, docker]
+    if: ${{ !cancelled() && needs.inspect.result == 'success' && needs.tests.result == 'success' && needs.licenses.result == 'success' && (needs.windows.result == 'success' || needs.windows.result == 'skipped') && (needs.docker.result == 'success' || needs.docker.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Publish GitHub Release
+      - name: Download the notes and the built files
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/files
+
+      - name: Create the release as a draft with all files
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          tag_name: ${{ needs.inspect.outputs.tag }}
+          name: ${{ needs.inspect.outputs.display }}
+          body_path: ${{ runner.temp }}/files/release-notes/release-notes.md
+          draft: true
+          prerelease: ${{ needs.inspect.outputs.is_prerelease == 'true' }}
+          fail_on_unmatched_files: false
+          files: |
+            ${{ runner.temp }}/files/windows-release/*
+            ${{ runner.temp }}/files/unraid-template/vitafolio.xml
+
+      # Public only when everything that was meant to be built is attached; a draft is invisible to everybody else, including the update check
+      - name: Check the files and publish
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.inspect.outputs.tag }}
-          IS_PRERELEASE: ${{ needs.inspect.outputs.is_prerelease }}
-          IS_DEV: ${{ needs.inspect.outputs.is_dev }}
+          CHANNEL: ${{ needs.inspect.outputs.channel }}
+          PRODUCT: ${{ needs.inspect.outputs.product }}
+          BUILDS_WINDOWS: ${{ needs.inspect.outputs.builds_windows }}
+          BUILDS_UNRAID: ${{ needs.inspect.outputs.builds_unraid }}
         run: |
-          if [[ "$IS_DEV" == "true" ]]; then
-            echo "Dev build remains draft."
-            exit 0
+          assets="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          echo "$assets"
+          if [ "$BUILDS_WINDOWS" = "true" ]; then
+            feed="releases.${CHANNEL}.json"
+            [ "$CHANNEL" = "release" ] && feed="releases.win.json"
+            echo "$assets" | grep -Fxq "$feed" || { echo "::error::The update file $feed is missing in the release."; exit 1; }
+            echo "$assets" | grep -Fxq "${PRODUCT}-win-Setup.exe" || { echo "::error::The installer is missing in the release."; exit 1; }
           fi
-          if [[ "$IS_PRERELEASE" == "true" ]]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
-          else
+          if [ "$BUILDS_UNRAID" = "true" ]; then
+            echo "$assets" | grep -Fxq "vitafolio.xml" || { echo "::error::The Unraid template is missing in the release."; exit 1; }
+          fi
+          if [ "$CHANNEL" = "release" ]; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
           fi
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name,isDraft,isPrerelease,url --jq '"\(.name): draft=\(.isDraft) prerelease=\(.isPrerelease) \(.url)"'

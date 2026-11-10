@@ -1,17 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { profileApi } from '../../api/endpoints'
 import type { Profile, Skill } from '../../api/types'
 import { Button } from '../../components/ui/Button'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
-import { Dialog } from '../../components/ui/Dialog'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
-import { Icon } from '../../components/ui/Icon'
-import { TextField } from '../../components/ui/TextField'
+import { FormDialog } from '../../components/ui/FormDialog'
+import { ItemActions } from '../../components/ui/ItemActions'
+import { LiveTextField } from '../../components/ui/LiveTextField'
+import { SectionIntro } from '../../components/ui/Page'
+import { SelectField } from '../../components/ui/SelectField'
+import { useEntryForm } from '../../hooks/useEntryForm'
+import { isValid, noRule, requiredField } from '../../validation/rules'
 
-interface SkillFormData {
+interface SkillForm {
   id?: string
   name: string
   category: string
@@ -19,128 +22,90 @@ interface SkillFormData {
   sortOrder: number
 }
 
-const emptyForm: SkillFormData = {
-  name: '',
-  category: '',
-  level: 3,
-  sortOrder: 0,
-}
+const EMPTY: SkillForm = { name: '', category: '', level: 3, sortOrder: 0 }
 
 export function SkillsTab({ profile }: { profile: Profile }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const showError = useErrorDialog()
   const confirm = useConfirm()
+  const entry = useEntryForm<SkillForm>()
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<SkillFormData | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: (data: SkillFormData) => {
-      const payload = {
-        name: data.name,
-        category: data.category || null,
-        level: data.level,
-        sortOrder: data.sortOrder,
-      }
+  const save = useMutation({
+    mutationFn: (data: SkillForm) => {
+      const payload = { name: data.name.trim(), category: data.category.trim() || null, level: data.level, sortOrder: data.sortOrder }
       return data.id ? profileApi.updateSkill(data.id, payload) : profileApi.addSkill(payload)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-      setDialogOpen(false)
-      setEditingItem(null)
+      refresh()
+      entry.close()
     },
-    onError: (err) => showError(err, t('common.saveFailed')),
+    onError: (error) => showError(error, t('common.saveFailed')),
   })
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: (id: string) => profileApi.deleteSkill(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
-    },
-    onError: (err) => showError(err, t('common.deleteFailed')),
+    onSuccess: refresh,
+    onError: (error) => showError(error, t('common.deleteFailed')),
   })
 
-  const handleDelete = async (skill: Skill) => {
-    const ok = await confirm({
-      title: t('profile.skills.delete'),
-      message: t('profile.skills.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger',
-    })
-    if (ok) deleteMutation.mutate(skill.id)
+  const askDelete = async (skill: Skill) => {
+    const ok = await confirm({ title: t('profile.skills.delete'), message: t('profile.skills.deleteConfirm'), confirmLabel: t('common.delete'), tone: 'danger' })
+    if (ok) remove.mutate(skill.id)
   }
 
-  const handleOpenAdd = (category = '') => {
-    setEditingItem({ ...emptyForm, category, sortOrder: profile.skills.length })
-    setDialogOpen(true)
+  const edit = (skill: Skill) => entry.start({ id: skill.id, name: skill.name, category: skill.category ?? '', level: skill.level, sortOrder: skill.sortOrder })
+
+  const form = entry.form
+  const submit = () => {
+    if (!form) return
+    entry.markAttempted()
+    if (isValid(requiredField, form.name)) save.mutate(form)
   }
 
-  const handleOpenEdit = (skill: Skill) => {
-    setEditingItem({
-      id: skill.id,
-      name: skill.name,
-      category: skill.category ?? '',
-      level: skill.level,
-      sortOrder: skill.sortOrder,
-    })
-    setDialogOpen(true)
-  }
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (editingItem) saveMutation.mutate(editingItem)
-  }
-
-  // Group skills by category
-  const categories = Array.from(new Set(profile.skills.map((s) => s.category?.trim() || 'Allgemein')))
+  // Skills are grouped by category; those without one are shown under a heading of their own.
+  const general = t('profile.skills.general')
+  const categoryOf = (skill: Skill) => skill.category?.trim() || general
+  const categories = Array.from(new Set(profile.skills.map(categoryOf)))
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink">{t('profile.skills.title')}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t('profile.skills.subtitle')}</p>
-        </div>
-        <Button variant="create" icon="plus" onClick={() => handleOpenAdd()}>
-          {t('profile.skills.add')}
-        </Button>
-      </div>
+      <SectionIntro
+        title={t('profile.skills.title')}
+        subtitle={t('profile.skills.subtitle')}
+        action={
+          <Button variant="create" icon="plus" onClick={() => entry.start({ ...EMPTY, sortOrder: profile.skills.length })}>
+            {t('profile.skills.add')}
+          </Button>
+        }
+      />
 
       {profile.skills.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center text-ink-muted">
-          <Icon name="sparkles" size={36} className="mb-3 text-ink-muted/50" />
-          <p>{t('profile.skills.empty')}</p>
-        </div>
+        <EmptyState icon="sparkles" title={t('profile.skills.empty')} />
       ) : (
         <div className="space-y-6">
-          {categories.map((cat) => {
-            const skillsInCat = profile.skills.filter((s) => (s.category?.trim() || 'Allgemein') === cat)
-            return (
-              <section key={cat} className="card p-5" aria-label={cat}>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">{cat}</h3>
-                  <Button variant="ghost" small icon="plus" onClick={() => handleOpenAdd(cat === 'Allgemein' ? '' : cat)}>
-                    {t('profile.skills.add')}
-                  </Button>
-                </div>
+          {categories.map((category) => (
+            <section key={category} className="card p-5" aria-label={category}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-ink">{category}</h3>
+                <Button variant="ghost" small icon="plus" onClick={() => entry.start({ ...EMPTY, category: category === general ? '' : category, sortOrder: profile.skills.length })}>
+                  {t('profile.skills.add')}
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {skillsInCat.map((skill) => (
-                    <div
-                      key={skill.id}
-                      className="flex items-center justify-between rounded-sm border border-line bg-surface-2 p-3 transition-colors hover:border-indicator/50"
-                    >
-                      <div className="min-w-0 flex-1 pr-2">
+              <ul className="card-grid gap-3 [--card-min:16rem]">
+                {profile.skills
+                  .filter((skill) => categoryOf(skill) === category)
+                  .map((skill) => (
+                    <li key={skill.id} className="flex items-center justify-between gap-2 rounded-sm border border-line bg-surface-2 p-3">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-ink">{skill.name}</p>
                         <div className="mt-1 flex items-center gap-1.5">
                           {skill.level > 0 ? (
-                            <div className="flex gap-1" title={`${skill.level}/5`}>
-                              {[1, 2, 3, 4, 5].map((lvl) => (
-                                <span
-                                  key={lvl}
-                                  className={`h-1.5 w-4 rounded-xs ${lvl <= skill.level ? 'bg-indicator' : 'bg-line'}`}
-                                />
+                            <div className="flex gap-1" role="img" aria-label={t('profile.skills.levelOf', { level: skill.level })} title={`${skill.level}/5`}>
+                              {[1, 2, 3, 4, 5].map((step) => (
+                                <span key={step} className={`h-1.5 w-4 rounded-xs ${step <= skill.level ? 'bg-indicator' : 'bg-line'}`} />
                               ))}
                             </div>
                           ) : (
@@ -148,78 +113,53 @@ export function SkillsTab({ profile }: { profile: Profile }) {
                           )}
                         </div>
                       </div>
-
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button variant="ghost" small icon="pencil" onClick={() => handleOpenEdit(skill)}>
-                          <span className="sr-only">{t('profile.skills.edit')}</span>
-                        </Button>
-                        <Button variant="danger-outline" small icon="trash" onClick={() => void handleDelete(skill)}>
-                          <span className="sr-only">{t('profile.skills.delete')}</span>
-                        </Button>
-                      </div>
-                    </div>
+                      <ItemActions
+                        itemName={skill.name}
+                        editLabel={t('profile.skills.edit')}
+                        deleteLabel={t('profile.skills.delete')}
+                        onEdit={() => edit(skill)}
+                        onDelete={() => void askDelete(skill)}
+                      />
+                    </li>
                   ))}
-                </div>
-              </section>
-            )
-          })}
+              </ul>
+            </section>
+          ))}
         </div>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={editingItem?.id ? t('profile.skills.edit') : t('profile.skills.add')}
+      <FormDialog
+        open={entry.open}
+        onClose={entry.close}
+        onSubmit={submit}
+        title={form?.id ? t('profile.skills.edit') : t('profile.skills.add')}
         icon="sparkles"
         size="sm"
+        busy={save.isPending}
+        dirty={entry.dirty}
       >
-        {editingItem && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <TextField
-              label={t('profile.skills.name')}
-              value={editingItem.name}
-              onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+        {form && (
+          <>
+            <LiveTextField
+              label={t('profile.skills.name')} required
+              value={form.name}
+              onValueChange={(value) => entry.patch({ name: value })}
+              check={requiredField}
+              attempted={entry.attempted}
               placeholder={t('profile.skills.namePlaceholder')}
-              required
+              data-autofocus
             />
-
-            <TextField
-              label={t('profile.skills.category')}
-              value={editingItem.category}
-              onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-              placeholder={t('profile.skills.categoryPlaceholder')}
-            />
-
-            <div>
-              <label htmlFor="skill-level-select" className="block text-sm font-medium text-ink">
-                {t('profile.skills.level')}
-              </label>
-              <select
-                id="skill-level-select"
-                value={editingItem.level}
-                onChange={(e) => setEditingItem({ ...editingItem, level: Number(e.target.value) })}
-                className="input mt-1.5 w-full"
-              >
-                {[0, 1, 2, 3, 4, 5].map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {t(`profile.skills.levelLabels.${lvl}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={() => setDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="confirm" busy={saveMutation.isPending}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </form>
+            <LiveTextField label={t('profile.skills.category')} value={form.category} onValueChange={(value) => entry.patch({ category: value })} check={noRule} placeholder={t('profile.skills.categoryPlaceholder')} />
+            <SelectField label={t('profile.skills.level')} value={String(form.level)} onChange={(event) => entry.patch({ level: Number(event.target.value) })}>
+              {[0, 1, 2, 3, 4, 5].map((level) => (
+                <option key={level} value={level}>
+                  {t(`profile.skills.levelLabels.${level}`)}
+                </option>
+              ))}
+            </SelectField>
+          </>
         )}
-      </Dialog>
+      </FormDialog>
     </div>
   )
 }

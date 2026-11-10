@@ -20,13 +20,19 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="typstsharp" />
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Cv.Server.Tests" />
+    <!-- The public repository from branding.json, read at run time by Branding.Repository -->
+    <AssemblyMetadata Include="Repository" Value="$(CvRepository)" Condition="'$(CvRepository)' != ''" />
+    <AssemblyMetadata Include="PreviousCompanies" Value="$(CvPreviousCompanies)" Condition="'$(CvPreviousCompanies.Trim())' != ''" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\Templates\*.typ" />
+    <!-- The fonts documents are rendered with (SIL OFL, licence texts included). Shipped next to the program, see DocumentFonts.Directory -->
+    <Content Include="Documents\Fonts\**\*.ttf;Documents\Fonts\**\OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

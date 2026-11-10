@@ -48,6 +48,12 @@ public sealed class User
     /// <summary>"system" | "light" | "dark".</summary>
     public string Theme { get; set; } = "system";
 
+    /// <summary>How dates are shown in the app: "auto" (follows the UI language) | "dmy" | "ymd_slash" | "iso". Stored dates are always ISO.</summary>
+    public string DateFormat { get; set; } = "auto";
+
+    /// <summary>The version whose "What's new" this person has seen (tag form); null = none yet. Set on first contact, so nothing is shown after a first installation.</summary>
+    public string? WhatsNewSeenVersion { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
@@ -210,6 +216,15 @@ public sealed class UserProfile
     public string? Bio { get; set; }
 
     public string? PhotoPath { get; set; }
+
+    /// <summary>The last choices on "Preview and export" (design, language, accent colour, font, photo) as a JSON object; null until something was saved.</summary>
+    public string? PreviewOptionsJson { get; set; }
+
+    /// <summary>The answers of the click-through guide (situation, years of experience, plan, what to explain, region) as a JSON object; null until something was saved.</summary>
+    public string? GuideAnswersJson { get; set; }
+
+    /// <summary>What "Preview and export" shows: whether the suggestion is followed and the own decisions per entry (a JSON object); null until something was saved.</summary>
+    public string? CvContentSettingsJson { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -480,6 +495,9 @@ public sealed class CoverLetter
     public string? Font { get; set; }
     public string? AccentColor { get; set; }
 
+    /// <summary>Fold and punch marks on the left edge of the printed letter (also when the letter is part of a dossier). On unless switched off.</summary>
+    public bool IncludeFoldMarks { get; set; } = true;
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -497,6 +515,30 @@ public static class ApplicationStatuses
     public static readonly string[] All = [Draft, Applied, Acknowledged, Interview, Offer, Rejected, Withdrawn];
 
     public static bool IsValid(string? status) => !string.IsNullOrEmpty(status) && All.Contains(status.Trim().ToLowerInvariant());
+}
+
+/// <summary>The rule behind "this application needs a follow-up now"; list, detail and statistics all use it, so they can never disagree.</summary>
+public static class FollowUp
+{
+    /// <summary>Without a follow-up date of its own, a sent application is due this many days after it was sent.</summary>
+    public const int DefaultDays = 14;
+
+    public static bool IsDue(string status, DateTime? appliedAt, DateTime? followUpAt, DateTime utcNow) =>
+        status == ApplicationStatuses.Applied
+        && (followUpAt.HasValue
+            ? followUpAt.Value <= utcNow
+            : appliedAt.HasValue && appliedAt.Value.AddDays(DefaultDays) <= utcNow);
+}
+
+public static class RequestDates
+{
+    /// <summary>
+    /// Turns a date from a request into the UTC value that is stored. The database converter does the same on write; doing it when the value
+    /// is assigned keeps the answer of the same request identical to what a later read returns (a date without a zone would otherwise come
+    /// back without the "Z").
+    /// </summary>
+    public static DateTime? AsUtc(DateTime? value) =>
+        value is null ? null : value.Value.Kind == DateTimeKind.Utc ? value : value.Value.ToUniversalTime();
 }
 
 /// <summary>Uploaded certificate, reference letter, credential, or work sample.</summary>
@@ -584,6 +626,12 @@ public sealed class JobApplication
     /// <summary>Comma-separated list of selected Attachment GUIDs included in the dossier.</summary>
     public string? AttachmentIds { get; set; }
 
+    /// <summary>
+    /// What this application takes from the master profile, as JSON (see <c>CvSelectionDto</c>): entries shown short or left out, sections left out.
+    /// Null means the whole profile; an entry that is not named is shown in full.
+    /// </summary>
+    public string? CvSelectionJson { get; set; }
+
     /// <summary>Path to the archived exact sent PDF dossier relative to the data directory.</summary>
     public string? ArchivedPdfPath { get; set; }
 
@@ -623,10 +671,14 @@ public static class AiProviders
     public const string Anthropic = "anthropic";
     public const string Gemini = "gemini";
     public const string Ollama = "ollama";
+    public const string LmStudio = "lmstudio";
     public const string Custom = "custom";
 
     public static bool IsValid(string? provider) =>
-        provider is CopyPaste or OpenAi or Anthropic or Gemini or Ollama or Custom;
+        provider is CopyPaste or OpenAi or Anthropic or Gemini or Ollama or LmStudio or Custom;
+
+    /// <summary>A program on the user's own computer or network: it needs no API key.</summary>
+    public static bool IsLocal(string? provider) => provider is Ollama or LmStudio;
 }
 
 /// <summary>Per-user AI provider configuration and encrypted API credentials.</summary>

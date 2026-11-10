@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../i18n'
 import { aiApi } from '../../api/endpoints'
 import type { AiConfig } from '../../api/types'
+import { ConfirmProvider } from '../ui/ConfirmDialog'
 import { AiAssistantModal } from './AiAssistantModal'
 import { AiSettingsModal } from './AiSettingsModal'
 
@@ -40,6 +41,8 @@ vi.mock('../../api/endpoints', () => ({
     parseResponse: vi.fn(),
     generate: vi.fn(),
   },
+  // The error notice reads the app version for its copyable text.
+  publicApi: { version: vi.fn().mockResolvedValue({ version: 'v2026.11.7 (1.2-dev)', short: 'v2026.11.7', channel: 'dev' }) },
 }))
 
 function createWrapper() {
@@ -49,7 +52,9 @@ function createWrapper() {
     },
   })
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <ConfirmProvider>{children}</ConfirmProvider>
+    </QueryClientProvider>
   )
 }
 

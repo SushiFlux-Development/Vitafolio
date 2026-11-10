@@ -30,7 +30,7 @@ const bootstrap: Bootstrap = {
 function renderForm(onSubmit: (account: NewAccount) => Promise<unknown>, askSetupToken: boolean) {
   return render(
     <AppStateProvider value={{ bootstrap, session: { user: null, twoFactorSetupRequired: false } }}>
-      <AccountForm submitLabel="Konto anlegen" onSubmit={onSubmit} answerCodes={['rate_limited']} askSetupToken={askSetupToken} />
+      <AccountForm submitLabel="Konto anlegen" onSubmit={onSubmit} answerCodes={[]} askSetupToken={askSetupToken} />
     </AppStateProvider>,
   )
 }

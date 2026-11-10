@@ -86,8 +86,21 @@ try {
         RateLimits__Register   = '1000'
         RateLimits__Password   = '1000'
         RateLimits__StepUp     = '1000'
+        RateLimits__Ai         = '1000'
+        RateLimits__Render     = '1000'
         Backups__Automatic     = 'false'
         DOTNET_NOLOGO          = '1'
+    }
+    # A tiny test manual (one blank page per language) so the in-app manual viewer can be tested; the real manual PDFs are built separately.
+    # The manual screenshots run keeps the server's own manual folder.
+    if (-not $HandbookCapture) {
+        $testPdf = "%PDF-1.4`n1 0 obj`n<</Type/Catalog/Pages 2 0 R>>`nendobj`n2 0 obj`n<</Type/Pages/Kids[3 0 R]/Count 1>>`nendobj`n3 0 obj`n<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>`nendobj`ntrailer`n<</Root 1 0 R/Size 4>>`n%%EOF`n"
+        foreach ($language in @('de', 'en')) {
+            $folder = Join-Path $tempRoot "handbook\$language"
+            New-Item -ItemType Directory -Force -Path $folder | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $folder 'Test.pdf'), $testPdf, [System.Text.Encoding]::ASCII)
+        }
+        $environment['HANDBOOK_DIR'] = Join-Path $tempRoot 'handbook'
     }
     $null = Start-BackgroundService $serviceName 'dotnet.exe' $dll $RootDir $environment
     if (-not (Wait-ForUrl "http://127.0.0.1:$serverPort/api/health" 90 $serviceName)) {

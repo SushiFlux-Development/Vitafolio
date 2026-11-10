@@ -1,0 +1,52 @@
+{
+  "_comment": "Licence texts of packages that do not ship one inside their package. Each text is a verbatim copy of the file in the upstream repository named in 'source' (a commit or the default branch, as noted). 'match' is a case-insensitive regular expression on the package id.",
+  "nuget": [
+    {
+      "match": "^pdfpig$",
+      "files": ["pdfpig.txt"],
+      "source": "https://github.com/UglyToad/PdfPig/blob/a7bb35662bbbf405efddad50aedc9bcdcf515afc/LICENSE (the commit the NuGet package 0.1.16 was built from)"
+    },
+    {
+      "match": "^typstsharp$",
+      "files": ["typstsharp.txt"],
+      "source": "https://github.com/evolvedlight/typstsharp/blob/9a1ef8343689202a758aa3f2b7802d136996feaf/LICENSE (the commit the NuGet package 0.15.1.3 was built from)"
+    },
+    {
+      "match": "^sqlitepclraw\\.",
+      "files": ["sqlitepclraw.txt", "sqlitepclraw-notice.txt"],
+      "source": "https://github.com/ericsink/SQLitePCL.raw/blob/master/LICENSE.TXT and NOTICE.TXT (default branch; the repository has no tag for 2.1.13)"
+    },
+    {
+      "match": "^documentformat\\.openxml",
+      "files": ["open-xml-sdk.txt"],
+      "source": "https://github.com/dotnet/Open-XML-SDK/blob/3139fdfd27414548a41555f7848d5728f6e71a42/LICENSE (commit of package 3.5.1)"
+    },
+    {
+      "match": "^(microsoft\\.aspnetcore\\.openapi|microsoft\\.bcl\\.cryptography|microsoft\\.data\\.sqlite\\.core|microsoft\\.entityframeworkcore.*|microsoft\\.extensions\\.dependencymodel|system\\.io\\.packaging)$",
+      "files": ["dotnet.txt"],
+      "source": "https://github.com/dotnet/dotnet/blob/0427b9abbead3fa64c6655eb4290c537397131fa/LICENSE.TXT (commit of the 10.0.14 packages)"
+    },
+    {
+      "match": "^microsoft\\.identitymodel\\.",
+      "files": ["identitymodel.txt"],
+      "source": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/blob/8b16f418b3d587416d293e9ba34c5d310781cdb3/LICENSE.txt (commit of package 8.23.0)"
+    },
+    {
+      "match": "^microsoft\\.openapi$",
+      "files": ["openapi-net.txt"],
+      "source": "https://github.com/microsoft/OpenAPI.NET/blob/a24aac560adbf013ff5aa63a873e5a7babce38d2/LICENSE (commit of package 2.12.2)"
+    },
+    {
+      "match": "^velopack$",
+      "files": ["velopack.txt"],
+      "source": "https://github.com/velopack/velopack/blob/92d6a1c91716729d449034df5c50307dcce39493/LICENSE (commit of package 1.2.161)"
+    }
+  ],
+  "npm": [
+    {
+      "match": "^qrcode-generator$",
+      "files": ["qrcode-generator.txt"],
+      "source": "https://github.com/kazuhikoarase/qrcode-generator/blob/master/LICENSE (default branch; the npm package ships no licence file)"
+    }
+  ]
+}

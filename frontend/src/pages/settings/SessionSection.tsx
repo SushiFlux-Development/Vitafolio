@@ -7,13 +7,15 @@ import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { useErrorDialog } from '../../components/ui/ErrorDialog'
 import { ErrorNotice } from '../../components/ui/Notice'
 import { Loading } from '../../components/ui/Page'
-import { describeUserAgent, formatDateTime } from '../../format'
+import { describeUserAgent } from '../../format'
+import { useDateFormat } from '../../hooks/useDateFormat'
 
 const KEY = ['account', 'sessions'] as const
 
 /** The signed-in sessions of the account: where, since when, last use; every other one can be ended. */
 export function SessionSection() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const dates = useDateFormat()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const showError = useErrorDialog()
@@ -40,7 +42,7 @@ export function SessionSection() {
 
   const sorted = [...sessions.data].sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt))
   return (
-    <div className="overflow-x-auto rounded-md border border-line">
+    <div className="relative overflow-x-auto rounded-md border border-line">
       <table className="table" data-testid="sessions-table">
         <thead>
           <tr>
@@ -61,8 +63,8 @@ export function SessionSection() {
                 {session.current && <span className="badge badge-select ml-1">{t('settings.sessions.current')}</span>}
               </td>
               <td className="tabular-nums">{session.ip ?? '-'}</td>
-              <td className="whitespace-nowrap tabular-nums">{formatDateTime(session.createdAt, i18n.language)}</td>
-              <td className="whitespace-nowrap tabular-nums">{formatDateTime(session.lastUsedAt, i18n.language)}</td>
+              <td className="whitespace-nowrap tabular-nums">{dates.dateTime(session.createdAt)}</td>
+              <td className="whitespace-nowrap tabular-nums">{dates.dateTime(session.lastUsedAt)}</td>
               <td className="text-right">
                 {!session.current && (
                   <Button small variant="danger-outline" onClick={() => void end(session)}>

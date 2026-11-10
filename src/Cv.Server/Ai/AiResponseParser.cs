@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using System.Text.Json;
@@ -66,16 +66,16 @@ public static class AiResponseParser
                 AiTasks.GenerateCoverLetter => ParseCoverLetter(json, pMap, pseudonymized),
                 AiTasks.AnalyzeJobPosting => ParseJobAnalysis(json, pMap, pseudonymized),
                 AiTasks.GenerateSummary => ParseSummary(json, pMap, pseudonymized),
-                AiTasks.ImproveBulletPoint => ParseImproveBullet(json),
-                AiTasks.TranslateContent => ParseTranslate(json),
+                AiTasks.ImproveBulletPoint => ParseImproveBullet(json, pMap, pseudonymized),
+                AiTasks.TranslateContent => ParseTranslate(json, pMap, pseudonymized),
                 _ => throw ApiException.BadRequest("ai.unsupported_task", $"Unbekannte KI-Aufgabe '{task}'.")
             };
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
             throw ApiException.BadRequest(
                 "ai.parse_failed",
-                $"Die JSON-Struktur der Antwort konnte nicht gelesen werden: {ex.Message}. Bitte fordern Sie die KI auf: 'Antworte ausschließlich im validen JSON-Format'."
+                "The structure of the AI answer could not be read. Ask the AI to answer with valid JSON only."
             );
         }
     }
@@ -142,15 +142,30 @@ public static class AiResponseParser
         );
     }
 
-    private static AiImproveBulletResult ParseImproveBullet(string json)
+    private static AiImproveBulletResult ParseImproveBullet(string json, AiPseudonymizer.ReplacementMap pMap, bool pseudonymized)
     {
-        return JsonSerializer.Deserialize<AiImproveBulletResult>(json, JsonOptions)
-               ?? throw new JsonException("Parsed bullet improvement was null.");
+        var res = JsonSerializer.Deserialize<AiImproveBulletResult>(json, JsonOptions)
+                  ?? throw new JsonException("Parsed bullet improvement was null.");
+
+        if (!pseudonymized) return res;
+
+        return new AiImproveBulletResult(
+            Improved: AiPseudonymizer.DePseudonymize(res.Improved, pMap),
+            Alternatives: res.Alternatives?.Select(a => AiPseudonymizer.DePseudonymize(a, pMap)).ToList() ?? [],
+            Explanation: AiPseudonymizer.DePseudonymize(res.Explanation, pMap)
+        );
     }
 
-    private static AiTranslateResult ParseTranslate(string json)
+    private static AiTranslateResult ParseTranslate(string json, AiPseudonymizer.ReplacementMap pMap, bool pseudonymized)
     {
-        return JsonSerializer.Deserialize<AiTranslateResult>(json, JsonOptions)
-               ?? throw new JsonException("Parsed translate result was null.");
+        var res = JsonSerializer.Deserialize<AiTranslateResult>(json, JsonOptions)
+                  ?? throw new JsonException("Parsed translate result was null.");
+
+        if (!pseudonymized) return res;
+
+        return new AiTranslateResult(
+            TranslatedText: AiPseudonymizer.DePseudonymize(res.TranslatedText, pMap),
+            Items: res.Items?.Select(i => new TranslatedItem(i.Key, AiPseudonymizer.DePseudonymize(i.Translation, pMap))).ToList()
+        );
     }
 }

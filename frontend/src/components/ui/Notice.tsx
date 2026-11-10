@@ -29,6 +29,8 @@ interface ErrorNoticeProps {
   error: unknown
   /** What was being done ("Konto konnte nicht angelegt werden"); shown before the reason when given. */
   title?: string
+  /** Adds a Close button next to Copy (for a failure laid over other content, see AlertSlot). */
+  onDismiss?: () => void
 }
 
 /**
@@ -37,7 +39,7 @@ interface ErrorNoticeProps {
  * technical text behind an expander (also complete). The footer row is always there, so every notice has the same
  * extra height and {@link AlertSlot} can reserve it.
  */
-export function ErrorNotice({ error, title }: ErrorNoticeProps) {
+export function ErrorNotice({ error, title, onDismiss }: ErrorNoticeProps) {
   const { t } = useTranslation()
   const version = useVersion().data?.version
   const [open, setOpen] = useState(false)
@@ -68,7 +70,14 @@ export function ErrorNotice({ error, title }: ErrorNoticeProps) {
         ) : (
           <span />
         )}
-        <CopyButton getText={() => copyableError(description, { title, version })} />
+        <div className="flex items-center gap-2">
+          <CopyButton getText={() => copyableError(description, { title, version })} />
+          {onDismiss && (
+            <button type="button" className="inline-flex h-8 items-center rounded-xs px-2 text-[0.8125rem] font-medium underline underline-offset-2" onClick={onDismiss}>
+              {t('common.close')}
+            </button>
+          )}
+        </div>
       </div>
       {open && (
         <pre className="mt-1 mb-1 ml-[calc(var(--notice-icon)+var(--notice-gap))] font-mono text-xs break-words whitespace-pre-wrap select-text">

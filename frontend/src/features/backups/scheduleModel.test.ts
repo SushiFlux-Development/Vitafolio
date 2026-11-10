@@ -24,7 +24,8 @@ describe('draft of the backup settings', () => {
   })
 
   it('reports numbers outside the limits while they are typed', () => {
-    expect(problemsOf({ ...toDraft(saved), keepRecent: '4' }).keepRecent).toBe(true)
+    expect(problemsOf({ ...toDraft(saved), keepRecent: '1' }).keepRecent).toBe(true)
+    expect(problemsOf({ ...toDraft(saved), keepRecent: '2' }).keepRecent).toBeUndefined()
     expect(problemsOf({ ...toDraft(saved), keepRecent: '501' }).keepRecent).toBe(true)
     expect(problemsOf({ ...toDraft(saved), keepDailyDays: '' }).keepDailyDays).toBe(true)
     expect(problemsOf({ ...toDraft(saved), keepDailyDays: '0' }).keepDailyDays).toBeUndefined()

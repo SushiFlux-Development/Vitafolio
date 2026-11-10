@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { ErrorNotice } from '../../components/ui/Notice'
 import { Loading } from '../../components/ui/Page'
-import { formatDateTime } from '../../format'
+import { useDateFormat } from '../../hooks/useDateFormat'
 import { ACTIVITY_ACTIONS } from './activityActions'
 
 const PAGE_SIZE = 25
@@ -14,7 +14,8 @@ const PAGE_SIZE = 25
 
 /** The append-only activity log: who did what and when, filterable, newest first. Nobody can edit it. */
 export function ActivityTab() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const dates = useDateFormat()
   const [page, setPage] = useState(1)
   const [action, setAction] = useState('')
   const [userId, setUserId] = useState('')
@@ -98,7 +99,7 @@ export function ActivityTab() {
                 )}
                 {log.data.items.map((item) => (
                   <tr key={item.id} className="align-top">
-                    <td className="whitespace-nowrap tabular-nums">{formatDateTime(item.at, i18n.language)}</td>
+                    <td className="whitespace-nowrap tabular-nums">{dates.dateTime(item.at)}</td>
                     <td>{item.actorName ?? '-'}</td>
                     <td>
                       <span className="font-medium">{label(item.action)}</span>

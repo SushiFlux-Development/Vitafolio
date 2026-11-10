@@ -6,6 +6,8 @@ export interface TabItem<T extends string = string> {
   id: T
   label: string
   icon?: IconName
+  /** A small count or marker after the label ("Snapshot", the number of events). */
+  badge?: string | number | undefined
 }
 
 interface TabsProps<T extends string> {
@@ -17,12 +19,15 @@ interface TabsProps<T extends string> {
 }
 
 /**
- * The shared tab bar (settings, administration): the active tab is the "selection" category - tinted, with the gold
- * indicator underneath. Use {@link useTabParam} to keep the active tab in the address (?tab=...).
+ * The shared tab bar (settings, administration, details): the active tab is the "selection" category - tinted, with the
+ * gold indicator underneath. Use {@link useTabParam} to keep the active tab in the address (?tab=...). A bar with more tabs
+ * than the window is wide scrolls sideways instead of breaking the page, and the active tab is brought into view. A page
+ * with many sections (the master profile) does not use it: it puts its sections into the sidebar (see SidebarNav).
  */
 export function Tabs<T extends string>({ tabs, active, onChange, label }: TabsProps<T>) {
   return (
-    <div role="tablist" aria-label={label} className="flex gap-1 border-b border-line">
+    <div className="border-b border-line">
+      <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto">
       {tabs.map((tab) => {
         const selected = tab.id === active
         return (
@@ -46,17 +51,25 @@ export function Tabs<T extends string>({ tabs, active, onChange, label }: TabsPr
                 document.getElementById(`tab-${target.id}`)?.focus()
               }
             }}
-            className={`-mb-px flex items-center gap-2 rounded-t-sm border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+            ref={selected ? scrollIntoView : undefined}
+            className={`flex shrink-0 items-center gap-2 rounded-t-sm border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
               selected ? 'border-indicator bg-select text-select-ink' : 'border-transparent text-ink-muted hover:bg-surface-2 hover:text-ink'
             }`}
           >
             {tab.icon && <Icon name={tab.icon} size={17} />}
             {tab.label}
+            {tab.badge !== undefined && <span className="badge badge-neutral">{tab.badge}</span>}
           </button>
         )
       })}
+      </div>
     </div>
   )
+}
+
+/** Brings the active tab into the visible part of a scrolling bar (nothing happens where the bar fits). */
+function scrollIntoView(element: HTMLButtonElement | null) {
+  element?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
 }
 
 /** The panel that belongs to a tab. */

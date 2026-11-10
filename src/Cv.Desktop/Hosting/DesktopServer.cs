@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 namespace Cv.Desktop.Hosting;
 
 /// <summary>What the host passes when it starts the in-process server.</summary>
-internal sealed record DesktopServerOptions(string DataDirectory, string Channel, bool Development, int? FixedPort = null);
+internal sealed record DesktopServerOptions(string DataDirectory, string Channel, bool Development, int? FixedPort = null, Cv.Server.Updates.IUpdateInstaller? UpdateInstaller = null);
 
 /// <summary>
 /// The server of the Windows program: <see cref="ServerApp.Build"/> in desktop mode, running inside this process and listening only on
@@ -62,6 +62,7 @@ internal sealed class DesktopServer : IAsyncDisposable
                 DataDirectory = options.DataDirectory,
                 DesktopToken = token,
                 Channel = options.Channel,
+                UpdateInstaller = options.UpdateInstaller,
             };
             // The framework's per-request chatter is not wanted in the log of a program that has no console
             string[] args = options.Development

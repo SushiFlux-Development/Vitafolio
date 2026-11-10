@@ -58,6 +58,14 @@
     <Content Include="..\..\version.txt" Link="version.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The customer changelog ("What's new"), the licence texts and the manuals (once they are built) travel with the program; a missing file simply stays out -->
+  <ItemGroup>
+    <Content Include="..\..\CHANGELOG.md" Link="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(MSBuildThisFileDirectory)..\..\CHANGELOG.md')" />
+    <Content Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(MSBuildThisFileDirectory)..\..\LICENSE')" />
+    <Content Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(MSBuildThisFileDirectory)..\..\THIRD-PARTY-NOTICES.md')" />
+    <Content Include="..\..\docs\handbuch\**\*.pdf" Link="docs\handbuch\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- The WebView2 package always references its WPF control too; this program uses only the WinForms one. Dropping the WPF
        assembly avoids a WindowsBase version conflict warning and keeps an unused DLL out of the program folder. -->
   <Target Name="CvDropWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">

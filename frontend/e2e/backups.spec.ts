@@ -21,7 +21,7 @@ import {
   writeBackupSettings,
 } from './support'
 import type { BackupSettingsInfo } from './support'
-import { editBackup } from './checks'
+import { databaseOfBackup, editBackup } from './checks'
 
 // The "Datensicherung" tab against the real server: the schedule module with its live week preview, and the backups.
 // The saved schedule and the uploaded backups are put back after every test. A restore (which signs everybody out) is
@@ -143,14 +143,21 @@ test('a schedule with fixed times on chosen weekdays is saved, and the server\'s
   expect(saved.schedule).toMatchObject({ kind: 'times', times: ['03:30'], weekdays: [1, 3, 5] })
   const now = Date.now()
   const runs = saved.nextRuns.map((iso) => Date.parse(iso))
+  // The server plans to the end of the seventh calendar day (today included), the same days the week preview draws. Seven
+  // consecutive days hold each of Monday, Wednesday and Friday exactly once: three runs, or two when today's run has
+  // already passed - whatever the weekday and the time of the day. The same weekday next week is the eighth day and never in.
   expect(runs.length, 'a plan for three weekdays within seven days').toBeGreaterThanOrEqual(2)
   expect(runs.length).toBeLessThanOrEqual(3)
   for (const run of runs) {
     expect(run).toBeGreaterThan(now - 60_000)
-    expect(run).toBeLessThanOrEqual(now + 7 * 24 * 3600 * 1000 + 60_000)
+    expect(run).toBeLessThan(now + 7 * 24 * 3600 * 1000)
   }
   expect([...runs].sort((a, b) => a - b)).toEqual(runs)
-
+  // Monday -> Wednesday -> Friday -> Monday are 2, 2 and 3 days apart (an hour more or less where daylight saving changes)
+  for (let index = 1; index < runs.length; index++) {
+    const hours = (runs[index]! - runs[index - 1]!) / 3_600_000
+    expect([48, 72].some((expected) => Math.abs(hours - expected) <= 1), `gap of ${hours} h between two planned runs`).toBe(true)
+  }
   // After a reload the page shows exactly that: the form as saved and one marker per planned run.
   await page.reload()
   await expect(page.getByTestId('week-preview')).toBeVisible()
@@ -177,7 +184,7 @@ test('a backup can be deleted through the step-up dialog, which says it cannot b
   const created = page.getByRole('status').filter({ hasText: 'Sicherung erstellt:' })
   await expect(created).toBeVisible()
   const file = (await created.innerText()).replace(/^[\s\S]*Sicherung erstellt:\s*/, '').trim()
-  expect(file).toMatch(/\.db$/)
+  expect(file).toMatch(/\.zip$/)
   expect((await listBackups(page)).some((entry) => entry.file === file)).toBe(true)
 
   const before = await settledRowCount(page)
@@ -228,15 +235,16 @@ test('download: the step-up dialog refuses a wrong password in place and then ha
   await confirm.locator('input[name="reauthPassword"]').fill(OWNER.password)
   await page.getByTestId('reauth-confirm').click()
   const file = await download
-  expect(file.suggestedFilename()).toMatch(/^vitafolio-backup-\d{4}-\d{2}-\d{2}-\d{4}\.db$/)
+  expect(file.suggestedFilename()).toMatch(/^vitafolio-backup-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/)
   const folder = mkdtempSync(join(tmpdir(), 'cv-e2e-download-'))
   try {
     const target = join(folder, file.suggestedFilename())
     await file.saveAs(target)
     const bytes = readFileSync(target)
     expect(bytes.length).toBeGreaterThan(4096)
-    // A real SQLite database, not an error page.
-    expect(bytes.subarray(0, 15).toString('latin1')).toBe('SQLite format 3')
+    // A real archive with the database in it, not an error page.
+    expect(bytes.subarray(0, 4).toString('latin1')).toBe('PK\u0003\u0004')
+    expect(databaseOfBackup(bytes).subarray(0, 15).toString('latin1')).toBe('SQLite format 3')
   } finally {
     rmSync(folder, { recursive: true, force: true })
   }
@@ -253,7 +261,7 @@ test('"Aktuellen Stand herunterladen" asks for the password too and delivers a f
   const download = page.waitForEvent('download')
   await confirmStepUp(page)
   const file = await download
-  expect(file.suggestedFilename()).toMatch(/^vitafolio-backup-.*\.db$/)
+  expect(file.suggestedFilename()).toMatch(/^vitafolio-backup-.*\.zip$/)
   await expect(confirm).toBeHidden()
 })
 
@@ -323,10 +331,10 @@ test('upload: files that are no valid backup are refused with a specific, comple
 })
 
 test('upload: a file over the size limit is refused before anything is sent, with its size and the limit in the message', async ({ page }) => {
-  // A 513 MB file made of one shared block (no memory is spent): put into the file input like a chosen file.
+  // A file just over the default 16 GB limit, made of one shared block (no memory is spent): put into the file input like a chosen file.
   await page.evaluate(() => {
     const block = new Blob([new ArrayBuffer(1024 * 1024)])
-    const big = new File(Array.from({ length: 513 }, () => block), 'riesig.db')
+    const big = new File(Array.from({ length: 16 * 1024 + 1 }, () => block), 'riesig.zip')
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!
     const transfer = new DataTransfer()
     transfer.items.add(big)
@@ -334,8 +342,7 @@ test('upload: a file over the size limit is refused before anything is sent, wit
     input.dispatchEvent(new Event('change', { bubbles: true }))
   })
   const notice = page.getByRole('note').filter({ hasText: 'Die Datei ist zu groß' })
-  await expect(notice).toContainText('513')
-  await expect(notice).toContainText('512')
+  await expect(notice).toContainText('16')
   await expect(dialog(page)).toHaveCount(0)
 })
 

@@ -1,13 +1,25 @@
 import { useMemo } from 'react'
 import type { Profile } from '../../api/types'
+import { formatStoredDate } from '../../validation/dates'
+import type { DateFormatId } from '../../validation/dates'
+
+/** A station of the CV as it appears next to a gap: what it is called and where. Either part can be empty (the card then names it in words). */
+export interface StationLabel {
+  title: string
+  organisation: string
+}
 
 export interface ResumeGap {
   id: string
+  /** For display, in the chosen date format (e.g. 02.2019 or 2019-02). */
   startFormatted: string
   endFormatted: string
+  /** For the entry forms: ISO text (YYYY-MM), which is what every month field of the profile stores; the field shows it in the chosen format. */
+  startMonth: string
+  endMonth: string
   durationMonths: number
-  previousTitle?: string
-  nextTitle?: string
+  previous?: StationLabel | undefined
+  next?: StationLabel | undefined
 }
 
 export interface GapAnalysisResult {
@@ -20,7 +32,7 @@ export interface GapAnalysisResult {
 /**
  * Parses diverse date inputs (YYYY-MM, MM/YYYY, YYYY, DD.MM.YYYY) into an absolute month index (year * 12 + month).
  */
-function parseToMonthIndex(val?: string | null): number | null {
+export function parseToMonthIndex(val?: string | null): number | null {
   if (!val || !val.trim()) return null
   const s = val.trim()
 
@@ -58,20 +70,24 @@ function parseToMonthIndex(val?: string | null): number | null {
   return null
 }
 
-function formatMonthIndex(index: number): string {
-  const y = Math.floor(index / 12)
-  const m = index % 12 || 12
-  const adjustedY = m === 12 ? y - 1 : y
-  return `${String(m).padStart(2, '0')}/${adjustedY}`
+/** Splits an absolute month index (year * 12 + month) into year and month. */
+function splitMonthIndex(index: number): { year: number; month: number } {
+  const month = index % 12 || 12
+  return { year: month === 12 ? Math.floor(index / 12) - 1 : Math.floor(index / 12), month }
+}
+
+function isoMonth(index: number): string {
+  const { year, month } = splitMonthIndex(index)
+  return `${year}-${String(month).padStart(2, '0')}`
 }
 
 interface StationInterval {
   start: number
   end: number
-  title: string
+  label: StationLabel
 }
 
-export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
+export function useGapAnalyzer(profile: Profile, format: DateFormatId): GapAnalysisResult {
   return useMemo(() => {
     const intervals: StationInterval[] = []
     const now = new Date()
@@ -81,23 +97,24 @@ export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
     for (const exp of profile.experiences ?? []) {
       const start = parseToMonthIndex(exp.startDate)
       if (start === null) continue
-      const end = exp.isCurrent ? currentMonthIndex : parseToMonthIndex(exp.endDate) ?? start
+      const end = exp.isCurrent ? currentMonthIndex : (parseToMonthIndex(exp.endDate) ?? start)
       intervals.push({
         start: Math.min(start, end),
         end: Math.max(start, end),
-        title: `${exp.jobTitle || 'Position'} (${exp.employer || 'Arbeitgeber'})`,
+        label: { title: exp.jobTitle, organisation: exp.employer },
       })
     }
 
-    // Collect education intervals
+    // Collect education intervals. An education may have no beginning (school: only the year of graduation); it has no length to
+    // place on the time line then, so it is left out - it can neither create a gap nor close one.
     for (const edu of profile.educations ?? []) {
       const start = parseToMonthIndex(edu.startDate)
       if (start === null) continue
-      const end = edu.isCurrent ? currentMonthIndex : parseToMonthIndex(edu.endDate) ?? start
+      const end = edu.isCurrent ? currentMonthIndex : (parseToMonthIndex(edu.endDate) ?? start)
       intervals.push({
         start: Math.min(start, end),
         end: Math.max(start, end),
-        title: `${edu.degree || 'Abschluss'} (${edu.institution || 'Einrichtung'})`,
+        label: { title: edu.degree, organisation: edu.institution },
       })
     }
 
@@ -114,11 +131,11 @@ export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
     intervals.sort((a, b) => a.start - b.start)
 
     // Merge overlapping intervals
-    const merged: { start: number; end: number; titles: string[] }[] = []
+    const merged: { start: number; end: number; labels: StationLabel[] }[] = []
     let current = {
       start: intervals[0]!.start,
       end: intervals[0]!.end,
-      titles: [intervals[0]!.title],
+      labels: [intervals[0]!.label],
     }
 
     for (let i = 1; i < intervals.length; i++) {
@@ -126,13 +143,13 @@ export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
       // If overlapping or directly contiguous (gap <= 1 month difference)
       if (next.start <= current.end + 1) {
         current.end = Math.max(current.end, next.end)
-        current.titles.push(next.title)
+        current.labels.push(next.label)
       } else {
         merged.push(current)
         current = {
           start: next.start,
           end: next.end,
-          titles: [next.title],
+          labels: [next.label],
         }
       }
     }
@@ -148,14 +165,15 @@ export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
       const gapEnd = next.start - 1
 
       if (gapEnd >= gapStart) {
-        const duration = gapEnd - gapStart + 1
         gaps.push({
           id: `gap-${gapStart}-${gapEnd}`,
-          startFormatted: formatMonthIndex(gapStart),
-          endFormatted: formatMonthIndex(gapEnd),
-          durationMonths: duration,
-          previousTitle: prev.titles[prev.titles.length - 1],
-          nextTitle: next.titles[0],
+          startFormatted: formatStoredDate(isoMonth(gapStart), format),
+          endFormatted: formatStoredDate(isoMonth(gapEnd), format),
+          startMonth: isoMonth(gapStart),
+          endMonth: isoMonth(gapEnd),
+          durationMonths: gapEnd - gapStart + 1,
+          previous: prev.labels[prev.labels.length - 1],
+          next: next.labels[0],
         })
       }
     }
@@ -166,5 +184,5 @@ export function useGapAnalyzer(profile: Profile): GapAnalysisResult {
       isContinuous: gaps.length === 0 && intervals.length > 0,
       totalGapsCount: gaps.length,
     }
-  }, [profile.experiences, profile.educations])
+  }, [profile.experiences, profile.educations, format])
 }

@@ -34,6 +34,10 @@ public sealed class SetupController(AppDbContext db, ServerSettings settings, Se
             setupTokenRequired = setupRequired,
             rules = InputRules.Describe(),
             languages = new[] { "de", "en" },
+            // The fonts documents can use: one list for the CV, the cover letter and the dossier
+            documentFonts = Documents.DocumentFonts.Describe(),
+            // The CV designs on offer, in the order the UI shows them
+            documentDesigns = Documents.DocumentDesigns.Describe(),
         });
     }
 

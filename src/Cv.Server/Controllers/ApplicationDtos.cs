@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using Cv.Server.Data;
@@ -27,7 +27,11 @@ public sealed record ApplicationRequest(
     string? CvPhotoShape,
     bool? IncludeCoverSheet,
     IReadOnlyList<Guid>? AttachmentIds,
-    string? Notes);
+    string? Notes,
+    Applications.CvSelectionDto? CvSelection = null);
+
+/// <summary>Several dossiers at once as a ZIP; <paramref name="Language"/> ("de" or "en") is the language of the name of the ZIP and of the note about what failed.</summary>
+public sealed record DossierArchiveRequest(IReadOnlyList<Guid>? Ids, string? Language);
 
 public sealed record ApplicationStatusUpdateRequest(
     string? Status,
@@ -64,13 +68,12 @@ public sealed record ApplicationListItemDto(
     bool IsFollowUpDue,
     string? CoverLetterTitle,
     bool HasArchivedPdf,
+    string DossierFileName,
     DateTime UpdatedAt)
 {
     public static ApplicationListItemDto From(JobApplication a, DateTime utcNow)
     {
-        var isDue = a.Status == ApplicationStatuses.Applied
-            && ((a.FollowUpAt.HasValue && a.FollowUpAt.Value <= utcNow)
-                || (!a.FollowUpAt.HasValue && a.AppliedAt.HasValue && a.AppliedAt.Value.AddDays(14) <= utcNow));
+        var isDue = FollowUp.IsDue(a.Status, a.AppliedAt, a.FollowUpAt, utcNow);
 
         return new(
             a.Id,
@@ -83,6 +86,7 @@ public sealed record ApplicationListItemDto(
             isDue,
             a.CoverLetter?.Title,
             !string.IsNullOrEmpty(a.ArchivedPdfPath),
+            Applications.DossierFileNames.For(a.Company, a.JobTitle, a.CvLanguage),
             a.UpdatedAt);
     }
 }
@@ -113,16 +117,18 @@ public sealed record ApplicationDto(
     bool IncludeCoverSheet,
     IReadOnlyList<Guid> AttachmentIds,
     bool HasArchivedPdf,
+    string DossierFileName,
     string? Notes,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    IReadOnlyList<ApplicationEventDto> Events)
+    IReadOnlyList<ApplicationEventDto> Events,
+    Applications.CvSelectionDto? CvSelection = null,
+    string? ArchiveWarning = null)
 {
-    public static ApplicationDto From(JobApplication a, DateTime utcNow)
+    /// <param name="archiveWarning">Set only on the response of the action that tried to freeze the dossier and could not ("archive.failed", "archive.attachments_unavailable"); never stored.</param>
+    public static ApplicationDto From(JobApplication a, DateTime utcNow, string? archiveWarning = null)
     {
-        var isDue = a.Status == ApplicationStatuses.Applied
-            && ((a.FollowUpAt.HasValue && a.FollowUpAt.Value <= utcNow)
-                || (!a.FollowUpAt.HasValue && a.AppliedAt.HasValue && a.AppliedAt.Value.AddDays(14) <= utcNow));
+        var isDue = FollowUp.IsDue(a.Status, a.AppliedAt, a.FollowUpAt, utcNow);
 
         var attachmentGuids = string.IsNullOrWhiteSpace(a.AttachmentIds)
             ? []
@@ -157,10 +163,13 @@ public sealed record ApplicationDto(
             a.IncludeCoverSheet,
             attachmentGuids,
             !string.IsNullOrEmpty(a.ArchivedPdfPath),
+            Applications.DossierFileNames.For(a.Company, a.JobTitle, a.CvLanguage),
             a.Notes,
             a.CreatedAt,
             a.UpdatedAt,
-            a.Events.OrderByDescending(e => e.Date).ThenByDescending(e => e.CreatedAt).Select(ApplicationEventDto.From).ToList());
+            a.Events.OrderByDescending(e => e.Date).ThenByDescending(e => e.CreatedAt).Select(ApplicationEventDto.From).ToList(),
+            Applications.CvSelectionRules.Parse(a.CvSelectionJson),
+            archiveWarning);
     }
 }
 

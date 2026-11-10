@@ -31,6 +31,13 @@ describe('ReauthDialog message room', () => {
     expect(reserved.length).toBeGreaterThanOrEqual(REAUTH_ANSWERS.length)
   })
 
+  it('does not reserve room for the rare "too many attempts" answer (it is laid over the content instead)', () => {
+    renderDialog()
+    expect(REAUTH_ANSWERS).not.toContain('rate_limited')
+    const reserved = [...document.querySelectorAll('[data-reserved]')].map((element) => element.getAttribute('data-reserved') ?? '')
+    expect(reserved.some((text) => text.includes('600'))).toBe(false)
+  })
+
   it('keeps the reserved copies out of the page text (screen readers and tests never see them)', () => {
     renderDialog()
     expect(document.body.textContent).not.toContain('Die Wiederherstellung ist fehlgeschlagen')

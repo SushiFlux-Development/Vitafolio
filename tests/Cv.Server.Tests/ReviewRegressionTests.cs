@@ -90,7 +90,7 @@ public sealed class ReviewRegressionTests(ServerFixture server) : IClassFixture<
         var problem = await restore.JsonAsync();
         Assert.Equal("backup.restore_failed", problem.GetProperty("code").GetString());
         Assert.True(problem.GetProperty("params").GetProperty("rolledBack").GetBoolean());
-        Assert.EndsWith("-pre-restore.db", problem.GetProperty("params").GetProperty("safetyBackup").GetString());
+        Assert.EndsWith("-pre-restore.zip", problem.GetProperty("params").GetProperty("safetyBackup").GetString());
         // Internal details stay in the log
         Assert.DoesNotContain("secret", problem.GetRawText(), StringComparison.OrdinalIgnoreCase);
 
@@ -105,7 +105,7 @@ public sealed class ReviewRegressionTests(ServerFixture server) : IClassFixture<
     {
         var admin = await server.AdminAsync();
         var bytes = await (await admin.PostAsync("/api/admin/backups/current/download", Credentials)).Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
-        var wal = Modify(bytes, "PRAGMA journal_mode = WAL");
+        var wal = Modify(BackupFiles.DatabaseOf(bytes), "PRAGMA journal_mode = WAL");
         Assert.Equal(2, wal[18]);
         Assert.Equal(HttpStatusCode.Created, (await Upload(admin, wal)).StatusCode);
         var backupDir = Path.Combine(server.DataDir, "backups");
@@ -230,8 +230,8 @@ public sealed class ReviewUnitTests
         {
             CultureInfo.CurrentCulture = new CultureInfo("ar-SA");
             var at = new DateTime(2026, 11, 4, 2, 0, 0);
-            Assert.Equal("app-20261104-020000-manual.db", BackupService.FileName(at, BackupKinds.Manual));
-            Assert.Equal("app-20261104-*.db", BackupService.DayPattern(at));
+            Assert.Equal("app-20261104-020000-manual.zip", BackupService.FileName(at, BackupKinds.Manual));
+            Assert.Equal("app-20261104-*", BackupService.DayPattern(at));
             Assert.NotNull(BackupService.Parse(BackupService.FileName(at, BackupKinds.Manual)));
         }
         finally

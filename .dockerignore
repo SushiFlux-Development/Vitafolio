@@ -32,4 +32,11 @@ frontend/playwright-report/
 src/Cv.Desktop/
 tests/
 scripts/
-docs/
+
+# Of the documents only the built manuals go into the image: the sources stay out, the PDFs come along as soon as they exist
+docs/*
+!docs/handbuch
+docs/handbuch/**
+!docs/handbuch/**/*.pdf
+# ... plus an empty marker file, so that the folder is never empty in the build context (COPY docs/handbuch must work before the first PDF exists)
+!docs/handbuch/.gitkeep

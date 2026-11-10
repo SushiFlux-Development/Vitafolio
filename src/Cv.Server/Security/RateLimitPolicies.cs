@@ -20,6 +20,12 @@ public static class RateLimitPolicies
     public const string Password = "password";
     public const string EmergencyReset = "emergency-reset";
 
+    /// <summary>AI endpoints that build prompts or call a provider.</summary>
+    public const string Ai = "ai";
+
+    /// <summary>PDF and Word rendering (live preview included).</summary>
+    public const string Render = "render";
+
     /// <summary>Backup download, upload and restore (they check the admin password again).</summary>
     public const string StepUp = "stepup";
 
@@ -43,6 +49,8 @@ public static class RateLimitPolicies
         Add(options, Password, limits.Password, limits.Window);
         Add(options, EmergencyReset, limits.EmergencyReset, limits.Window);
         Add(options, StepUp, limits.StepUp, limits.Window);
+        Add(options, Ai, limits.Ai, limits.Window);
+        Add(options, Render, limits.Render, limits.Window);
     }
 
     private static void Add(RateLimiterOptions options, string name, int permits, TimeSpan window) =>

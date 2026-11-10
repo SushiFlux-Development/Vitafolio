@@ -6,18 +6,23 @@ namespace Cv.Server.Configuration;
 /// How a version is written for people and for tags - the C# twin of <c>scripts/version-display.sh</c>; keep both in step.
 /// Input is version.txt: line 1 = short version (<c>v2026.11.12</c>), line 2 = build id (<c>v2026.11.12.13.557</c>, may be missing).
 /// <list type="bullet">
-/// <item>Display: release <c>v2026.11.12 (13.557)</c>, beta <c>v2026.11.12 (13.557 β)</c>, dev <c>v2026.11.12 (13.557-dev)</c>; without
-/// counters the plain short version (dev: <c>v2026.11.12-dev</c>) - never empty parentheses.</item>
-/// <item>Tag: release <c>v2026.11.12</c>, beta <c>v2026.11.12.13.557-beta</c>, dev <c>v2026.11.12.13.557-dev</c>.</item>
+/// <item>Display: all five segments, the channel symbol in parentheses behind them. Release <c>v2026.11.12.13.557</c>, beta
+/// <c>v2026.11.12.13.557 (β)</c>, nightly <c>v2026.11.12.13.557 (α)</c>, dev <c>v2026.11.10.13.557 (&lt;/&gt;)</c>. Without counters the short
+/// version plus symbol (<c>v2026.11.12 (β)</c>) - never empty parentheses.</item>
+/// <item>Tag (git/Docker, no spaces or parentheses): release <c>v2026.11.12</c>, beta <c>v2026.11.12.13.557-beta</c>, nightly
+/// <c>v2026.11.12.13.557-nightly</c>. A development build has no tag of its own: its identifier is the plain build id.</item>
 /// </list>
-/// Channel: <c>beta</c> and <c>dev</c> as named, anything else counts as release (same as the script).
+/// Channel: <c>beta</c>, <c>nightly</c> (also the older <c>alpha</c>) and <c>dev</c> as named, anything else counts as release (same as the script).
 /// </summary>
 public static partial class VersionFormat
 {
     /// <summary>Greek small letter beta (U+03B2).</summary>
-    public const string BetaMark = "\u03B2";
+    public const string BetaMark = "β";
+
     /// <summary>Greek small letter alpha (U+03B1).</summary>
-    public const string NightlyMark = "\u03B1";
+    public const string NightlyMark = "α";
+
+    public const string DevMark = "</>";
 
     // The script accepts "<digits>.<digits>" after "<short>." and nothing else (no leading/trailing/double dots, no third part)
     [GeneratedRegex(@"^[0-9]+\.[0-9]+$")]
@@ -35,30 +40,36 @@ public static partial class VersionFormat
 
     public static string Display(string shortVersion, string? buildId, string? channel)
     {
-        var counters = Counters(shortVersion, buildId);
-        var kind = Kind(channel);
-        if (counters is null) return kind == "dev" ? shortVersion + "-dev" : shortVersion;
-        return kind switch
+        var full = Full(shortVersion, buildId);
+        return Kind(channel) switch
         {
-            "beta" => $"{shortVersion} ({counters} {BetaMark})",
-            "nightly" or "alpha" => $"{shortVersion} ({counters} {NightlyMark})",
-            "dev" => $"{shortVersion} ({counters}-dev)",
-            _ => $"{shortVersion} ({counters})",
+            "beta" => $"{full} ({BetaMark})",
+            "nightly" => $"{full} ({NightlyMark})",
+            "dev" => $"{full} ({DevMark})",
+            _ => full,
         };
     }
 
     public static string Tag(string shortVersion, string? buildId, string? channel)
     {
-        var counters = Counters(shortVersion, buildId);
-        var full = counters is null ? shortVersion : $"{shortVersion}.{counters}";
+        var full = Full(shortVersion, buildId);
         return Kind(channel) switch
         {
             "beta" => full + "-beta",
-            "nightly" or "alpha" => full + "-nightly",
-            "dev" => full + "-dev",
+            "nightly" => full + "-nightly",
+            "dev" => full,
             _ => shortVersion,
         };
     }
 
-    private static string Kind(string? channel) => channel is "beta" or "dev" or "nightly" or "alpha" ? channel : "release";
+    private static string Full(string shortVersion, string? buildId) =>
+        Counters(shortVersion, buildId) is { } counters ? $"{shortVersion}.{counters}" : shortVersion;
+
+    /// <summary>The normalised channel: <c>alpha</c> is the older name of <c>nightly</c>.</summary>
+    internal static string Kind(string? channel) => channel switch
+    {
+        "beta" or "dev" => channel,
+        "nightly" or "alpha" => "nightly",
+        _ => "release",
+    };
 }

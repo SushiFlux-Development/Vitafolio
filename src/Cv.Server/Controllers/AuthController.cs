@@ -35,10 +35,11 @@ public sealed class AuthController(
         errors.ThrowIfAny();
 
         var normalized = Accounts.Normalize(body.Username!);
-        accountLimiter.Attempt(HttpContext, "login", normalized);
+        accountLimiter.EnsureAllowed(HttpContext, normalized);
         var user = await db.Users.FirstOrDefaultAsync(u => u.NormalizedUsername == normalized && !u.IsLocalOwner, ct);
         if (!accounts.CheckPassword(user, body.Password!))
         {
+            accountLimiter.RecordFailure(HttpContext, normalized);
             await activity.RecordNowAsync(HttpContext, "auth.login_failed", body.Username, new { reason = "invalid_credentials" },
                 user?.Id, user?.Username, ct);
             throw new ApiException(StatusCodes.Status401Unauthorized, "auth.invalid_credentials", "Username or password is wrong.");
@@ -73,16 +74,17 @@ public sealed class AuthController(
             throw new ApiException(StatusCodes.Status401Unauthorized, "auth.challenge_invalid",
                 "The sign-in step has expired or was used too often. Please enter your password again.");
         }
-        accountLimiter.Attempt(HttpContext, "2fa", userId.Value.ToString());
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null || user.Disabled)
         {
             challenges.Complete(body.ChallengeId!);
             throw ApiException.Forbidden("auth.disabled", "This account is disabled.");
         }
+        accountLimiter.EnsureAllowed(HttpContext, user.NormalizedUsername);
         var factor = await twoFactor.VerifyAsync(user, body.Code, ct);
         if (factor != SecondFactor.Totp && factor != SecondFactor.RecoveryCode)
         {
+            if (factor == SecondFactor.Invalid) accountLimiter.RecordFailure(HttpContext, user.NormalizedUsername);
             await activity.RecordNowAsync(HttpContext, "auth.twofactor_failed", user.Username, null, user.Id, user.Username, ct);
             if (factor == SecondFactor.AlreadyUsed) throw TwoFactorService.CodeAlreadyUsed(StatusCodes.Status401Unauthorized);
             throw ApiException.Field("code", "auth.twofactor_invalid", "The code is wrong or was already used.", StatusCodes.Status401Unauthorized);
@@ -142,17 +144,8 @@ public sealed class AuthController(
         [FromServices] EmergencyToken emergencyToken,
         CancellationToken ct)
     {
-        var admins = await db.Users.Where(u => u.Role == Roles.Admin && !u.Disabled && !u.IsLocalOwner).ToListAsync(ct);
-        if (admins.Count == 0)
-        {
-            throw ApiException.BadRequest("admin.emergency_reset_no_admin", "No active administrator account was found.");
-        }
-        if (admins.Count > 1)
-        {
-            throw ApiException.Conflict("admin.emergency_reset_other_admins_exist",
-                "Another administrator account is active. Please ask another administrator to reset your password in App-Administration -> Users.");
-        }
-        emergencyToken.GenerateAndAnnounce();
+        // The same answer in every case: a stranger learns neither how many administrators exist nor whether a code is already waiting
+        if (await ActiveAdmins().CountAsync(ct) == 1) emergencyToken.EnsureAndAnnounce();
         return Ok(new { requested = true });
     }
 
@@ -171,29 +164,33 @@ public sealed class AuthController(
         InputRules.Password(errors, "newPassword", body.NewPassword);
         errors.ThrowIfAny();
 
-        var admins = await db.Users.Where(u => u.Role == Roles.Admin && !u.Disabled && !u.IsLocalOwner).ToListAsync(ct);
-        if (admins.Count == 0)
-        {
-            throw ApiException.BadRequest("admin.emergency_reset_no_admin", "No active administrator account was found.");
-        }
-        if (admins.Count > 1)
-        {
-            throw ApiException.Conflict("admin.emergency_reset_other_admins_exist",
-                "Another administrator account is active. Please ask another administrator to reset your password in App-Administration -> Users.");
-        }
-
-        if (!emergencyToken.Matches(body.Code))
+        ApiException Refused()
         {
             logger.LogWarning("Admin-Notfall-Reset mit ungültigem oder abgelaufenem Code abgewiesen (IP {Ip}).", ClientInfo.Ip(HttpContext));
-            throw ApiException.Field("code", "emergency_reset.code_invalid",
-                "The emergency reset code is missing, expired or wrong.", StatusCodes.Status403Forbidden);
+            return ApiException.Field("code", "emergency_reset.code_invalid", "The emergency reset code is missing, expired or wrong.", StatusCodes.Status403Forbidden);
         }
 
-        var admin = admins[0];
-        accounts.SetPassword(admin, body.NewPassword!);
-        await twoFactor.DisableAsync(admin, ct);
-        emergencyToken.Consume();
-        await db.SaveChangesAsync(ct);
+        // Check and reservation are one step, so one code cannot be redeemed twice at the same moment
+        if (!emergencyToken.TryReserve(body.Code)) throw Refused();
+        User admin;
+        try
+        {
+            var admins = await ActiveAdmins().ToListAsync(ct);
+            if (admins.Count != 1) throw Refused();
+            admin = admins[0];
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            accounts.SetPassword(admin, body.NewPassword!);
+            await twoFactor.DisableAsync(admin, ct);
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            emergencyToken.Release();
+            throw;
+        }
+        // Only now, after the new password is stored: a failure above leaves the code usable
+        emergencyToken.Complete();
 
         await sessions.RevokeAllAsync(admin.Id, "emergency_reset", null, ct);
         await activity.RecordNowAsync(HttpContext, "admin.emergency_reset", admin.Username, new { resetTwoFactor = true }, admin.Id, admin.Username, ct);
@@ -201,6 +198,8 @@ public sealed class AuthController(
 
         return Ok(new { success = true, username = admin.Username });
     }
+
+    private IQueryable<User> ActiveAdmins() => db.Users.Where(u => u.Role == Roles.Admin && !u.Disabled && !u.IsLocalOwner);
 
     [HttpGet("me")]
     [Authorize]

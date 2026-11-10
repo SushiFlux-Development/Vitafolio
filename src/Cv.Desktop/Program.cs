@@ -9,8 +9,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        // Velopack first: the installer's hooks (install, update, uninstall) run here and end the process before anything else starts
-        VelopackApp.Build().Run();
+        // Velopack first: the installer's hooks (install, update, uninstall) run here and end the process before anything else starts.
+        // Off: a package that was downloaded but whose backup step failed must not install itself at the next start; only the click on "install" applies it
+        VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
 
         // The server reads its configuration files relative to the working directory: always the program's own folder, never wherever a shortcut or
         // autostart entry happened to start it
@@ -29,19 +30,16 @@ internal static class Program
             return 0;
         }
 
-        var paths = DesktopPaths.Resolve(options);
-        // Before the log is opened (the log folder is one of the moved entries)
-        string? migration;
-        try
-        {
-            migration = DesktopPaths.MigrateLegacy(paths.LegacyDirectory, paths.DataDirectory);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            migration = $"Daten am alten Ort {paths.LegacyDirectory} konnten nicht nach {paths.DataDirectory} verschoben werden: {ex.Message}";
-        }
+        // The data folder hangs on the company name: after a rename the folder of the earlier name is moved once, before anything opens it. Before the log
+        // is opened (the log folder is one of the moved entries). A failed move leaves everything where it was and the program runs on the old folder.
+        var prepared = DesktopPaths.Resolve(options).PrepareDataFolder();
+        var paths = prepared.Paths;
         DesktopLog.Init(paths.LogDirectory);
-        if (migration is not null) DesktopLog.Warn(migration);
+        if (prepared.LogMessage is not null) DesktopLog.Warn(prepared.LogMessage);
+        if (prepared.Problem is { } problem)
+        {
+            Dialogs.ShowError(null, Texts.DataMoveFailedTitle, Texts.DataMoveFailed(problem.From, problem.To), problem.Reason);
+        }
         var channel = DesktopVersion.Channel(options);
         Dialogs.Version = DesktopVersion.Readable(channel);
         DesktopLog.Info($"Programm startet ({Dialogs.Version}, Kanal {channel}{(options.Dev ? ", Entwicklungsmodus" : string.Empty)}).");

@@ -16,9 +16,13 @@ public sealed class BackupApiTests(ServerFixture server) : IClassFixture<ServerF
         var admin = await server.AdminAsync();
         var defaults = await (await admin.GetAsync("/api/admin/backups/settings")).JsonAsync();
         Assert.True(defaults.GetProperty("automaticEnabled").GetBoolean());
+        // Defaults reach the UI: the newest backup and the one before it, no daily copies
+        Assert.Equal(2, defaults.GetProperty("keepRecent").GetInt32());
+        Assert.Equal(0, defaults.GetProperty("keepDailyDays").GetInt32());
         Assert.Equal("interval", defaults.GetProperty("schedule").GetProperty("kind").GetString());
         Assert.Equal(6, defaults.GetProperty("schedule").GetProperty("intervalHours").GetInt32());
-        Assert.Equal(28, defaults.GetProperty("nextRuns").GetArrayLength());
+        // The list runs to the end of the seventh calendar day (the week preview's window): six whole days of 4 runs plus what is left of today (0 to 3)
+        Assert.InRange(defaults.GetProperty("nextRuns").GetArrayLength(), 24, 27);
         Assert.False(string.IsNullOrEmpty(defaults.GetProperty("timeZone").GetString()));
         Assert.False(string.IsNullOrEmpty(defaults.GetProperty("directory").GetString()));
 
@@ -30,7 +34,8 @@ public sealed class BackupApiTests(ServerFixture server) : IClassFixture<ServerF
 
         var times = await (await admin.PutAsync("/api/admin/backups/settings", Settings(automaticEnabled: true, kind: "times"))).JsonAsync();
         Assert.Equal(["02:00", "14:00"], times.GetProperty("schedule").GetProperty("times").EnumerateArray().Select(t => t.GetString()));
-        Assert.Equal(14, times.GetProperty("nextRuns").GetArrayLength());
+        // Six whole days of 2 runs plus what is left of today (0 to 2)
+        Assert.InRange(times.GetProperty("nextRuns").GetArrayLength(), 12, 14);
 
         var invalid = await admin.PutAsync("/api/admin/backups/settings", new { automaticEnabled = true, schedule = new { kind = "weekly" }, keepRecent = 1 });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
@@ -79,8 +84,9 @@ public sealed class BackupApiTests(ServerFixture server) : IClassFixture<ServerF
         var download = await admin.PostAsync($"/api/admin/backups/{id}/download", Credentials);
         Assert.Equal(HttpStatusCode.OK, download.StatusCode);
         var bytes = await download.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal("SQLite format 3\0"u8.ToArray(), bytes[..16]);
-        Assert.Matches(@"^[a-z0-9]+-backup-\d{4}-\d{2}-\d{2}-\d{4}\.db$", download.Content.Headers.ContentDisposition!.FileNameStar ?? download.Content.Headers.ContentDisposition.FileName!.Trim('"'));
+        Assert.True(BackupFiles.IsArchive(bytes));
+        Assert.Equal("SQLite format 3\0"u8.ToArray(), BackupFiles.DatabaseOf(bytes)[..16]);
+        Assert.Matches(@"^[a-z0-9]+-backup-\d{4}-\d{2}-\d{2}-\d{4}\.zip$", download.Content.Headers.ContentDisposition!.FileNameStar ?? download.Content.Headers.ContentDisposition.FileName!.Trim('"'));
 
         var current = await admin.PostAsync("/api/admin/backups/current/download", Credentials);
         Assert.Equal(HttpStatusCode.OK, current.StatusCode);
@@ -91,7 +97,7 @@ public sealed class BackupApiTests(ServerFixture server) : IClassFixture<ServerF
         Assert.Equal("backup.invalid", await notSqlite.CodeAsync());
 
         // ... so is a backup of a newer schema
-        var newer = await Upload(admin, WithFutureMigration(bytes));
+        var newer = await Upload(admin, WithFutureMigration(BackupFiles.DatabaseOf(bytes)));
         Assert.Equal(HttpStatusCode.Conflict, newer.StatusCode);
         Assert.Equal("backup.too_new", await newer.CodeAsync());
 

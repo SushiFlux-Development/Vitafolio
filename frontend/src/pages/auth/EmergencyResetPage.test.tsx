@@ -45,8 +45,11 @@ describe('EmergencyResetPage', () => {
   it('renders step 1 and step 2 sections', () => {
     renderPage()
     expect(screen.getByRole('heading', { level: 1, name: 'Notfall-Zugang für Administratoren' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Notfall-Code im Server-Log erzeugen' })).toBeInTheDocument()
-    expect(screen.getByLabelText(/Notfall-Code/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Notfall-Code erzeugen' })).toBeInTheDocument()
+    // The code is only in the file of the data folder - button and field must not send the operator to the server log.
+    expect(screen.getByLabelText('Notfall-Code aus der Datei emergency-token')).toBeInTheDocument()
+    expect(screen.getByText(/nur in der Datei emergency-token im Datenordner/)).toBeInTheDocument()
+    expect(screen.queryByText(/aus den Logs/)).toBeNull()
     expect(screen.getByLabelText('Passwort')).toBeInTheDocument()
     expect(screen.getByLabelText('Passwort wiederholen')).toBeInTheDocument()
   })
@@ -56,10 +59,10 @@ describe('EmergencyResetPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.click(screen.getByRole('button', { name: 'Notfall-Code im Server-Log erzeugen' }))
+    await user.click(screen.getByRole('button', { name: 'Notfall-Code erzeugen' }))
     expect(requestSpy).toHaveBeenCalledOnce()
     await waitFor(() => {
-      expect(screen.getByText(/Der Notfall-Code wurde erzeugt!/)).toBeInTheDocument()
+      expect(screen.getByText(/steht der Code jetzt in der Datei emergency-token/)).toBeInTheDocument()
     })
     requestSpy.mockRestore()
   })

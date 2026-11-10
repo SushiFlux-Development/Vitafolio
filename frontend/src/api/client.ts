@@ -28,6 +28,11 @@ export class ApiError extends Error {
   }
 }
 
+/** True for the error fetch throws when the caller aborted the request (AbortController). */
+export function isAbort(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
 /** The "Retry-After" header in seconds (a number or an HTTP date); undefined when absent or unreadable. */
 export function readRetryAfter(value: string | null): number | undefined {
   if (!value) return undefined
@@ -73,7 +78,19 @@ async function readProblem(response: Response): Promise<ProblemDetails | undefin
   }
 }
 
-async function send(method: string, path: string, body: unknown): Promise<Response> {
+/** Per-call options of the API functions. */
+export interface RequestOptions {
+  /**
+   * The request may finish after the page is gone (fetch option "keepalive"): for the last save while a tab is closed or hidden.
+   * Browsers allow about 64 KB of such bodies at a time, so callers only set it for small bodies (see KEEPALIVE_LIMIT_BYTES).
+   */
+  keepalive?: boolean
+}
+
+/** The most body bytes a keepalive request may carry (the browsers' shared limit is 64 KiB; a margin stays for the headers). */
+export const KEEPALIVE_LIMIT_BYTES = 60_000
+
+async function send(method: string, path: string, body: unknown, signal?: AbortSignal, keepalive = false): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (!SAFE_METHODS.has(method)) Object.assign(headers, CSRF_HEADER)
   // A FormData body (file upload) sets its own multipart content type with the boundary.
@@ -85,8 +102,12 @@ async function send(method: string, path: string, body: unknown): Promise<Respon
       credentials: 'same-origin',
       headers,
       ...(body === undefined ? {} : { body: isForm ? body : JSON.stringify(body) }),
+      ...(signal ? { signal } : {}),
+      ...(keepalive ? { keepalive: true } : {}),
     })
   } catch (cause) {
+    // A call the caller cancelled on purpose is no network failure: it passes through as the AbortError it is.
+    if (isAbort(cause)) throw cause
     // fetch rejects with a TypeError when there is no connection at all.
     const error = new ApiError(0, { code: 'network' }, undefined, cause instanceof Error ? cause.message : 'Network error')
     throw error
@@ -115,14 +136,15 @@ function refreshSession(): Promise<boolean> {
  * Calls the API and returns the raw successful response (for file downloads). Refresh-once and error handling are the
  * same as in {@link api}.
  */
-export async function apiResponse(method: string, path: string, body?: unknown): Promise<Response> {
-  let response = await send(method, path, body)
+export async function apiResponse(method: string, path: string, body?: unknown, signal?: AbortSignal, options?: RequestOptions): Promise<Response> {
+  const keepalive = options?.keepalive === true
+  let response = await send(method, path, body, signal, keepalive)
 
   if (response.status === 401 && !NO_REFRESH.has(path)) {
     const failure = await toError(response.clone())
     if (failure.code === 'auth.expired') {
       if (await refreshSession()) {
-        response = await send(method, path, body)
+        response = await send(method, path, body, signal, keepalive)
       } else {
         authEvents.dispatchEvent(new Event('lost'))
         throw failure
@@ -151,14 +173,14 @@ export async function apiResponse(method: string, path: string, body?: unknown):
  * refreshed once and the call repeated once; if the refresh fails the original error is thrown and the app is told that
  * the session is gone. Every other failure throws an {@link ApiError}.
  */
-export async function api<T = void>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await apiResponse(method, path, body)
+export async function api<T = void>(method: string, path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+  const response = await apiResponse(method, path, body, undefined, options)
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const get = <T>(path: string) => api<T>('GET', path)
 export const post = <T = void>(path: string, body?: unknown) => api<T>('POST', path, body)
-export const put = <T = void>(path: string, body?: unknown) => api<T>('PUT', path, body)
+export const put = <T = void>(path: string, body?: unknown, options?: RequestOptions) => api<T>('PUT', path, body, options)
 export const patch = <T = void>(path: string, body?: unknown) => api<T>('PATCH', path, body)
 export const del = <T = void>(path: string) => api<T>('DELETE', path)

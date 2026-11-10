@@ -1,4 +1,4 @@
-// Copyright (c) 2026 SushiFlux Develop
+// Copyright (c) 2026 SushiFlux Development
 // Licensed under the AGPL-3.0-only.
 
 using Cv.Server.Data;
@@ -30,7 +30,8 @@ public sealed record CoverLetterRequest(
     string? AttachmentsNote,
     string? Language,
     string? Font,
-    string? AccentColor);
+    string? AccentColor,
+    bool? IncludeFoldMarks = null);
 
 public sealed record CoverLetterDto(
     Guid Id,
@@ -61,7 +62,8 @@ public sealed record CoverLetterDto(
     string? Font,
     string? AccentColor,
     DateTime CreatedAt,
-    DateTime UpdatedAt)
+    DateTime UpdatedAt,
+    bool IncludeFoldMarks = true)
 {
     public static CoverLetterDto From(CoverLetter c) =>
         new(
@@ -93,7 +95,8 @@ public sealed record CoverLetterDto(
             c.Font,
             c.AccentColor,
             c.CreatedAt,
-            c.UpdatedAt);
+            c.UpdatedAt,
+            c.IncludeFoldMarks);
 }
 
 public sealed record CoverLetterListItemDto(
@@ -102,7 +105,8 @@ public sealed record CoverLetterListItemDto(
     string RecipientCompany,
     string Subject,
     string? Date,
-    DateTime UpdatedAt)
+    DateTime UpdatedAt,
+    bool IncludeFoldMarks = true)
 {
     public static CoverLetterListItemDto From(CoverLetter c) =>
         new(c.Id, c.Title, c.RecipientCompany, c.Subject, c.Date, c.UpdatedAt);
@@ -114,20 +118,9 @@ public sealed record CoverLetterRenderOptions(
     string? Language,
     bool? IncludeFoldMarks)
 {
-    public string NormalizedFont => Font?.Trim() switch
-    {
-        "Roboto" => "Roboto",
-        "Open Sans" => "Open Sans",
-        "Merriweather" => "Merriweather",
-        "Lora" => "Lora",
-        "DejaVu Serif" => "DejaVu Serif",
-        _ => "Liberation Sans"
-    };
+    public string NormalizedFont => Documents.DocumentFonts.Normalize(Font);
 
-    public string NormalizedAccentColor =>
-        !string.IsNullOrEmpty(AccentColor) && AccentColor.StartsWith('#') && (AccentColor.Length == 7 || AccentColor.Length == 9)
-            ? AccentColor
-            : "#14213D";
+    public string NormalizedAccentColor => Documents.DocumentText.NormalizeColor(AccentColor);
 
     public string NormalizedLanguage => Language?.ToLowerInvariant() switch
     {

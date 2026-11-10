@@ -48,3 +48,16 @@ export function BootLoader() {
     </div>
   )
 }
+
+/** The heading of one tab or block inside a page: title and sentence on the left, the "add" action always on the right. */
+export function SectionIntro({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h2 className="text-base font-semibold text-ink">{title}</h2>
+        {subtitle && <p className="mt-1 max-w-2xl text-sm text-ink-muted">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  )
+}

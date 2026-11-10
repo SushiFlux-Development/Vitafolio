@@ -10,6 +10,8 @@ import { RegisterPage } from './pages/auth/RegisterPage'
 import { SetupPage } from './pages/auth/SetupPage'
 import { TwoFactorSetupPage } from './pages/auth/TwoFactorSetupPage'
 import { CoverLettersPage } from './pages/cover-letter/CoverLettersPage'
+import { ExportPage } from './pages/export/ExportPage'
+import { GuidePage } from './pages/guide/GuidePage'
 import { ApplicationsPage } from './pages/tracker/ApplicationsPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
@@ -48,6 +50,8 @@ export const router = createBrowserRouter([
               { path: '/profile', element: <ProfilePage /> },
               { path: '/cover-letters', element: <CoverLettersPage /> },
               { path: '/applications', element: <ApplicationsPage /> },
+              { path: '/export', element: <ExportPage /> },
+              { path: '/guide', element: <GuidePage /> },
               { path: '/settings', element: <SettingsPage /> },
               { element: <RequireAdmin />, children: [{ path: '/admin', element: <AdminPage /> }] },
             ],

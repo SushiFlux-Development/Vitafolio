@@ -63,6 +63,8 @@ export function describeError(t: TFunction, error: unknown): ErrorDescription {
   if (error.code === 'backup.invalid' && error.params.reason === 'schema_mismatch') code = 'backup.invalid_schema_mismatch'
   // A failed restore says whether the previous state came back by itself (rolledBack) and names the safety backup.
   if (code === 'backup.restore_failed' && error.params.rolledBack === false) code = 'backup.restore_failed_not_rolled_back'
+  // The update says whether a backup or a restore is what stops it.
+  if (code === 'updates.busy' && (error.params.reason === 'backup' || error.params.reason === 'restore')) code = `updates.busy_${error.params.reason}`
   let message = codeText(t, code, params)
 
   if (!message && Object.keys(error.fieldErrors).length > 0) {

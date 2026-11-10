@@ -2,9 +2,15 @@ name: CI
 
 # Checks on every push and pull request: .NET build + tests (Windows runner, because the Windows program targets net10.0-windows),
 # the web UI (typecheck, lint, unit tests, build) and the Docker image (built without pushing, then started and health-checked).
+#
+# This file is the single source of the checks. release.yml calls it (workflow_call) and builds or publishes nothing unless it passed, so a tag
+# push is not checked here a second time (tags-ignore); the called run belongs to the tag run of release.yml.
 on:
   push:
+    tags-ignore:
+      - "v*"
   pull_request:
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -45,6 +51,10 @@ jobs:
 
       - name: Test
         run: dotnet test --solution Cv.slnx -c Release --no-build
+
+      # Unknown or not allowed licences and an out-of-date THIRD-PARTY-NOTICES.md fail here, not only at the release (scripts/build-notices.ps1 renews it)
+      - name: Check the third-party licences
+        run: node scripts/generate-third-party-notices.ts --check
 
   frontend:
     name: Web UI
@@ -92,6 +102,8 @@ jobs:
         id: meta
         run: |
           echo "title=$(jq -r .name branding.json)" >> "$GITHUB_OUTPUT"
+          echo "company=$(jq -r .company branding.json)" >> "$GITHUB_OUTPUT"
+          echo "repository=$(jq -r .repository branding.json)" >> "$GITHUB_OUTPUT"
           if [ -f version.txt ]; then
             echo "version=$(sed -n 1p version.txt | tr -d '\r')" >> "$GITHUB_OUTPUT"
             echo "detail=$(sed -n 2p version.txt | tr -d '\r')" >> "$GITHUB_OUTPUT"
@@ -110,6 +122,8 @@ jobs:
           tags: app:ci
           build-args: |
             APP_TITLE=${{ steps.meta.outputs.title }}
+            APP_COMPANY=${{ steps.meta.outputs.company }}
+            REPOSITORY=${{ steps.meta.outputs.repository }}
             APP_VERSION=${{ steps.meta.outputs.version }}
             APP_VERSION_DETAIL=${{ steps.meta.outputs.detail }}
             APP_CHANNEL=dev
