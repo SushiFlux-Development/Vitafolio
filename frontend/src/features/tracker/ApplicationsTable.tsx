@@ -65,17 +65,17 @@ export function ApplicationsTable({ applications, onSelect, onDownload, onDelete
               </td>
               <td>
                 <div className="flex items-center justify-end gap-1.5">
-                  <Button variant="ghost" small icon="download" title={t('applications.actions.downloadDossier')} onClick={() => onDownload(application)}>
+                  <Button variant="ghost" small iconOnly icon="download" title={t('applications.actions.downloadDossier')} onClick={() => onDownload(application)}>
                     <span className="sr-only">
                       {t('applications.actions.downloadDossier')}: {application.jobTitle}
                     </span>
                   </Button>
-                  <Button variant="secondary" small icon="pencil" title={t('applications.actions.viewDetails')} onClick={() => onSelect(application.id)}>
+                  <Button variant="ghost" small iconOnly icon="pencil" title={t('applications.actions.viewDetails')} onClick={() => onSelect(application.id)}>
                     <span className="sr-only">
                       {t('applications.actions.viewDetails')}: {application.jobTitle}
                     </span>
                   </Button>
-                  <Button variant="danger-outline" small icon="trash" title={t('applications.actions.delete')} onClick={() => onDelete(application)}>
+                  <Button variant="danger-text" small iconOnly icon="trash" title={t('applications.actions.delete')} onClick={() => onDelete(application)}>
                     <span className="sr-only">
                       {t('applications.actions.delete')}: {application.jobTitle}
                     </span>

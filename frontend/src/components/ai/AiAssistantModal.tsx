@@ -199,7 +199,7 @@ function AiAssistantInner({
       return (
         <div className="card flex flex-col gap-3 p-4">
           <div className="flex items-center justify-between gap-3 border-b border-line pb-2">
-            <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.result.letterPreview')}</h3>
+            <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.result.letterPreview')}</h3>
             {res.keyMatches && res.keyMatches.length > 0 && (
               <div className="flex flex-wrap justify-end gap-1">
                 {res.keyMatches.map((match, index) => (
@@ -212,7 +212,7 @@ function AiAssistantInner({
           </div>
           <div>
             <span className="text-xs font-semibold text-ink-muted">{t('ai.assistant.result.subject')}:</span>
-            <p className="mt-0.5 text-sm font-bold text-ink">{res.subject}</p>
+            <p className="mt-0.5 text-sm font-semibold text-ink">{res.subject}</p>
           </div>
           <div>
             <span className="text-xs font-semibold text-ink-muted">{t('ai.assistant.result.salutation')}:</span>
@@ -242,7 +242,7 @@ function AiAssistantInner({
         <div className="card flex flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-4 border-b border-line pb-3">
             <div>
-              <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.matchScore')}</h3>
+              <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.matchScore')}</h3>
               <p className="mt-0.5 text-xs text-ink-muted">{res.summary}</p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
@@ -253,7 +253,7 @@ function AiAssistantInner({
 
           {res.matchedRequirements.length > 0 && (
             <div>
-              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wider text-success-soft-ink uppercase">
+              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-success-soft-ink uppercase">
                 <Icon name="check" size={14} />
                 {t('ai.assistant.matchedRequirements')}
               </h3>
@@ -270,7 +270,7 @@ function AiAssistantInner({
 
           {res.missingRequirements.length > 0 && (
             <div>
-              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wider text-warning-soft-ink uppercase">
+              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-warning-soft-ink uppercase">
                 <Icon name="clock" size={14} />
                 {t('ai.assistant.missingRequirements')}
               </h3>
@@ -287,7 +287,7 @@ function AiAssistantInner({
 
           {res.tips.length > 0 && (
             <div className="rounded-sm border border-line bg-surface-2 p-3 text-xs">
-              <h3 className="mb-1.5 font-bold tracking-wider text-ink uppercase">{t('ai.assistant.tips')}</h3>
+              <h3 className="mb-1.5 font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.tips')}</h3>
               <ul className="list-disc space-y-1 pl-4 text-ink-muted">
                 {res.tips.map((tip, index) => (
                   <li key={index}>{tip}</li>
@@ -303,7 +303,7 @@ function AiAssistantInner({
       const res = parsedResult as AiSummaryResult
       return (
         <div className="card flex flex-col gap-3 p-4">
-          <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.result.summaryTitle')}</h3>
+          <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.result.summaryTitle')}</h3>
           <p className="text-sm leading-relaxed font-semibold text-ink">{res.shortSummary}</p>
           {res.bulletPoints.length > 0 && (
             <ul className="list-disc space-y-1 pl-4 text-xs text-ink-muted">
@@ -320,8 +320,8 @@ function AiAssistantInner({
       const res = parsedResult as AiImproveBulletResult
       return (
         <div className="card flex flex-col gap-3 p-4">
-          <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.result.bulletTitle')}</h3>
-          <p className="notice notice-success text-sm font-bold">{res.improved}</p>
+          <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.result.bulletTitle')}</h3>
+          <p className="notice notice-success text-sm font-semibold">{res.improved}</p>
           {res.alternatives.length > 0 && (
             <div>
               <span className="text-xs font-semibold text-ink-muted">{t('ai.assistant.result.alternatives')}:</span>
@@ -345,7 +345,7 @@ function AiAssistantInner({
       const res = parsedResult as AiTranslateResult
       return (
         <div className="card flex flex-col gap-3 p-4">
-          <h3 className="text-xs font-bold tracking-wider text-ink uppercase">
+          <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">
             {t('ai.assistant.result.translationTitle', { language: t(`ai.assistant.languages.${targetLanguage}`) })}
           </h3>
           <p className="text-sm leading-relaxed whitespace-pre-wrap text-ink" data-testid="translation-result">
@@ -480,7 +480,7 @@ function AiAssistantInner({
         {mode === 'direct' ? (
           <div className="flex items-center justify-between gap-4 rounded-md border border-line bg-surface-2 p-4">
             <div>
-              <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.directMode')}</h3>
+              <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.directMode')}</h3>
               <p className="mt-0.5 text-xs text-ink-muted">{t('ai.assistant.directHint', { model: config?.model ?? '' })}</p>
             </div>
             <Button variant="confirm" icon="sparkles" busy={generateMutation.isPending} onClick={() => generateMutation.mutate()}>
@@ -492,7 +492,7 @@ function AiAssistantInner({
           <div className="flex flex-col gap-4 rounded-md border border-line bg-surface-2 p-4">
             <div className="flex flex-col justify-between gap-3 border-b border-line pb-3 sm:flex-row sm:items-center">
               <div>
-                <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{t('ai.assistant.copyPasteMode')}</h3>
+                <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{t('ai.assistant.copyPasteMode')}</h3>
                 <p className="mt-0.5 text-xs text-ink-muted">{t('ai.assistant.copyPasteHint')}</p>
               </div>
               <Button variant={copyState === 'copied' ? 'confirm' : 'secondary'} icon={copyState === 'copied' ? 'check' : 'copy'} busy={promptMutation.isPending} onClick={() => promptMutation.mutate()}>
@@ -519,7 +519,7 @@ function AiAssistantInner({
               ))}
               {copyState === 'failed' && promptText && manualOpen && (
                 <div
-                  className="absolute inset-x-0 top-full z-10 mt-1 rounded-md border border-line-strong bg-surface p-3 shadow-lg"
+                  className="absolute inset-x-0 top-full z-10 mt-1 rounded-md border border-line-strong bg-surface p-3 shadow-pop"
                   onBlur={(event) => {
                     if (!event.currentTarget.contains(event.relatedTarget)) setManualOpen(false)
                   }}

@@ -18,7 +18,8 @@
     "GUST-FONT-LICENSE",
     "GPL-3.0-or-later WITH Font-exception-2.0",
     "Bitstream-Vera",
-    "W3C-20150513"
+    "W3C-20150513",
+    "blessing"
   ],
   "pendingOwnerDecision": {},
   "buildToolsNotShipped": {
@@ -27,6 +28,7 @@
     "caniuse-lite": "CC-BY-4.0"
   },
   "overrides": {
-    "microsoft.web.webview2": "BSD-3-Clause"
+    "microsoft.web.webview2": "BSD-3-Clause",
+    "sqlite": "blessing"
   }
 }

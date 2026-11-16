@@ -44,7 +44,7 @@ export function Toggle({ checked, onChange, label, description, disabled = false
           aria-describedby={description ? descriptionId : undefined}
           disabled={disabled}
           onClick={() => onChange(!checked)}
-          className={`relative h-6 w-11 shrink-0 rounded-sm transition-colors disabled:cursor-not-allowed disabled:opacity-55 ${checked ? 'bg-toggle-on' : 'bg-toggle-off'}`}
+          className={`hit relative h-6 w-11 shrink-0 rounded-sm transition-colors disabled:cursor-not-allowed disabled:opacity-55 ${checked ? 'bg-toggle-on' : 'bg-toggle-off'}`}
         >
           <span
             className={`absolute top-0.5 left-0.5 flex h-5 w-5 items-center justify-center rounded-xs bg-toggle-knob transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}

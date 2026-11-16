@@ -15,10 +15,10 @@ function sourceFiles(dir: string): string[] {
 
 /**
  * Files that may use fixed colours on purpose: the crash console is a self-contained diagnostic tool that must stay legible when the
- * theme itself is what broke; the navy brand panel (sign-in side, welcome banner) is part of the brand in both themes, like the logo
- * plate, and so is the credit line on it (Brand.tsx: lighter green on the dark panel, and the two wordmark images swapped by theme).
+ * theme itself is what broke; Brand.tsx swaps the two wordmark images by theme and keeps the lighter green heart of the credit
+ * line for a fixed dark panel.
  */
-const FIXED_COLOUR_FILES = new Set(['components/ErrorBoundary.tsx', 'components/layout/AuthLayout.tsx', 'pages/OverviewPage.tsx', 'components/ui/Brand.tsx'])
+const FIXED_COLOUR_FILES = new Set(['components/ErrorBoundary.tsx', 'components/ui/Brand.tsx'])
 
 const FILES = sourceFiles(SRC)
   .map((path) => ({ file: relative(SRC, path).replaceAll('\\', '/'), text: readFileSync(path, 'utf8') }))

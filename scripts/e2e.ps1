@@ -65,7 +65,7 @@ try {
         $null = Invoke-Native 'dotnet' @('build', 'src\Cv.Server\Cv.Server.csproj', '-c', 'Release', '--nologo', '-v', 'q')
     }
     $dist = Join-Path $frontendDir 'dist'
-    $dll = 'src\Cv.Server\bin\Release\net10.0\Cv.Server.dll'
+    $dll = 'src\Cv.Server\bin\Release\net11.0\Cv.Server.dll'
     if (-not (Test-Path -LiteralPath (Join-Path $dist 'index.html'))) { throw 'frontend\dist fehlt - ohne -SkipBuild bauen.' }
     if (-not (Test-Path -LiteralPath (Join-Path $RootDir $dll))) { throw "$dll fehlt - ohne -SkipBuild bauen." }
 

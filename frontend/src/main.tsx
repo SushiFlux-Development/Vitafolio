@@ -8,7 +8,12 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { ConfirmProvider } from './components/ui/ConfirmDialog'
 import { ErrorDialogProvider } from './components/ui/ErrorDialog'
 import { router } from './router'
+import { installOverlayScrollbars } from './styles/overlayScrollbars'
 import { ThemeProvider } from './theme/ThemeProvider'
+
+// Scrollbars overlay the content (the native ones are hidden in index.css), so nothing ever shifts sideways.
+const removeOverlayScrollbars = installOverlayScrollbars()
+import.meta.hot?.dispose(removeOverlayScrollbars)
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } })
 

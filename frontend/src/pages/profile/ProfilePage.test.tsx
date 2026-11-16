@@ -23,7 +23,7 @@ describe('ProfilePage', () => {
       expect(screen.getByRole('heading', { level: 1, name: 'Stammprofil' })).toBeInTheDocument()
     })
 
-    // No tab bar on the page any more: the nine sections are the sidebar's sub-navigation, "Zurück" leads out of it
+    // No tab bar on the page: the nine sections are the sub-pages of the profile's row in the sidebar tree
     expect(screen.queryByRole('tablist')).toBeNull()
     expect(screen.queryByRole('tab')).toBeNull()
     const sections = await screen.findByRole('navigation', { name: 'Bereiche des Stammprofils' })
@@ -41,7 +41,6 @@ describe('ProfilePage', () => {
       'Eigene Abschnitte',
       'Vorschau & Export',
     ])
-    expect(screen.getByTestId('sidebar-back')).toHaveTextContent('Zurück')
     // The open section is marked like the open page in the main navigation, and only that one
     expect(within(sections).getByRole('link', { name: 'Persönliches' })).toHaveAttribute('aria-current', 'page')
     expect(within(sections).getAllByRole('link').filter((link) => link.hasAttribute('aria-current'))).toHaveLength(1)

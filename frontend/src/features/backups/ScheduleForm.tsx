@@ -127,7 +127,7 @@ export function ScheduleForm({ draft, onChange, attempted }: ScheduleFormProps) 
                       />
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
+                        className="btn btn-danger-text btn-sm btn-icon"
                         aria-label={t('backups.schedule.removeTime', { time })}
                         disabled={off}
                         onClick={() => set({ times: draft.times.filter((_value, position) => position !== index) })}

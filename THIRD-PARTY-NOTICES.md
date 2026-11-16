@@ -22,31 +22,31 @@ _Server (Typst-Bibliothek): 351 Rust-Crates und 10 weitere Teile der nativen Bib
 | Server | Liberation Serif (Schrift) | 2.1.5 | OFL-1.1 | [Link](https://github.com/liberationfonts/liberation-fonts) |
 | Server | Lora (Schrift) | 3.021 | OFL-1.1 | [Link](https://github.com/cyrealtype/Lora-Cyrillic) |
 | Server | Merriweather (Schrift) | 2.200 | OFL-1.1 | [Link](https://github.com/SorkinType/Merriweather) |
-| Server | Microsoft.AspNetCore.OpenApi | 10.0.14 | MIT | [Link](https://asp.net/) |
+| Server | Microsoft.AspNetCore.OpenApi | 11.0.0 | MIT | [Link](https://asp.net/) |
 | Server | Microsoft.Bcl.Cryptography | 10.0.2 | MIT | [Link](https://dot.net/) |
-| Server | Microsoft.Data.Sqlite.Core | 10.0.14 | MIT | [Link](https://docs.microsoft.com/dotnet/standard/data/sqlite/) |
-| Server | Microsoft.EntityFrameworkCore | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.EntityFrameworkCore.Abstractions | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.EntityFrameworkCore.Analyzers | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.EntityFrameworkCore.Relational | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.EntityFrameworkCore.Sqlite | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.EntityFrameworkCore.Sqlite.Core | 10.0.14 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
-| Server | Microsoft.Extensions.DependencyModel | 10.0.14 | MIT | [Link](https://dot.net/) |
+| Server | Microsoft.Data.Sqlite.Core | 11.0.0 | MIT | [Link](https://docs.microsoft.com/dotnet/standard/data/sqlite/) |
+| Server | Microsoft.EntityFrameworkCore | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.EntityFrameworkCore.Abstractions | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.EntityFrameworkCore.Analyzers | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.EntityFrameworkCore.Relational | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.EntityFrameworkCore.Sqlite | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.EntityFrameworkCore.Sqlite.Core | 11.0.0 | MIT | [Link](https://docs.microsoft.com/ef/core/) |
+| Server | Microsoft.Extensions.DependencyModel | 11.0.0 | MIT | [Link](https://dot.net/) |
 | Server | Microsoft.IdentityModel.Abstractions | 8.23.0 | MIT | [Link](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) |
 | Server | Microsoft.IdentityModel.JsonWebTokens | 8.23.0 | MIT | [Link](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) |
 | Server | Microsoft.IdentityModel.Logging | 8.23.0 | MIT | [Link](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) |
 | Server | Microsoft.IdentityModel.Tokens | 8.23.0 | MIT | [Link](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet) |
-| Server | Microsoft.OpenApi | 2.12.2 | MIT | [Link](https://github.com/Microsoft/OpenAPI.NET) |
-| Server | Newtonsoft.Json | 13.0.4 | MIT | [Link](https://www.newtonsoft.com/json) |
+| Server | Microsoft.OpenApi | 3.11.0 | MIT | [Link](https://github.com/Microsoft/OpenAPI.NET) |
 | Server | Open Sans (Schrift) | 3.003 | OFL-1.1 | [Link](https://github.com/googlefonts/opensans) |
 | Server | PdfPig | 0.1.16 | Apache-2.0 | [Link](https://github.com/UglyToad/PdfPig) |
 | Server | Roboto (Schrift) | 3.016 | OFL-1.1 | [Link](https://github.com/googlefonts/roboto-3-classic) |
 | Server | Source Sans 3 (Schrift) | 3.052 | OFL-1.1 | [Link](https://github.com/adobe-fonts/source-sans) |
 | Server | Source Serif 4 (Schrift) | 4.005 | OFL-1.1 | [Link](https://github.com/adobe-fonts/source-serif) |
-| Server | SQLitePCLRaw.bundle_e_sqlite3 | 2.1.13 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
-| Server | SQLitePCLRaw.core | 2.1.13 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
-| Server | SQLitePCLRaw.lib.e_sqlite3 | 2.1.13 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
-| Server | SQLitePCLRaw.provider.e_sqlite3 | 2.1.13 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
+| Server | SQLite | 3.53.4 | blessing | [Link](https://sqlite.org/) |
+| Server | SQLitePCLRaw.bundle_e_sqlite3 | 3.0.5 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
+| Server | SQLitePCLRaw.config.e_sqlite3 | 3.0.5 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
+| Server | SQLitePCLRaw.core | 3.0.5 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
+| Server | SQLitePCLRaw.provider.e_sqlite3 | 3.0.5 | Apache-2.0 | [Link](https://github.com/ericsink/SQLitePCL.raw) |
 | Server | System.IO.Packaging | 10.0.2 | MIT | [Link](https://dot.net/) |
 | Server | typstsharp | 0.15.1.3 | MIT | [Link](https://github.com/evolvedlight/typstsharp) |
 | Server | Work Sans (Schrift) | 2.012 | OFL-1.1 | [Link](https://github.com/weiweihuanghuang/Work-Sans) |
@@ -442,7 +442,7 @@ _Server (Typst-Bibliothek): 351 Rust-Crates und 10 weitere Teile der nativen Bib
 
 ### DocumentFormat.OpenXml (3.5.1) und 12 weitere - MIT
 
-Gilt für / applies to: DocumentFormat.OpenXml 3.5.1, DocumentFormat.OpenXml.Framework 3.5.1, Microsoft.AspNetCore.OpenApi 10.0.14, Microsoft.Bcl.Cryptography 10.0.2, Microsoft.Data.Sqlite.Core 10.0.14, Microsoft.EntityFrameworkCore 10.0.14, Microsoft.EntityFrameworkCore.Abstractions 10.0.14, Microsoft.EntityFrameworkCore.Analyzers 10.0.14, Microsoft.EntityFrameworkCore.Relational 10.0.14, Microsoft.EntityFrameworkCore.Sqlite 10.0.14, Microsoft.EntityFrameworkCore.Sqlite.Core 10.0.14, Microsoft.Extensions.DependencyModel 10.0.14, System.IO.Packaging 10.0.2
+Gilt für / applies to: DocumentFormat.OpenXml 3.5.1, DocumentFormat.OpenXml.Framework 3.5.1, Microsoft.AspNetCore.OpenApi 11.0.0, Microsoft.Bcl.Cryptography 10.0.2, Microsoft.Data.Sqlite.Core 11.0.0, Microsoft.EntityFrameworkCore 11.0.0, Microsoft.EntityFrameworkCore.Abstractions 11.0.0, Microsoft.EntityFrameworkCore.Analyzers 11.0.0, Microsoft.EntityFrameworkCore.Relational 11.0.0, Microsoft.EntityFrameworkCore.Sqlite 11.0.0, Microsoft.EntityFrameworkCore.Sqlite.Core 11.0.0, Microsoft.Extensions.DependencyModel 11.0.0, System.IO.Packaging 10.0.2
 
 ```
 The MIT License (MIT)
@@ -1197,7 +1197,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### Microsoft.OpenApi (2.12.2) - MIT
+### Microsoft.OpenApi (3.11.0) - MIT
 
 ```
 Copyright (c) Microsoft Corporation. All rights reserved.
@@ -1221,31 +1221,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-### Newtonsoft.Json (13.0.4) - MIT
-
-```
-The MIT License (MIT)
-
-Copyright (c) 2007 James Newton-King
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 ### Open Sans (Schrift) (3.003) - OFL-1.1
@@ -1895,9 +1870,17 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### SQLitePCLRaw.bundle_e_sqlite3 (2.1.13) und 3 weitere - Apache-2.0
+### SQLite (3.53.4) - blessing
 
-Gilt für / applies to: SQLitePCLRaw.bundle_e_sqlite3 2.1.13, SQLitePCLRaw.core 2.1.13, SQLitePCLRaw.lib.e_sqlite3 2.1.13, SQLitePCLRaw.provider.e_sqlite3 2.1.13
+```
+SQLite is Public Domain
+
+https://sqlite.org/copyright.html
+```
+
+### SQLitePCLRaw.bundle_e_sqlite3 (3.0.5) und 3 weitere - Apache-2.0
+
+Gilt für / applies to: SQLitePCLRaw.bundle_e_sqlite3 3.0.5, SQLitePCLRaw.config.e_sqlite3 3.0.5, SQLitePCLRaw.core 3.0.5, SQLitePCLRaw.provider.e_sqlite3 3.0.5
 
 ```
 Apache License

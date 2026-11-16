@@ -3,7 +3,7 @@ import { act, render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import type { Profile } from '../../api/types'
 import { AppStateProvider } from '../../auth/AppState'
-import { SidebarNavArea, SidebarNavProvider } from '../../components/layout/SidebarNav'
+import { SidebarNavProvider, TreeSubs, useSidebarSection } from '../../components/layout/SidebarNav'
 import { ConfirmProvider } from '../../components/ui/ConfirmDialog'
 import { ErrorDialogProvider } from '../../components/ui/ErrorDialog'
 import { ADMIN, bootstrapOf } from '../../test/fixtures'
@@ -100,6 +100,12 @@ export const mockProfile: Profile = {
 export const SETTLE = 600
 export const settle = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, SETTLE))))
 
+/** The sub-pages the page hands to the sidebar, as the sidebar shows them under the profile's row. */
+function SidebarSubPages() {
+  const section = useSidebarSection()
+  return section ? <TreeSubs section={section} /> : null
+}
+
 export function renderPage(initialTab = 'personal', { account = false }: { account?: boolean } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const page = (
@@ -107,9 +113,9 @@ export function renderPage(initialTab = 'personal', { account = false }: { accou
       <MemoryRouter initialEntries={[`/profile?tab=${initialTab}`]}>
         <ConfirmProvider>
           <ErrorDialogProvider>
-            {/* The sections are in the sidebar: it is part of what is tested, so the page is rendered with it. */}
-            <SidebarNavProvider titleOf={() => 'Übersicht'}>
-              <SidebarNavArea main={null} />
+            {/* The sections are sub-pages in the sidebar: they are part of what is tested, so the page is rendered with them. */}
+            <SidebarNavProvider>
+              <SidebarSubPages />
               <ProfilePage />
             </SidebarNavProvider>
           </ErrorDialogProvider>

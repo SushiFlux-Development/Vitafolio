@@ -30,6 +30,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  localStorage.removeItem('cv.sidebarCollapsed')
   global.URL.createObjectURL = vi.fn(() => 'blob:http://localhost/handbook')
   global.URL.revokeObjectURL = vi.fn()
   vi.mocked(publicApi.version).mockResolvedValue(versionOf('v2026.11.12.13.557'))
@@ -40,13 +41,12 @@ beforeEach(() => {
   vi.mocked(docsApi.handbookPdf).mockResolvedValue(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))
 })
 
-/** A page with sections of its own, like the master profile. */
+/** A page with sub-pages of its own, like the master profile (it is rendered at /profile, the row that has sub-pages). */
 function SectionPage() {
   const section = useMemo(
     () => ({
       label: 'Bereiche der Seite',
-      backLabel: 'Zurück',
-      items: Array.from({ length: 9 }, (_, index) => ({ id: `s${index}`, label: `Bereich ${index + 1}`, icon: 'fileText' as const, to: `?tab=s${index}` })),
+      items: Array.from({ length: 9 }, (_, index) => ({ id: `s${index}`, label: `Bereich ${index + 1}`, to: `?tab=s${index}` })),
       activeId: 's0',
     }),
     [],
@@ -61,7 +61,7 @@ function renderShell(options: Parameters<typeof renderInApp>[1] = {}) {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<p>page</p>} />
-          <Route path="/sections" element={<SectionPage />} />
+          <Route path="/profile" element={<SectionPage />} />
         </Route>
       </Routes>
     </ThemeProvider>,
@@ -69,27 +69,35 @@ function renderShell(options: Parameters<typeof renderInApp>[1] = {}) {
   )
 }
 
-describe('version display in the navigation', () => {
+describe('version and About page in the sidebar', () => {
   it.each([
     ['release', 'v2026.11.12.13.557', 'release'],
     ['beta', 'v2026.11.12.13.557 (β)', 'beta'],
     ['nightly', 'v2026.11.12.13.557 (α)', 'nightly'],
     ['development', 'v2026.11.12.13.557 (</>)', 'dev'],
-  ])('shows the %s version exactly as the server writes it, whole', async (_name, text, channel) => {
+  ])('names the %s version exactly as the server writes it, whole, in the tooltip of the info icon', async (_name, text, channel) => {
     vi.mocked(publicApi.version).mockResolvedValue(versionOf(text, channel))
     renderShell()
-    const label = await screen.findByTestId('version')
-    expect(label).toHaveTextContent(text)
-    expect(label.textContent).toBe(text)
-    // No cut-off: nothing around the text clips it.
-    const link = label.closest('a')!
-    expect(link.className).not.toMatch(/truncate|line-clamp|overflow-hidden|text-ellipsis/)
+    const about = await screen.findByTestId('open-about')
+    await waitFor(() => expect(publicApi.version).toHaveBeenCalled())
+    // Our own tooltip, no browser title
+    expect(about).not.toHaveAttribute('title')
+    await waitFor(() => {
+      fireEvent.pointerEnter(about)
+      expect(screen.getByTestId('sidebar-tip')).toHaveTextContent(text)
+    })
   })
 
-  it('leads to the About page with licence, source code and the notes of this version', async () => {
+  it('leads from the info icon to the About page with licence, source code and the notes of this version', async () => {
     renderShell()
-    const label = await screen.findByTestId('version')
-    expect(label.closest('a')).toHaveAttribute('href', '/settings?tab=about')
+    expect(await screen.findByTestId('open-about')).toHaveAttribute('href', '/settings?tab=about')
+  })
+
+  it('has no page footer next to the sidebar', async () => {
+    renderShell()
+    await screen.findByTestId('open-about')
+    expect(document.querySelector('aside footer')).toBeNull()
+    expect(document.querySelector('footer')).toBeNull()
   })
 })
 
@@ -152,7 +160,7 @@ describe('live helper in the shell', () => {
   it('marks the controls it can point at', async () => {
     renderShell()
     await screen.findByTestId('open-help')
-    for (const target of ['nav-profile', 'nav-export', 'nav-guide', 'shell-ai', 'shell-handbook', 'shell-help']) {
+    for (const target of ['nav-profile', 'nav-export', 'nav-guide', 'shell-ai', 'shell-handbook', 'shell-help', 'shell-collapse']) {
       expect(document.querySelector(`[data-hint="${target}"]`), target).not.toBeNull()
     }
   })
@@ -174,40 +182,87 @@ describe('the lower part of the sidebar', () => {
     expect(names.indexOf('Export')).toBe(names.indexOf('Bewerbungen') + 1)
   })
 
-  it('has a sign-out button of its own, and the footer holds the credit line and the version', async () => {
+  it('starts with the overview, marks the open page by aria-current only, and keeps the settings below the list', async () => {
+    renderShell()
+    const nav = await screen.findByRole('navigation', { name: 'Hauptnavigation' })
+    const links = within(nav).getAllByRole('link')
+    expect(links[0]).toHaveTextContent('Übersicht')
+    expect(links[0]).toHaveAttribute('aria-current', 'page')
+    expect(links.filter((link) => link.hasAttribute('aria-current'))).toHaveLength(1)
+    const settings = screen.getByRole('link', { name: 'Einstellungen' })
+    expect(nav.contains(settings)).toBe(false)
+  })
+
+  it('has a sign-out button of its own (the shared button, no box across the sidebar)', async () => {
     renderShell()
     const button = await screen.findByTestId('sign-out')
     expect(button).toHaveClass('btn')
     expect(button.className).not.toContain('w-full')
-    expect(await screen.findByTestId('version')).toHaveTextContent('v2026.11.12.13.557')
   })
 })
 
-describe('sub-navigation in the sidebar', () => {
-  it('replaces only the main navigation: user area, theme switch and footer stay, and only the list scrolls', async () => {
-    renderShell({ route: '/sections' })
-    const sections = await screen.findByRole('navigation', { name: 'Bereiche der Seite' })
-    expect(screen.queryByRole('navigation', { name: 'Hauptnavigation' })).toBeNull()
-    expect(within(sections).getAllByRole('link')).toHaveLength(9)
-    expect(screen.getByTestId('sidebar-back')).toHaveTextContent('Zurück')
+describe('sub-pages in the sidebar tree', () => {
+  it('unfolds the sub-pages under the row of the open page; user area and the main navigation stay, and only the list scrolls', async () => {
+    renderShell({ route: '/profile' })
+    const nav = await screen.findByRole('navigation', { name: 'Hauptnavigation' })
+    const subs = await within(nav).findByRole('navigation', { name: 'Bereiche der Seite' })
+    expect(within(subs).getAllByRole('link')).toHaveLength(9)
+    const profile = within(nav).getByRole('link', { name: 'Stammprofil' })
+    expect(profile).toHaveAttribute('aria-expanded', 'true')
+    // The sub-page is the current page, not the row above it
+    expect(profile).not.toHaveAttribute('aria-current')
+    expect(within(subs).getByRole('link', { name: 'Bereich 1' })).toHaveAttribute('aria-current', 'page')
+    // A section that is not open shows its chevron state too, and only one section is open
+    expect(within(nav).getAllByRole('link').filter((link) => link.getAttribute('aria-expanded') === 'true')).toHaveLength(1)
 
-    // Unchanged below the list
     expect(screen.getByTestId('current-user')).toBeInTheDocument()
     expect(screen.getByTestId('open-handbook')).toBeInTheDocument()
     expect(screen.getByRole('radiogroup', { name: 'Darstellung wechseln' })).toBeInTheDocument()
-    expect(screen.getByTestId('version')).toBeInTheDocument()
 
-    // The list is the part that scrolls; the sidebar as a whole never does, and the user area keeps its size
-    expect(sections.className).toMatch(/overflow-y-auto/)
-    const aside = sections.closest('aside')!
+    // The list is the part that scrolls; the sidebar as a whole never does
+    expect(nav.className).toMatch(/overflow-y-auto/)
+    const aside = nav.closest('aside')!
     expect(aside.className).not.toMatch(/overflow-y-(auto|scroll)/)
-    expect(screen.getByTestId('current-user').closest('div.shrink-0')).not.toBeNull()
   })
 
-  it('shows the update hint in the sub-navigation too', async () => {
+  it('shows the update hint in the tree', async () => {
     vi.mocked(updatesApi.status).mockResolvedValue(offeredStatus({ host: 'server', canInstall: false }))
-    renderShell({ mode: 'server', route: '/sections' })
+    renderShell({ mode: 'server', route: '/profile' })
     expect(await screen.findByTestId('update-nav')).toHaveTextContent('Update verfügbar')
+  })
+})
+
+describe('collapsing the sidebar to a rail', () => {
+  it('folds into icons with the names in an own tooltip, hides the sub-pages, and remembers the choice', async () => {
+    const view = renderShell({ route: '/profile' })
+    const toggle = await screen.findByTestId('sidebar-collapse')
+    expect(toggle).toHaveAttribute('aria-label', 'Seitenleiste einklappen')
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveAttribute('data-hint', 'shell-collapse')
+
+    fireEvent.click(toggle)
+    const aside = toggle.closest('aside')!
+    expect(aside).toHaveAttribute('data-rail', 'true')
+    expect(toggle).toHaveAttribute('aria-label', 'Seitenleiste ausklappen')
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(localStorage.getItem('cv.sidebarCollapsed')).toBe('1')
+
+    // No sub-pages in the rail: the section itself carries the mark of the open page
+    expect(screen.queryByRole('navigation', { name: 'Bereiche der Seite' })).toBeNull()
+    const profile = screen.getByRole('link', { name: 'Stammprofil' })
+    expect(profile).toHaveAttribute('aria-current', 'page')
+    expect(profile).not.toHaveAttribute('title')
+    fireEvent.pointerEnter(profile)
+    expect(screen.getByTestId('sidebar-tip')).toHaveTextContent('Stammprofil')
+    fireEvent.pointerLeave(profile)
+
+    // The theme switch and sign-out stay, as icons
+    expect(screen.getByRole('radiogroup', { name: 'Darstellung wechseln' })).toBeInTheDocument()
+    expect(screen.getByTestId('sign-out')).toHaveClass('btn')
+
+    view.unmount()
+    renderShell({ route: '/profile' })
+    expect((await screen.findByTestId('sidebar-collapse')).closest('aside')).toHaveAttribute('data-rail', 'true')
   })
 })
 

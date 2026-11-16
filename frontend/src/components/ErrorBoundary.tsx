@@ -102,7 +102,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   <IconAlertTriangle size={16} stroke={1.75} />
                   <span>React.ErrorBoundary</span>
                 </div>
-                <h1 className="text-xl font-bold leading-tight tracking-tight text-white md:text-2xl">
+                <h1 className="text-xl font-semibold leading-tight tracking-tight text-white md:text-2xl">
                   {this.state.error?.message || 'Unknown Error'}
                 </h1>
                 <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-gray-400">
@@ -113,7 +113,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="mt-2 flex shrink-0 gap-3 md:mt-0">
                 <button
                   onClick={() => window.location.reload()}
-                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black shadow-lg transition-all hover:bg-gray-200 active:scale-95"
+                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black shadow-lg transition-all hover:bg-gray-200 active:scale-95"
                 >
                   <IconRefresh size={16} />
                   Reload Application
@@ -216,22 +216,22 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {this.state.activeTab === 'context' && (
               <div className="overflow-hidden rounded-xl border border-gray-800 bg-[#161b22] p-8 shadow-2xl lg:col-span-12">
-                <h3 className="mb-6 text-2xl font-bold text-white">Environment Context</h3>
+                <h3 className="mb-6 text-2xl font-semibold text-white">Environment Context</h3>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <div className="rounded-xl border border-gray-800 bg-[#0d1117] p-5 shadow-inner">
-                    <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                       <IconWorld size={16} /> Browser User Agent
                     </h4>
                     <p className="break-words font-mono text-sm text-gray-300">{navigator.userAgent}</p>
                   </div>
                   <div className="rounded-xl border border-gray-800 bg-[#0d1117] p-5 shadow-inner">
-                    <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                       <IconLink size={16} /> Current URL
                     </h4>
                     <p className="break-all font-mono text-sm text-gray-300">{window.location.href}</p>
                   </div>
                   <div className="rounded-xl border border-gray-800 bg-[#0d1117] p-5 shadow-inner">
-                    <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                       <IconDeviceDesktop size={16} /> Viewport
                     </h4>
                     <p className="font-mono text-sm text-gray-300">

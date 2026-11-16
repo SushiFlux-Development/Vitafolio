@@ -29,6 +29,7 @@ export const HINTS: Record<HintScreen, readonly HintDefinition[]> = {
     { target: 'shell-ai', id: 'shellAi' },
     { target: 'shell-handbook', id: 'shellHandbook' },
     { target: 'shell-help', id: 'shellHelp' },
+    { target: 'shell-collapse', id: 'shellCollapse' },
   ],
   guide: [
     { target: 'guide-start', id: 'guideStart' },

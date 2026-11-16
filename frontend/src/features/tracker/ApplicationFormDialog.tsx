@@ -267,7 +267,7 @@ export function ApplicationFormDialog({ open, onClose, coverLetters, application
       </p>
 
       <fieldset className="space-y-4 rounded-md border border-line bg-surface-2 p-4">
-        <legend className="px-1 text-xs font-bold tracking-wider text-ink uppercase">{t('applications.dossier.title')}</legend>
+        <legend className="px-1 text-xs font-semibold tracking-wider text-ink uppercase">{t('applications.dossier.title')}</legend>
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
           <SelectField label={t('applications.fields.cvDesign')} value={form.cvDesign} onChange={(event) => set('cvDesign', event.target.value)}>
             {groupDesigns(designs).map(({ group, designs: members }, _, groups) => {

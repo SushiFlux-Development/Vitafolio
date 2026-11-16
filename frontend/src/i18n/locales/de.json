@@ -79,8 +79,7 @@
         "text": "Status, Gespräche und die genau so verschickte Fassung im Blick."
       }
     },
-    "ai": "KI-Hilfe ist freiwillig: mit eigenem Schlüssel, lokalem Modell oder per Kopieren und Einfügen.",
-    "copyright": "© {{year}} SushiFlux Development"
+    "ai": "KI-Hilfe ist freiwillig: mit eigenem Schlüssel, lokalem Modell oder per Kopieren und Einfügen."
   },
   "fields": {
     "username": "Benutzername",
@@ -241,7 +240,8 @@
     "settings": "Einstellungen",
     "signOut": "Abmelden",
     "handbook": "Handbuch",
-    "backTo": "Zurück zu: {{page}}"
+    "collapse": "Seitenleiste einklappen",
+    "expand": "Seitenleiste ausklappen"
   },
   "shell": {
     "theme": "Darstellung wechseln",
@@ -2115,7 +2115,7 @@
         },
         "help": {
           "title": "Hilfe, wenn Sie sie brauchen",
-          "text": "Auf jeder Seite zeigt „Hilfe zu dieser Seite“ unten in der Seitenleiste kurze Hinweise direkt an den Bedienelementen.",
+          "text": "Auf jeder Seite zeigt „Hilfe zu dieser Seite“ in der Seitenleiste kurze Hinweise direkt an den Bedienelementen.",
           "point1": "Das Handbuch erklärt alles ausführlich und lässt sich als PDF herunterladen.",
           "point2": "In den Einstellungen starten Sie diese Einführung und alle Hinweise jederzeit neu.",
           "point3": "Die KI richten Sie unter „KI-Einstellungen“ ein: eigener Schlüssel, lokales Modell oder Kopieren und Einfügen."
@@ -2176,6 +2176,10 @@
       "shellHelp": {
         "title": "Hilfe zu dieser Seite",
         "text": "Zeigt die Hinweise der Seite, auf der Sie gerade sind. Auf Seiten ohne Hinweise startet die Einführung."
+      },
+      "shellCollapse": {
+        "title": "Seitenleiste ein- und ausklappen",
+        "text": "Klappt die Seitenleiste zu einer schmalen Leiste mit Symbolen ein, damit die Seite mehr Platz hat. Zeigen Sie auf ein Symbol, steht sein Name daneben. Ein zweiter Klick klappt sie wieder aus; die Wahl merkt sich dieser Browser."
       },
       "profileSections": {
         "title": "Die Bereiche des Stammprofils",

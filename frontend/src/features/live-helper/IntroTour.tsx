@@ -210,9 +210,7 @@ export function IntroTour({ open, onClose, onGoToProfile, onOpenHandbook }: Intr
                 {step.entries.map((entry) => (
                   <li
                     key={entry.labelKey}
-                    className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-semibold ${
-                      entry.active ? 'bg-select text-select-ink shadow-[inset_3px_0_0_var(--indicator)]' : 'text-ink-muted'
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2 text-sm ${entry.active ? 'accent-start font-semibold text-ink [--accent-inset:0.375rem]' : 'font-medium text-ink-muted'}`}
                   >
                     <Icon name={entry.icon} size={18} className="shrink-0" />
                     <span className="min-w-0">{t(entry.labelKey)}</span>

@@ -15,7 +15,7 @@ export function DragGrip({ onKeyDown }: { onKeyDown: (event: KeyboardEvent<HTMLE
       aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight"
       onKeyDown={onKeyDown}
       data-testid="drag-grip"
-      className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-xs text-ink-muted hover:bg-surface-2 hover:text-ink active:cursor-grabbing"
+      className="hit inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-xs text-ink-muted hover:text-ink active:cursor-grabbing"
     >
       <Icon name="gripHorizontal" size={18} />
     </button>
@@ -35,7 +35,7 @@ export function DragReset({ shown, onClick, withLabel = false }: { shown: boolea
       data-testid="drag-reset"
       aria-label={t('dragWindow.reset')}
       onClick={onClick}
-      className={`inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-xs text-xs font-semibold text-link hover:underline ${withLabel ? 'px-1' : 'w-7'} ${shown ? '' : 'invisible'}`}
+      className={`hit inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-xs text-xs font-medium text-link hover:underline ${withLabel ? 'px-1' : 'w-7'} ${shown ? '' : 'invisible'}`}
     >
       <Icon name="arrowBackUp" size={16} />
       {withLabel && t('dragWindow.reset')}

@@ -38,13 +38,13 @@ export function ProfileWizard({ profile, personalForm, onExitWizard }: ProfileWi
   return (
     <div className="space-y-6">
       {/* Wizard Header Bar */}
-      <div className="card flex flex-col justify-between gap-4 border-l-4 border-l-indicator p-5 md:flex-row md:items-center">
+      <div className="card accent-start flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-gold-text uppercase">
             <Icon name="sparkles" size={16} />
             {t('profile.wizard.label')}
           </div>
-          <h2 className="mt-0.5 text-xl font-bold text-ink">{t('profile.wizard.stepOf', { current: currentStep, total: STEPS.length, title: t(`profile.wizard.steps.${currentStep}.title`) })}</h2>
+          <h2 className="mt-0.5 text-xl font-semibold text-ink">{t('profile.wizard.stepOf', { current: currentStep, total: STEPS.length, title: t(`profile.wizard.steps.${currentStep}.title`) })}</h2>
           <p className="text-sm text-ink-muted">{t(`profile.wizard.steps.${currentStep}.description`)}</p>
         </div>
 
@@ -68,7 +68,7 @@ export function ProfileWizard({ profile, personalForm, onExitWizard }: ProfileWi
                   isActive ? 'border-indicator bg-select text-select-ink ring-1 ring-indicator' : isDone ? 'border-line bg-surface text-ink hover:bg-surface-2' : 'border-line bg-surface-2 text-ink-muted hover:bg-surface'
                 }`}
               >
-                <span className="mb-1 flex items-center justify-between text-xs font-bold">
+                <span className="mb-1 flex items-center justify-between text-xs font-semibold">
                   {t('profile.wizard.step', { number: step })}
                   {isDone && <Icon name="circleCheck" size={14} className="text-success-soft-ink" />}
                 </span>

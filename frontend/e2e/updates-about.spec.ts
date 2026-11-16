@@ -31,9 +31,10 @@ plain.describe('update page (administration, server mode)', () => {
     await openApp(page, '/admin?tab=updates')
     await expect(page.getByTestId('admin-updates')).toBeVisible()
     await expect(page.getByText(t('updates.state.devBuild'))).toBeVisible()
-    // The version is the one the sidebar shows
+    // The version is the one the info icon of the sidebar names (its own tooltip)
     const shown = (await page.getByTestId('updates-current').textContent())!.trim()
-    expect(shown).toBe((await page.getByTestId('version').textContent())!.trim())
+    await page.getByTestId('open-about').hover()
+    await expect(page.getByTestId('sidebar-tip')).toContainText(shown)
     await page.getByTestId('updates-check').click()
     await expect(page.getByText(t('updates.state.devBuild'))).toBeVisible()
     await expect(page.getByTestId('error-notice')).toHaveCount(0)
@@ -102,8 +103,10 @@ plain.describe('About', () => {
   plain('version, licence, source link and the notes of this version', async ({ page }) => {
     await openApp(page, '/settings?tab=about')
     await expect(page.getByTestId('about')).toBeVisible()
-    const version = (await page.getByTestId('version').textContent())!.trim()
-    expect((await page.getByTestId('about-version').textContent())!.trim()).toBe(version)
+    // The running version as the server writes it, whole (with its channel symbol)
+    const running = await apiOk<{ version: string; short: string }>(page, 'GET', '/api/version')
+    expect((await page.getByTestId('about-version').textContent())!.trim()).toBe(running.version)
+    await expect(page.getByTestId('about-credit')).toContainText('♥')
     // The licence obliges the program to offer its source: a real link that opens elsewhere without handing over the window
     const source = page.getByTestId('about-source')
     await expect(source).toHaveAttribute('href', /^https:\/\//)
@@ -139,9 +142,9 @@ plain.describe('About', () => {
     await expect.poll(() => rows.count()).toBe(total)
   })
 
-  plain('the version in the sidebar leads here', async ({ page }) => {
+  plain('the info icon at the foot of the sidebar leads here', async ({ page }) => {
     await openApp(page, '/')
-    await page.getByTestId('version').click()
+    await page.getByTestId('open-about').click()
     await expect(page).toHaveURL(/\/settings\?tab=about/)
     await expect(page.getByTestId('about')).toBeVisible()
   })

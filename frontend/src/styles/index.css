@@ -63,7 +63,6 @@
   --color-toggle-knob: var(--toggle-knob);
   --color-heart: var(--heart);
 
-  --shadow-card: var(--elev-card);
   --shadow-pop: var(--elev-pop);
 }
 
@@ -76,8 +75,6 @@
   }
 
   html {
-    /* A page that becomes scrollable must not shift sideways. */
-    scrollbar-gutter: stable;
     font-family: var(--font-sans);
     font-feature-settings: 'cv11', 'ss03';
     -webkit-font-smoothing: antialiased;
@@ -85,8 +82,20 @@
     color: var(--ink);
   }
 
+  /*
+   * Overlay scrollbars: the native scrollbar is hidden everywhere, so it never takes layout room - the page and every inner
+   * scroll area always use their full width and nothing shifts sideways when something becomes scrollable. A slim thumb is
+   * drawn on top instead (styles/overlayScrollbars.ts, look in .os-thumb below).
+   */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   body {
-    /* 1024 px is the narrowest window; a classic scrollbar takes 15 px of it, so the page itself must fit into 1008 px. */
+    /* 1024 px is the narrowest window (no phone layout); the page itself fits into it with a little room to spare. */
     min-width: 63rem;
     min-height: 100vh;
     font-size: 0.9375rem;
@@ -100,6 +109,12 @@
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--ink);
+  }
+
+  /* Calm type: nothing heavier than 600, also where the browser would make text bold by itself. */
+  b,
+  strong {
+    font-weight: 600;
   }
 
   a {
@@ -131,17 +146,23 @@
  * treatment cannot drift between pages.
  */
 @layer components {
+  /*
+   * Buttons. The visible box stays compact (40 px, small 32 px) so a page does not look bulky; the hit target is 48 x 48 px all
+   * the same, through an invisible ::after that grows the clickable area around the box (also for the frameless ones). Flat
+   * action colours: no gradient, no glow, no edge under the button.
+   */
   .btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 2.25rem;
+    min-height: 2.5rem;
     padding: 0 0.875rem;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
@@ -151,13 +172,27 @@
       border-color 0.12s,
       color 0.12s;
   }
+  .btn::after,
+  .hit::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 48px);
+    height: max(100%, 48px);
+    transform: translate(-50%, -50%);
+  }
+  /* Any other small control that needs the 48 px target (a grip, a link-like button in a window head). */
+  .hit {
+    position: relative;
+  }
   .btn:disabled,
   .btn[aria-disabled='true'] {
     cursor: not-allowed;
     opacity: 0.55;
   }
   .btn-sm {
-    min-height: 1.875rem;
+    min-height: 2rem;
     padding: 0 0.625rem;
     font-size: 0.8125rem;
   }
@@ -165,6 +200,7 @@
   .btn-confirm {
     background: var(--confirm);
     color: var(--confirm-ink);
+    font-weight: 600;
   }
   .btn-confirm:hover:not(:disabled) {
     background: var(--confirm-hover);
@@ -173,6 +209,7 @@
   .btn-create {
     background: var(--create);
     color: var(--create-ink);
+    font-weight: 600;
   }
   .btn-create:hover:not(:disabled) {
     background: var(--create-hover);
@@ -181,11 +218,12 @@
   .btn-danger {
     background: var(--danger);
     color: var(--danger-ink);
+    font-weight: 600;
   }
   .btn-danger:hover:not(:disabled) {
     background: var(--danger-hover);
   }
-  /* neutral / cancel / secondary */
+  /* neutral / cancel / secondary: a 1px frame on the surface */
   .btn-secondary {
     background: var(--surface);
     border-color: var(--line-strong);
@@ -194,12 +232,22 @@
   .btn-secondary:hover:not(:disabled) {
     background: var(--surface-2);
   }
-  .btn-ghost {
+  /* Frameless text buttons (list actions, "skip", "reset"): link or danger colour, underline on hover, never a box. */
+  .btn-ghost,
+  .btn-danger-text {
     background: transparent;
-    color: var(--ink);
+    padding-inline: 0.5rem;
   }
-  .btn-ghost:hover:not(:disabled) {
-    background: var(--surface-2);
+  .btn-ghost {
+    color: var(--link);
+  }
+  .btn-danger-text {
+    color: var(--danger);
+  }
+  .btn-ghost:hover:not(:disabled),
+  .btn-danger-text:hover:not(:disabled) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   .btn-danger-outline {
     background: var(--surface);
@@ -209,12 +257,70 @@
   .btn-danger-outline:hover:not(:disabled) {
     background: var(--danger-soft);
   }
+  /* Icon-only button: a plain icon, no frame and no fill (also on hover); its name is the accessible label. */
+  .btn-icon {
+    width: 2.5rem;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--ink-muted);
+  }
+  .btn-icon.btn-sm {
+    width: 2rem;
+  }
+  .btn-icon:hover:not(:disabled) {
+    background: transparent;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .btn-icon.btn-danger-text,
+  .btn-icon.btn-danger-text:hover:not(:disabled) {
+    color: var(--danger);
+  }
 
+  /* Cards and panels: a 1px line and a slight surface step on the page colour, no shadow. */
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    box-shadow: var(--elev-card);
+  }
+
+  /*
+   * Accents are thin straight lines with square ends (3 px), drawn as a pseudo-element and inset from rounded corners - never a
+   * thick border or an inset shadow that bends around a corner. accent-start: at the left edge (a highlighted card, a note, the
+   * active entry of a list), accent-bottom: along the foot (a chosen tile), accent-top: across the top. --accent-color changes
+   * the colour (default: the gold indicator), --accent-inset the distance from the corners.
+   */
+  .accent-start,
+  .accent-bottom,
+  .accent-top {
+    position: relative;
+  }
+  .accent-start::before,
+  .accent-bottom::before,
+  .accent-top::before {
+    content: '';
+    position: absolute;
+    background: var(--accent-color, var(--indicator));
+    pointer-events: none;
+  }
+  .accent-start::before {
+    left: 0;
+    top: var(--accent-inset, 0.625rem);
+    bottom: var(--accent-inset, 0.625rem);
+    width: 3px;
+  }
+  .accent-bottom::before {
+    left: var(--accent-inset, 0.75rem);
+    right: var(--accent-inset, 0.75rem);
+    bottom: 0;
+    height: 3px;
+  }
+  .accent-top::before {
+    left: var(--accent-inset, 0.75rem);
+    right: var(--accent-inset, 0.75rem);
+    top: 0;
+    height: 3px;
   }
 
   /* Cards side by side: as many columns as fit, each at least --card-min wide, together filling the row. */
@@ -271,7 +377,10 @@
       0 1px 3px rgb(0 0 0 / 0.4);
   }
 
-  /* Box metrics of a notice, shared with the invisible copies that reserve its room (see AlertSlot). */
+  /*
+   * Box metrics of a notice, shared with the invisible copies that reserve its room (see AlertSlot). A notice is a soft tint
+   * with a straight line in its ink colour at the left edge; the 1px border stays (transparent) so the metrics never change.
+   */
   .notice,
   .notice-reserve,
   .notice-reserve-plain {
@@ -284,30 +393,38 @@
     padding: 0.5rem var(--notice-pad-x);
     font-size: 0.875rem;
   }
+  .notice {
+    position: relative;
+  }
+  .notice::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.375rem;
+    bottom: 0.375rem;
+    width: 3px;
+    background: currentColor;
+    pointer-events: none;
+  }
   .notice-danger {
     background: var(--danger-soft);
     color: var(--danger-soft-ink);
-    border-color: color-mix(in srgb, var(--danger-soft-ink) 35%, transparent);
   }
   .notice-success {
     background: var(--success-soft);
     color: var(--success-soft-ink);
-    border-color: color-mix(in srgb, var(--success-soft-ink) 35%, transparent);
   }
   .notice-warning {
     background: var(--warning-soft);
     color: var(--warning-soft-ink);
-    border-color: color-mix(in srgb, var(--warning-soft-ink) 35%, transparent);
   }
   .notice-info {
     background: var(--info-soft);
     color: var(--info-soft-ink);
-    border-color: color-mix(in srgb, var(--info-soft-ink) 35%, transparent);
   }
   .notice-highlight {
     background: var(--highlight-soft);
     color: var(--highlight-soft-ink);
-    border-color: color-mix(in srgb, var(--highlight-soft-ink) 35%, transparent);
   }
   .notice-reserve {
     padding: 0.5rem var(--notice-pad-x) calc(0.5rem + var(--notice-footer));
@@ -334,13 +451,11 @@
   .table th {
     padding: 0.625rem 0.75rem;
     text-align: left;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     color: var(--ink-muted);
-    background: var(--surface-2);
-    border-bottom: 1px solid var(--line);
+    background: transparent;
+    border-bottom: 1px solid var(--line-strong);
   }
   .table td {
     padding: 0.625rem 0.75rem;
@@ -362,7 +477,7 @@
     padding: 0.125rem 0.5rem;
     border-radius: var(--radius-xs);
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.25rem;
   }
   .badge-neutral {
@@ -395,16 +510,347 @@
   }
 }
 
-/* Sign-in pages: the scrollbar gutter beside the brand panel is navy too (set by AuthLayout). */
-html[data-auth] {
-  background: #14213d;
+
+/*
+ * Choices: tabs and segmented controls are one connected thin bar in one row - a 1px frame, 1px separators, the chosen part a
+ * tint with a straight line under its label. When the options do not fit at full length, the bar becomes a connected vertical
+ * list in the same style (data-stack="true", set by useFitInRow); a label is never cut, hidden or scrolled sideways. Every
+ * option keeps the same weight whether chosen or not, so choosing never moves the labels.
+ */
+@layer components {
+  .choice-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  .choice-bar[data-inline='true'] {
+    display: inline-flex;
+    width: auto;
+    vertical-align: middle;
+  }
+  .choice {
+    position: relative;
+    display: flex;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* With the 1px frame of the bar the bar is 48 px high; ::before makes the frame part of the target too. */
+    min-height: calc(3rem - 2px);
+    padding: 0.25rem 1rem;
+    border: 0;
+    background: transparent;
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.12s,
+      color 0.12s;
+  }
+  .choice::before {
+    content: '';
+    position: absolute;
+    inset: -1px 0;
+  }
+  /* The tint of the first and last option follows the rounded corners of the frame. */
+  .choice:first-child {
+    border-start-start-radius: calc(var(--radius-sm) - 1px);
+    border-end-start-radius: calc(var(--radius-sm) - 1px);
+  }
+  .choice:last-child {
+    border-start-end-radius: calc(var(--radius-sm) - 1px);
+    border-end-end-radius: calc(var(--radius-sm) - 1px);
+  }
+  .choice-bar[data-compact='true'] > .choice {
+    flex: 1 1 0;
+    min-width: 3rem;
+    padding-inline: 0.5rem;
+  }
+  .choice + .choice {
+    border-left: 1px solid var(--line);
+  }
+  .choice:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .choice:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .choice:is([aria-selected='true'], [aria-checked='true']) {
+    background: var(--select-bg);
+    color: var(--select-ink);
+  }
+  .choice:is([aria-selected='true'], [aria-checked='true'])::after {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0;
+    height: 3px;
+    background: var(--indicator);
+    pointer-events: none;
+  }
+  .choice-bar[data-compact='true'] > .choice:is([aria-selected='true'], [aria-checked='true'])::after {
+    left: 0.5rem;
+    right: 0.5rem;
+  }
+  .choice:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -3px;
+  }
+  /* Does not fit in one row: the same bar as a connected vertical list, every label in full and at the left. */
+  .choice-bar[data-stack='true'] {
+    flex-direction: column;
+  }
+  .choice-bar[data-stack='true'] > .choice {
+    flex: none;
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 0;
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+  }
+  .choice-bar[data-stack='true'] > .choice:first-child {
+    border-start-start-radius: calc(var(--radius-sm) - 1px);
+    border-start-end-radius: calc(var(--radius-sm) - 1px);
+  }
+  .choice-bar[data-stack='true'] > .choice:last-child {
+    border-end-start-radius: calc(var(--radius-sm) - 1px);
+    border-end-end-radius: calc(var(--radius-sm) - 1px);
+  }
+  .choice-bar[data-stack='true'][data-compact='true'] > .choice {
+    justify-content: center;
+  }
+  .choice-bar[data-stack='true'] > .choice + .choice {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  /* In the list the chosen entry carries its straight line at the left edge instead of under the label. */
+  .choice-bar[data-stack='true'] > .choice:is([aria-selected='true'], [aria-checked='true'])::after {
+    left: 0;
+    right: auto;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 3px;
+    height: auto;
+  }
 }
 
-/* The navy brand panel is the same in both themes (it is part of the brand, like the logo plate). */
-.brand-panel {
-  background:
-    radial-gradient(60rem 36rem at 105% -10%, rgb(217 174 87 / 0.16), transparent 60%),
-    radial-gradient(48rem 30rem at -10% 110%, rgb(79 112 190 / 0.2), transparent 60%),
-    linear-gradient(160deg, #16264a 0%, #14213d 45%, #0d172c 100%);
-  color: #f3eee2;
+/*
+ * The sidebar: one tree of plain text rows (icon and name, weight 500, the current one 600), no filled boxes, frames or shadows.
+ * Hover colours only the text; the current row is marked by a straight line at its left edge plus the text colour. Sub-pages
+ * unfold indented on a 1px guide line. Collapsed it is a slim icon rail in the same style, the names in our own tooltip.
+ */
+@layer components {
+  .sidebar {
+    width: 16rem;
+  }
+  .sidebar[data-rail='true'] {
+    width: 4.5rem;
+  }
+  .tree-row,
+  .tree-sub {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--ink-muted);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .tree-row:hover,
+  .tree-sub:hover {
+    color: var(--link);
+  }
+  .tree-row[data-inside='true'] {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .tree-row[aria-current='page'],
+  .tree-sub[aria-current='page'] {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .tree-row[aria-current='page']::before,
+  .tree-sub[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.625rem;
+    bottom: 0.625rem;
+    width: 3px;
+    background: var(--indicator);
+    pointer-events: none;
+  }
+  .tree-row:focus-visible,
+  .tree-sub:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+  .sidebar[data-rail='true'] .tree-row {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .tree-chevron {
+    display: inline-flex;
+    flex: none;
+    margin-left: auto;
+    color: var(--ink-muted);
+  }
+  .tree-subs {
+    display: grid;
+    margin: 0 0 0.25rem 1.375rem;
+    border-left: 1px solid var(--line);
+  }
+  .tree-sub {
+    padding-left: 1.125rem;
+    border-radius: 0;
+  }
+  /* On top of the guide line: the straight line of the current sub-page covers it. */
+  .tree-sub[aria-current='page']::before {
+    left: -2px;
+    top: 0.5rem;
+    bottom: 0.5rem;
+  }
+  .tree-sep {
+    margin: 0.5rem 0.25rem;
+    border-top: 1px solid var(--line);
+  }
+  /* A plain icon button of the sidebar (collapse, About): no box, the text colour changes on hover. */
+  .tree-icon-btn {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .tree-icon-btn:hover {
+    color: var(--link);
+  }
+  .tree-icon-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+  /* The name of a rail entry (and of the sidebar's icon buttons): our own tooltip, never the browser's. */
+  .rail-tip {
+    position: fixed;
+    z-index: 60;
+    transform: translateY(-50%);
+    max-width: 20rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    pointer-events: none;
+    box-shadow: var(--elev-pop);
+  }
+}
+
+/*
+ * Overlay scrollbar thumbs (drawn by styles/overlayScrollbars.ts in one fixed layer above the page). The grab area is wider than
+ * the visible bar. Bar colour = the field-frame token (at least 3:1 on every surface of both themes), hover and drag the focus
+ * colour; the page colour is a 1px halo that separates it from the content under it.
+ */
+.os-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+}
+.os-thumb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  visibility: hidden;
+  touch-action: none;
+  transition:
+    opacity 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+.os-thumb[data-visible='true'] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.os-thumb::before {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-xs);
+  background: var(--line-strong);
+  box-shadow: 0 0 0 1px var(--bg);
+  transition:
+    background-color 0.15s ease,
+    width 0.15s ease,
+    height 0.15s ease;
+}
+.os-thumb[data-axis='y']::before {
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  width: 6px;
+}
+.os-thumb[data-axis='x']::before {
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 6px;
+}
+.os-thumb[data-active='true']::before {
+  background: var(--focus);
+}
+.os-thumb[data-axis='y'][data-active='true']::before {
+  width: 10px;
+}
+.os-thumb[data-axis='x'][data-active='true']::before {
+  height: 10px;
+}
+html.os-dragging,
+html.os-dragging * {
+  user-select: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .os-thumb,
+  .os-thumb::before {
+    transition: none !important;
+  }
+}
+@media print {
+  .os-layer {
+    display: none;
+  }
 }

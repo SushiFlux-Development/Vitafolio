@@ -90,21 +90,48 @@ describe('Segmented', () => {
 })
 
 describe('Tabs', () => {
-  it('scrolls sideways instead of wrapping and shows a badge next to the label', () => {
-    render(
-      <Tabs
-        label="Bereiche"
-        active="b"
-        onChange={() => undefined}
-        tabs={[
-          { id: 'a', label: 'Eins' },
-          { id: 'b', label: 'Zwei', badge: 3 },
-        ]}
-      />,
-    )
-    expect(screen.getByRole('tablist').className).toContain('overflow-x-auto')
+  const twoTabs = (onChange: (id: 'a' | 'b') => void = () => undefined) => (
+    <Tabs
+      label="Bereiche"
+      active="b"
+      onChange={onChange}
+      tabs={[
+        { id: 'a', label: 'Eins' },
+        { id: 'b', label: 'Zwei', badge: 3 },
+      ]}
+    />
+  )
+
+  it('is one connected bar in one row that never scrolls sideways, with a badge next to the label', () => {
+    render(twoTabs())
+    const bar = screen.getByRole('tablist')
+    expect(bar).toHaveClass('choice-bar')
+    expect(bar.className).not.toMatch(/overflow-x-(auto|scroll)/)
+    expect(bar).not.toHaveAttribute('data-stack')
     expect(screen.getByRole('tab', { name: /Zwei/ })).toHaveTextContent('3')
-    expect(screen.getByRole('tab', { name: /Zwei/ }).className).toContain('whitespace-nowrap')
+    expect(screen.getByRole('tab', { name: /Zwei/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('becomes a connected vertical list when the tabs do not fit at full length', () => {
+    // jsdom has no layout: every tab claims 300 px, the bar has 400 px.
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(300)
+    const room = vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400)
+    try {
+      render(twoTabs())
+      expect(screen.getByRole('tablist')).toHaveAttribute('data-stack', 'true')
+    } finally {
+      width.mockRestore()
+      room.mockRestore()
+    }
+  })
+
+  it('moves with the arrow keys in both directions, also up and down for the vertical list', () => {
+    const onChange = vi.fn()
+    render(twoTabs(onChange))
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Zwei/ }), { key: 'ArrowDown' })
+    expect(onChange).toHaveBeenLastCalledWith('a')
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Zwei/ }), { key: 'ArrowLeft' })
+    expect(onChange).toHaveBeenLastCalledWith('a')
   })
 })
 

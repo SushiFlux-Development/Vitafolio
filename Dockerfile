@@ -13,7 +13,7 @@ RUN cd frontend && npm ci --no-fund --no-audit --ignore-scripts
 COPY frontend ./frontend
 RUN cd frontend && npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS backend
 WORKDIR /src
 # Directory.Build.props reads the product name from branding.json
 COPY global.json Directory.Build.props Directory.Packages.props branding.json ./
@@ -22,7 +22,7 @@ RUN dotnet restore src/Cv.Server/Cv.Server.csproj
 COPY src/Cv.Server ./src/Cv.Server
 RUN dotnet publish src/Cv.Server/Cv.Server.csproj -c Release -o /app --no-restore -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 # Version of the built commit: APP_VERSION = line 1 of version.txt (v2026.11.12), APP_VERSION_DETAIL = line 2 (the build id with the two
 # counters). The app turns them into the readable form together with the channel ("release", "beta", "nightly"; "dev" for a local build).
 # IMAGE_TAG is the technical tag (no spaces or parentheses) and becomes the OCI version label; empty = APP_VERSION.

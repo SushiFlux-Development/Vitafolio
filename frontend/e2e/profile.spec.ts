@@ -89,11 +89,12 @@ test.describe('personal data', () => {
   test('the nine sections are in the sidebar, keep the active one in the address, also after a reload, and work with the keyboard', async ({ member }) => {
     const { page, t } = member
     await open(member, '/profile')
-    // No tab bar on the page; the main navigation is replaced by the sections, "Zurück" on top
+    // No tab bar on the page; the sections are the sub-pages of the profile's row in the one tree of the sidebar
     await expect(page.getByRole('tablist')).toHaveCount(0)
-    await expect(page.getByRole('navigation', { name: t('nav.label') })).toHaveCount(0)
+    const main = page.getByRole('navigation', { name: t('nav.label') })
+    await expect(main.getByRole('link', { name: t('nav.profile'), exact: true })).toHaveAttribute('aria-expanded', 'true')
+    await expect(main.getByRole('navigation', { name: t('profile.sections') })).toBeVisible()
     await expect(sectionsOf(member).getByRole('link')).toHaveCount(9)
-    await expect(page.getByTestId('sidebar-back')).toHaveText(t('common.back'))
     await expect(sectionLink(member, 'personal')).toHaveAttribute('aria-current', 'page')
 
     await sectionLink(member, 'experiences').click()
@@ -116,22 +117,27 @@ test.describe('personal data', () => {
     await expect(page).not.toHaveURL(/\/profile/)
   })
 
-  test('"Zurück" leads to the page visited before the profile, and to the overview when there is none', async ({ member }) => {
+  test('the profile row unfolds its sections only while the profile is open, keeps the open section, and every other page is one click away', async ({ member }) => {
     const { page, t } = member
     await open(member, '/cover-letters')
-    await page.getByRole('link', { name: t('nav.profile') }).click()
-    await expect(page).toHaveURL(/\/profile/)
-    await sectionLink(member, 'skills').click()
-    await expect(page.getByTestId('sidebar-back')).toHaveAttribute('href', '/cover-letters')
-    await page.getByTestId('sidebar-back').click()
-    await expect(page).toHaveURL(/\/cover-letters$/)
-    await expect(page.getByRole('navigation', { name: t('nav.label') })).toBeVisible()
+    const main = page.getByRole('navigation', { name: t('nav.label') })
+    const profile = main.getByRole('link', { name: t('nav.profile'), exact: true })
+    await expect(profile).toHaveAttribute('aria-expanded', 'false')
+    await expect(sectionsOf(member)).toHaveCount(0)
 
-    // Opened directly in a fresh tab: nothing before it, so the overview
-    const fresh = await member.context.newPage()
-    await fresh.goto('/profile?tab=languages')
-    await fresh.getByTestId('sidebar-back').click()
-    await expect(fresh).toHaveURL(/\/$/)
+    await profile.click()
+    await expect(page).toHaveURL(/\/profile/)
+    await expect(profile).toHaveAttribute('aria-expanded', 'true')
+    await sectionLink(member, 'skills').click()
+    // A click on the row of the open section keeps the section that is open
+    await profile.click()
+    await expect(page).toHaveURL(/tab=skills/)
+    await expect(sectionLink(member, 'skills')).toHaveAttribute('aria-current', 'page')
+
+    await main.getByRole('link', { name: t('nav.coverLetters'), exact: true }).click()
+    await expect(page).toHaveURL(/\/cover-letters$/)
+    await expect(sectionsOf(member)).toHaveCount(0)
+    await expect(main.getByRole('link', { name: t('nav.coverLetters'), exact: true })).toHaveAttribute('aria-current', 'page')
   })
 
   test('assistant mode stays in the page header, none of the sections is the open one in it, and a section leaves it', async ({ member }) => {
@@ -294,7 +300,7 @@ test.describe('losing typed input', () => {
     await fieldOf(member, 'profile.personal.firstName').fill('Ungespeichert')
     await expect(page.getByText(t('autoSave.retrying'))).toBeVisible()
 
-    // The main navigation is replaced by the sections here; the ways out are "Zurück" and the settings entry of the user area
+    // The ways out: every other row of the tree, and the settings entry at the foot of the sidebar
     await page.getByRole('link', { name: t('nav.settings') }).click()
     const ask = page.getByRole('alertdialog')
     await expect(ask).toContainText(t('autoSave.leave.title'))
@@ -304,8 +310,8 @@ test.describe('losing typed input', () => {
     await expect(page).toHaveURL(/\/profile/)
     await expect(fieldOf(member, 'profile.personal.firstName')).toHaveValue('Ungespeichert')
 
-    // "Zurück" asks the same question
-    await page.getByTestId('sidebar-back').click()
+    // Another section of the tree asks the same question
+    await page.getByRole('navigation', { name: t('nav.label') }).getByRole('link', { name: t('nav.coverLetters'), exact: true }).click()
     await expect(page.getByRole('alertdialog')).toContainText(t('autoSave.leave.title'))
     await page.getByRole('alertdialog').getByRole('button', { name: t('common.cancel') }).click()
     await expect(page).toHaveURL(/\/profile/)

@@ -36,12 +36,13 @@ export function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="brand-panel relative flex flex-wrap items-center gap-x-6 gap-y-5 overflow-hidden rounded-md border border-white/10 p-8" aria-label={t('overview.welcomeLabel')}>
-        <Logo size={72} className="shrink-0 shadow-pop" />
+      {/* The welcome: a calm block on the page under a 1px line, the logo on its plate and a straight accent line under the text. */}
+      <section className="flex flex-wrap items-center gap-x-6 gap-y-5 border-b border-line pb-6" aria-label={t('overview.welcomeLabel')}>
+        <Logo size={56} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <h1 className="text-[1.875rem] leading-tight text-[#f3eee2]">{t('overview.welcome', { name: user.displayName })}</h1>
-          <p className="mt-2 max-w-xl leading-relaxed text-[#c4cce0]">{t('brand.subline')}</p>
-          <div className="mt-4 h-1 w-14 rounded-xs bg-[#d9ae57]" aria-hidden="true" />
+          <h1 className="text-[1.75rem] leading-tight">{t('overview.welcome', { name: user.displayName })}</h1>
+          <p className="mt-1.5 max-w-xl leading-relaxed text-ink-muted">{t('brand.subline')}</p>
+          <div className="mt-4 h-[3px] w-12 bg-indicator" aria-hidden="true" />
         </div>
         <div className="flex shrink-0 items-center gap-2" data-hint="overview-actions">
           <Button variant="create" icon="plus" onClick={() => void navigate(NEW_APPLICATION)}>
@@ -103,7 +104,7 @@ function FollowUps({ items }: { items: readonly ApplicationListItem[] }) {
   const due = dueFollowUps(items)
   if (due.length === 0) return null
   return (
-    <section className="card p-4" aria-label={t('overview.next.title')} data-hint="overview-next">
+    <section className="card accent-start p-4 [--accent-color:var(--warning-soft-ink)]" aria-label={t('overview.next.title')} data-hint="overview-next">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base">
           <Icon name="clock" size={18} className="text-warning-soft-ink" />

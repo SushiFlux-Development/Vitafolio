@@ -140,7 +140,9 @@ if (existsSync(lockPath)) {
 }
 
 // ---------- Backend (NuGet) ----------
-const buildOnly = /^(Microsoft\.EntityFrameworkCore\.Design|Microsoft\.CodeAnalysis.*|Humanizer.*|Microsoft\.Build.*|Mono\.TextTemplating|System\.CodeDom|System\.Composition.*|Microsoft\.VisualStudio\.SolutionPersistence)$/
+// Pulled in only by Microsoft.EntityFrameworkCore.Design (PrivateAssets=all, used by "dotnet ef"); none of them is part of the published server or
+// the Windows program. Microsoft.NET.StringTools comes with Microsoft.Build.Framework since EF Core 11.
+const buildOnly = /^(Microsoft\.EntityFrameworkCore\.Design|Microsoft\.CodeAnalysis.*|Humanizer.*|Microsoft\.Build.*|Microsoft\.NET\.StringTools|Mono\.TextTemplating|System\.CodeDom|System\.Composition.*|Microsoft\.VisualStudio\.SolutionPersistence)$/
 type NugetListing = {
   projects: {
     frameworks?: {

@@ -121,7 +121,7 @@ export function PersonalTab({ profile, form: personal }: PersonalTabProps) {
             {profile.hasPhoto ? (
               <img src={`/api/profile/photo?v=${personal.photoVersion}`} alt={`${form.firstName} ${form.lastName}`.trim()} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-2xl font-bold text-select-ink">{initials}</span>
+              <span className="text-2xl font-semibold text-select-ink">{initials}</span>
             )}
           </div>
 

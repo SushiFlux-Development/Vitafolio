@@ -78,7 +78,7 @@ export function UpdatesTab() {
               </span>
               <div className="min-w-0">
                 <h3 className="text-base font-semibold text-ink">{t('updates.currentVersionTitle')}</h3>
-                <p className="mt-0.5 font-mono text-sm font-bold break-words text-ink" data-testid="updates-current">
+                <p className="mt-0.5 font-mono text-sm font-semibold break-words text-ink" data-testid="updates-current">
                   {data.currentVersion}
                 </p>
               </div>
@@ -107,7 +107,7 @@ export function UpdatesTab() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="badge badge-info mb-1.5 tracking-wider uppercase">{t('updates.availableBadge')}</span>
-              <h4 className="text-base font-bold break-words text-ink">{available.display}</h4>
+              <h4 className="text-base font-semibold break-words text-ink">{available.display}</h4>
               {available.publishedAt && <p className="mt-1 text-xs text-ink-muted">{t('updates.publishedAt', { date: dates.date(available.publishedAt) })}</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">

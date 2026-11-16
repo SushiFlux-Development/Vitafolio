@@ -31,7 +31,7 @@ export function KanbanBoard({ applications, onSelect, onPreview, onDownload }: K
         >
           <header className="border-b border-line px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xs font-bold tracking-wider text-ink uppercase">{t(`applications.columns.${column}`)}</h2>
+              <h2 className="text-xs font-semibold tracking-wider text-ink uppercase">{t(`applications.columns.${column}`)}</h2>
               <span className="badge badge-neutral" aria-label={t('applications.columnCount', { count: grouped[column].length })}>
                 {grouped[column].length}
               </span>
@@ -63,7 +63,7 @@ function KanbanCard({ application, showStatus, onSelect, onPreview, onDownload }
   const { t } = useTranslation()
   const dates = useDateFormat()
   return (
-    <li className="group relative rounded-sm border border-line bg-surface p-3 shadow-card transition-colors focus-within:border-indicator hover:border-indicator">
+    <li className="group relative rounded-sm border border-line bg-surface p-3 transition-colors focus-within:border-indicator hover:border-indicator">
       <div className="flex items-start justify-between gap-1">
         <h3 className="min-w-0 text-sm font-semibold text-ink">
           <button type="button" onClick={() => onSelect(application.id)} className="text-left after:absolute after:inset-0 after:content-['']">

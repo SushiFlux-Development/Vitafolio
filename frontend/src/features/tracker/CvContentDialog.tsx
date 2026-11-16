@@ -210,7 +210,7 @@ function Checklist({ data }: { data: ContentSuggestion | undefined }) {
 
   return (
     <section aria-labelledby="cv-checklist-title" className="rounded-md border border-line p-4">
-      <h3 id="cv-checklist-title" className="text-xs font-bold tracking-wider text-ink uppercase">
+      <h3 id="cv-checklist-title" className="text-xs font-semibold tracking-wider text-ink uppercase">
         {t('applications.content.checklist.title')}
       </h3>
       <p className="mt-1 text-[0.8125rem] leading-snug text-ink-muted">{t('applications.content.checklist.note')}</p>
@@ -356,7 +356,7 @@ function Group({ title, hint, empty, children }: { title: string; hint: string; 
   const { t } = useTranslation()
   return (
     <section className="rounded-md border border-line p-4">
-      <h3 className="text-xs font-bold tracking-wider text-ink uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold tracking-wider text-ink uppercase">{title}</h3>
       {empty ? (
         <p className="mt-1 text-sm text-ink-muted">{t('applications.content.groups.empty')}</p>
       ) : (

@@ -223,7 +223,7 @@ function Panel({ onClose, title, icon, tone, role, size = 'md', initialFocus, hi
           </>
         )}
         {!hideCloseButton && (
-          <button type="button" data-no-drag="" className="btn btn-ghost btn-sm -mr-2" aria-label={t('common.close')} onClick={onClose}>
+          <button type="button" data-no-drag="" className="btn btn-ghost btn-sm btn-icon -mr-1" aria-label={t('common.close')} onClick={onClose}>
             <Icon name="x" size={18} />
           </button>
         )}

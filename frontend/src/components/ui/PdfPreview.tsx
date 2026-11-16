@@ -62,7 +62,7 @@ export function PdfPreview({ preview, title, className = 'h-[max(30rem,calc(100v
 
       {url && !error && loading && (
         <div
-          className="pointer-events-none absolute top-3 right-3 z-10 flex items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1.5 text-xs text-ink-muted shadow-card"
+          className="pointer-events-none absolute top-3 right-3 z-10 flex items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1.5 text-xs text-ink-muted"
           role="status"
         >
           <Icon name="loader" size={14} className="animate-spin" />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MadeWith } from '../../components/ui/Brand'
 import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { ErrorNotice } from '../../components/ui/Notice'
@@ -22,7 +23,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * "About": product, version, licence, the link to the source code (the licence obliges the program to offer it), the notes of
+ * "About": product, version, licence, the credit line, the link to the source code (the licence obliges the program to offer it), the notes of
  * this version, the manual and every third-party component with its licence. Open to everybody who is signed in.
  */
 export function AboutTab() {
@@ -70,6 +71,9 @@ export function AboutTab() {
             {t('about.handbook')}
           </Button>
         </div>
+        <p className="mt-5 text-sm text-ink-muted" data-testid="about-credit">
+          <MadeWith />
+        </p>
       </Section>
 
       <Section title={t('about.licensesTitle')} description={t('about.licensesText')}>

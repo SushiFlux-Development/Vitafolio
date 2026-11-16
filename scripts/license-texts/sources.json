@@ -14,7 +14,7 @@
     {
       "match": "^sqlitepclraw\\.",
       "files": ["sqlitepclraw.txt", "sqlitepclraw-notice.txt"],
-      "source": "https://github.com/ericsink/SQLitePCL.raw/blob/master/LICENSE.TXT and NOTICE.TXT (default branch; the repository has no tag for 2.1.13)"
+      "source": "https://github.com/ericsink/SQLitePCL.raw/blob/ed046114d5a30534e13294d94d78eb73de896ad4/LICENSE.TXT and NOTICE.TXT (commit of the 3.0.5 packages)"
     },
     {
       "match": "^documentformat\\.openxml",
@@ -24,7 +24,7 @@
     {
       "match": "^(microsoft\\.aspnetcore\\.openapi|microsoft\\.bcl\\.cryptography|microsoft\\.data\\.sqlite\\.core|microsoft\\.entityframeworkcore.*|microsoft\\.extensions\\.dependencymodel|system\\.io\\.packaging)$",
       "files": ["dotnet.txt"],
-      "source": "https://github.com/dotnet/dotnet/blob/0427b9abbead3fa64c6655eb4290c537397131fa/LICENSE.TXT (commit of the 10.0.14 packages)"
+      "source": "https://github.com/dotnet/dotnet/blob/297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f/LICENSE.TXT (commit of the 11.0.0 packages)"
     },
     {
       "match": "^microsoft\\.identitymodel\\.",
@@ -34,7 +34,7 @@
     {
       "match": "^microsoft\\.openapi$",
       "files": ["openapi-net.txt"],
-      "source": "https://github.com/microsoft/OpenAPI.NET/blob/a24aac560adbf013ff5aa63a873e5a7babce38d2/LICENSE (commit of package 2.12.2)"
+      "source": "https://github.com/microsoft/OpenAPI.NET/blob/2fea8ae4ee7ce6b9c313fa0822f5c617da18c351/LICENSE (commit of package 3.11.0)"
     },
     {
       "match": "^velopack$",

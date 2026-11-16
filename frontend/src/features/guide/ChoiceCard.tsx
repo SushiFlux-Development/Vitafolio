@@ -26,7 +26,7 @@ interface ChoiceCardProps {
 export function ChoiceCard({ type, name, value, checked, onChange, label, description, icon, tile, compact = false }: ChoiceCardProps) {
   return (
     <label
-      className={`group relative flex cursor-pointer gap-3 rounded-md border border-line-strong bg-surface transition-colors hover:bg-surface-2 has-checked:border-indicator has-checked:bg-select has-checked:text-select-ink has-checked:shadow-[inset_3px_0_0_var(--indicator)] has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${
+      className={`group relative flex cursor-pointer gap-3 rounded-md border border-line-strong bg-surface transition-colors hover:bg-surface-2 has-checked:border-indicator has-checked:bg-select has-checked:text-select-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus ${checked ? 'accent-start' : ''} ${
         compact ? 'items-center px-3 py-2.5' : 'items-start p-4'
       }`}
     >
@@ -34,7 +34,7 @@ export function ChoiceCard({ type, name, value, checked, onChange, label, descri
       {(icon || tile) && (
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-surface-2 text-sm font-bold text-ink group-has-checked:bg-surface group-has-checked:text-select-ink"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-surface-2 text-sm font-semibold text-ink group-has-checked:bg-surface group-has-checked:text-select-ink"
         >
           {icon ? <Icon name={icon} size={21} /> : tile}
         </span>

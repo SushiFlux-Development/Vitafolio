@@ -1,9 +1,8 @@
-import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LanguageCode } from '../../api/types'
 import { applyLanguage } from '../../i18n'
-import { Logo, MadeWith, VersionLabel, Wordmark } from '../ui/Brand'
+import { Logo, VersionLabel, Wordmark } from '../ui/Brand'
 import { Icon } from '../ui/Icon'
 import type { IconName } from '../ui/Icon'
 import { Segmented } from '../ui/Segmented'
@@ -17,23 +16,20 @@ const FEATURES: { key: string; icon: IconName }[] = [
 ]
 
 /**
- * The shell of every page for somebody who is not signed in: a third of the width holds the form, two thirds a navy brand
- * panel with the wordmark, the tagline and what the app does. The form card is anchored near the top, not centred, so a
- * change of its height can never make it jump.
+ * The shell of every page for somebody who is not signed in, light and neutral in both themes: a third of the width holds the
+ * form, two thirds the brand panel, separated by a 1px line. The panel has the title block (wordmark, tagline, a straight
+ * accent line, subline) and what the app does as a plain list under hairlines - no cards, nothing that looks clickable - and
+ * below it only the running version with its channel symbol. Where the panel is wide the list stands beside the title block,
+ * with a thin vertical line between. The form is anchored near the top, not centred, so a change of its height can never make
+ * it jump.
  */
 export function AuthLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation()
   const language = (i18n.language.startsWith('en') ? 'en' : 'de') as LanguageCode
 
-  // The reserved scrollbar gutter shows the page background: on these pages it takes the colour of the brand panel next to it.
-  useEffect(() => {
-    document.documentElement.setAttribute('data-auth', '')
-    return () => document.documentElement.removeAttribute('data-auth')
-  }, [])
-
   return (
-    <div className="flex min-h-screen">
-      <main className="flex min-h-screen flex-[0_0_33.333%] flex-col bg-bg px-8 pt-8 pb-6">
+    <div className="flex min-h-screen bg-bg">
+      <main className="flex min-h-screen flex-[0_0_33.333%] flex-col bg-surface px-8 pt-8 pb-6">
         <div className="mx-auto w-full max-w-sm pt-[max(2rem,10vh)]">
           <Logo size={44} className="mb-8" />
           {children}
@@ -51,44 +47,37 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <aside className="brand-panel sticky top-0 flex h-screen flex-1 flex-col self-start overflow-y-auto px-12 py-8 xl:px-16" aria-label={t('brand.panelLabel')}>
-        <Wordmark onDark height={34} />
+      <aside className="@container sticky top-0 flex h-screen flex-1 flex-col self-start overflow-y-auto border-l border-line px-12 py-8 xl:px-16" aria-label={t('brand.panelLabel')}>
+        <div className="mx-auto my-auto grid w-full max-w-6xl gap-10 py-6 @min-[48rem]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] @min-[48rem]:items-center @min-[48rem]:gap-12">
+          <div className="min-w-0">
+            <Wordmark height={34} />
+            <h2 className="mt-8 text-4xl leading-[1.1] tracking-tight xl:text-5xl">{t('brand.tagline')}</h2>
+            <div className="mt-5 h-[3px] w-12 bg-indicator" aria-hidden="true" />
+            <p className="mt-5 max-w-lg text-[1.0625rem] leading-relaxed text-ink">{t('brand.subline')}</p>
+            <p className="mt-5 flex max-w-lg items-start gap-2.5 text-sm leading-snug text-ink-muted">
+              <Icon name="sparkles" size={17} className="mt-0.5 shrink-0 text-highlight-soft-ink" />
+              {t('brand.ai')}
+            </p>
+          </div>
 
-        <div className="my-auto max-w-3xl py-6">
-          <h2 className="font-display text-4xl leading-[1.1] tracking-tight text-[#f3eee2] xl:text-5xl">{t('brand.tagline')}</h2>
-          <p className="mt-4 max-w-lg text-[1.0625rem] leading-relaxed text-[#c4cce0]">{t('brand.subline')}</p>
-          <div className="mt-3 h-1 w-14 rounded-xs bg-[#d9ae57]" aria-hidden="true" />
+          <div className="hidden self-stretch bg-line @min-[48rem]:block" aria-hidden="true" />
 
-          <ul className="mt-8 grid grid-cols-2 gap-3">
-            {FEATURES.map((feature, index) => (
-              <li
-                key={feature.key}
-                className={`flex gap-3.5 rounded-md border border-white/12 bg-white/[0.06] p-4 backdrop-blur-sm ${index === FEATURES.length - 1 ? 'col-span-2' : ''}`}
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-[#d9ae57]/15 text-[#e3bc6a]">
-                  <Icon name={feature.icon} size={21} />
-                </span>
+          <ul className="min-w-0 divide-y divide-line">
+            {FEATURES.map((feature) => (
+              <li key={feature.key} className="flex gap-4 py-4">
+                <Icon name={feature.icon} size={21} className="mt-0.5 shrink-0 text-link" />
                 <div className="min-w-0">
-                  <h3 className="text-[0.9375rem] text-[#f3eee2]">{t(`brand.features.${feature.key}.title`)}</h3>
-                  <p className="mt-0.5 text-sm leading-snug text-[#c4cce0]">{t(`brand.features.${feature.key}.text`)}</p>
+                  <h3 className="font-sans text-base leading-snug font-semibold text-ink">{t(`brand.features.${feature.key}.title`)}</h3>
+                  <p className="mt-0.5 text-sm leading-snug text-ink-muted">{t(`brand.features.${feature.key}.text`)}</p>
                 </div>
               </li>
             ))}
           </ul>
-
-          <p className="mt-5 flex items-start gap-2.5 text-sm leading-snug text-[#c4cce0]">
-            <Icon name="sparkles" size={17} className="mt-0.5 shrink-0 text-[#e3bc6a]" />
-            {t('brand.ai')}
-          </p>
         </div>
 
-        <footer className="flex items-center justify-between text-sm text-[#b4bdd4]">
-          <span className="flex items-center gap-3">
-            <MadeWith onDark />
-            <span aria-hidden="true">·</span>
-            <VersionLabel />
-          </span>
-          <span>{t('brand.copyright', { year: new Date().getFullYear() })}</span>
+        {/* Below the panel only the running version with its channel symbol, so the build is visible before anyone signs in. */}
+        <footer className="pt-6 text-center text-sm text-ink-muted tabular-nums">
+          <VersionLabel />
         </footer>
       </aside>
     </div>

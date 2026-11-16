@@ -1,6 +1,6 @@
 name: CI
 
-# Checks on every push and pull request: .NET build + tests (Windows runner, because the Windows program targets net10.0-windows),
+# Checks on every push and pull request: .NET build + tests (Windows runner, because the Windows program targets net11.0-windows),
 # the web UI (typecheck, lint, unit tests, build) and the Docker image (built without pushing, then started and health-checked).
 #
 # This file is the single source of the checks. release.yml calls it (workflow_call) and builds or publishes nothing unless it passed, so a tag

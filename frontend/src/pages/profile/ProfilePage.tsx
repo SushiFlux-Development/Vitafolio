@@ -9,7 +9,6 @@ import { ErrorNotice } from '../../components/ui/Notice'
 import { Loading, PageHeader } from '../../components/ui/Page'
 import { useTabParam } from '../../components/ui/Tabs'
 import { useSidebarNav } from '../../components/layout/SidebarNav'
-import type { SidebarNavItem } from '../../components/layout/SidebarNav'
 import { ProfileWizard } from '../../features/profile/ProfileWizard'
 import { UnsavedChangesGuard, useLeaveTexts } from '../../hooks/useUnsavedChangesGuard'
 import { CertificatesTab } from './CertificatesTab'
@@ -29,21 +28,9 @@ type ProfileTab = 'personal' | 'experiences' | 'educations' | 'skills' | 'langua
 
 const TABS: readonly ProfileTab[] = ['personal', 'experiences', 'educations', 'skills', 'languages', 'certificates', 'interests', 'customSections', 'preview']
 
-const TAB_ICONS: Record<ProfileTab, SidebarNavItem['icon']> = {
-  personal: 'fileText',
-  experiences: 'briefcase',
-  educations: 'timeline',
-  skills: 'sparkles',
-  languages: 'language',
-  certificates: 'circleCheck',
-  interests: 'sun',
-  customSections: 'files',
-  preview: 'fileExport',
-}
-
 /**
- * The master profile. Its nine sections are not a tab bar on the page but the sub-navigation of the sidebar (the active one
- * stays in the address as "?tab="); "assistant mode" is a second view of the page ("?view=wizard") that none of the sections
+ * The master profile. Its nine sections are not a tab bar on the page but the sub-pages of its row in the sidebar (the active
+ * one stays in the address as "?tab="); "assistant mode" is a second view of the page ("?view=wizard") that none of the sections
  * belongs to - choosing a section in the sidebar leaves it, because the link drops the view.
  */
 export function ProfilePage() {
@@ -68,8 +55,7 @@ export function ProfilePage() {
   const sidebarSection = useMemo(
     () => ({
       label: t('profile.sections'),
-      backLabel: t('common.back'),
-      items: TABS.map((id) => ({ id, label: t(`profile.tabs.${id}`), icon: TAB_ICONS[id], to: `?tab=${id}` })),
+      items: TABS.map((id) => ({ id, label: t(`profile.tabs.${id}`), to: `?tab=${id}` })),
       activeId: wizardMode ? null : active,
     }),
     [t, active, wizardMode],

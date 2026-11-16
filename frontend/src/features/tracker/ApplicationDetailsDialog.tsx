@@ -211,7 +211,7 @@ export function ApplicationDetailsDialog({ app, coverLetters, onClose, onDelete,
                   }}
                   className="rounded-md border border-line bg-surface-2 p-3"
                 >
-                  <h3 className="mb-2 text-xs font-bold tracking-wider text-ink uppercase">{t('applications.timeline.addEvent')}</h3>
+                  <h3 className="mb-2 text-xs font-semibold tracking-wider text-ink uppercase">{t('applications.timeline.addEvent')}</h3>
                   <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
                     <LiveTextField
                       className="sm:col-span-2"
@@ -255,7 +255,7 @@ export function ApplicationDetailsDialog({ app, coverLetters, onClose, onDelete,
                             <span className="mt-1 block text-xs text-ink-muted">{dates.dateTime(event.date)}</span>
                           </div>
                         </div>
-                        <Button variant="danger-outline" small icon="trash" title={t('common.delete')} onClick={() => void removeEvent(event.id, event.title)}>
+                        <Button variant="danger-text" small iconOnly icon="trash" title={t('common.delete')} onClick={() => void removeEvent(event.id, event.title)}>
                           <span className="sr-only">
                             {t('common.delete')}: {event.title}
                           </span>
@@ -274,7 +274,7 @@ export function ApplicationDetailsDialog({ app, coverLetters, onClose, onDelete,
                 <div className="flex flex-col gap-3 rounded-md border border-line bg-surface-2 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-bold text-ink">{t('applications.dossier.title')}</h3>
+                      <h3 className="text-sm font-semibold text-ink">{t('applications.dossier.title')}</h3>
                       <p className="mt-0.5 text-xs text-ink-muted">{app.hasArchivedPdf ? t('applications.dossier.frozenHint') : t('applications.dossier.liveHint')}</p>
                     </div>
                     <span className={`badge ${app.hasArchivedPdf ? 'badge-info' : 'badge-neutral'}`}>
@@ -338,7 +338,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
     <div className="flex flex-col gap-4 text-sm">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <section className="rounded-md border border-line bg-surface-2 p-3">
-          <h3 className="mb-2 text-xs font-bold tracking-wider text-ink-muted uppercase">
+          <h3 className="mb-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">
             {t('applications.fields.company')} &amp; {t('applications.fields.location')}
           </h3>
           <p className="font-semibold text-ink">{app.company}</p>
@@ -359,7 +359,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
         </section>
 
         <section className="rounded-md border border-line bg-surface-2 p-3">
-          <h3 className="mb-2 text-xs font-bold tracking-wider text-ink-muted uppercase">{t('applications.fields.contactPerson')}</h3>
+          <h3 className="mb-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">{t('applications.fields.contactPerson')}</h3>
           <p className="font-semibold text-ink">{app.contactPerson || '–'}</p>
           {app.contactEmail && (
             <p className="mt-1 text-xs text-ink-muted">
@@ -384,7 +384,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
         <div className="flex items-center gap-2.5">
           <Icon name="sparkles" size={18} className="shrink-0" />
           <div>
-            <h3 className="text-xs font-bold tracking-wider uppercase">{t('ai.tasks.analyzeJob')}</h3>
+            <h3 className="text-xs font-semibold tracking-wider uppercase">{t('ai.tasks.analyzeJob')}</h3>
             <p className="mt-0.5 text-xs">{t('applications.ai.analyzeText')}</p>
           </div>
         </div>
@@ -396,7 +396,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
       {app.coverLetterTitle && (
         <section className="flex items-center justify-between rounded-md border border-line bg-surface-2 p-3">
           <div>
-            <h3 className="text-xs font-bold tracking-wider text-ink-muted uppercase">{t('applications.fields.coverLetter')}</h3>
+            <h3 className="text-xs font-semibold tracking-wider text-ink-muted uppercase">{t('applications.fields.coverLetter')}</h3>
             <p className="mt-0.5 font-semibold text-ink">{app.coverLetterTitle}</p>
           </div>
           <Icon name="files" size={20} className="text-ink-muted" />
@@ -406,7 +406,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
       {adjusted && (
         <section className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 p-3" data-testid="cv-adjusted">
           <div>
-            <h3 className="text-xs font-bold tracking-wider text-ink-muted uppercase">{t('applications.content.title')}</h3>
+            <h3 className="text-xs font-semibold tracking-wider text-ink-muted uppercase">{t('applications.content.title')}</h3>
             <p className="mt-0.5 font-semibold text-ink">{describeSelection(t, app.cvSelection, known)}</p>
           </div>
           <Icon name="files" size={20} className="shrink-0 text-ink-muted" />
@@ -415,7 +415,7 @@ function DetailsPanel({ app, known, onAnalyze }: { app: Application; known: Know
 
       {app.notes && (
         <section className="rounded-md border border-line bg-surface-2 p-3">
-          <h3 className="mb-1 text-xs font-bold tracking-wider text-ink-muted uppercase">{t('applications.fields.notes')}</h3>
+          <h3 className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">{t('applications.fields.notes')}</h3>
           <p className="text-xs leading-relaxed whitespace-pre-wrap text-ink">{app.notes}</p>
         </section>
       )}

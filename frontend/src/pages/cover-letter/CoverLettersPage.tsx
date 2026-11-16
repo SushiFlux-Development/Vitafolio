@@ -188,7 +188,7 @@ export function CoverLettersPage() {
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs text-ink-muted">
                 <span>{letter.date ?? dates.dateTime(letter.updatedAt)}</span>
-                <Button variant="danger-outline" small icon="trash" className="relative z-10" title={t('common.delete')} onClick={() => void askDelete(letter.id, letter.title)}>
+                <Button variant="danger-text" small iconOnly icon="trash" className="relative z-10" title={t('common.delete')} onClick={() => void askDelete(letter.id, letter.title)}>
                   <span className="sr-only">
                     {t('common.delete')}: {letter.title}
                   </span>

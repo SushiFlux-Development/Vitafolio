@@ -357,8 +357,8 @@ This chapter applies to the Docker version.
 
 ## 6.1 Signing in
 
-1. Open the address of Vitafolio in the browser. If you are not signed in, you see the sign-in page (see Figure 2). The
-   form is on the left, the features of the app are on the right.
+1. Open the address of Vitafolio in the browser. If you are not signed in, you see the sign-in page (see Figure 2). On the
+   left, on one third of the width, is the form. On the right, on the other two thirds, are the name of the app with a short slogan and the five features of the app as a plain list. The version number is at the very bottom.
 2. Enter your **username** and your **password**.
 3. Click **Sign in**.
 
@@ -393,7 +393,7 @@ you enter username, display name and password, as in Chapter 5. New accounts are
 
 ## 6.4 Signing out
 
-Click **Sign out** at the bottom left of the sidebar.
+Click **Sign out** at the bottom of the sidebar. The button is in the area with your name.
 
 Before that, Vitafolio sends whatever is still on its way to be saved (Section 8.2). If that does not work, for example
 because the server cannot be reached at the moment, it asks: "Your latest input could not be saved. Signing out also deletes
@@ -423,28 +423,44 @@ shows the **Overview**:
 
 ![The main window of Vitafolio](bilder/hauptfenster.png)
 
-On the left is the **sidebar**. The numbers in the figure belong to these points:
+On the left is the **sidebar**. It is a menu tree: every item has an icon and a name, and the item of the open page has a thin line at its edge. The numbers in the figure belong to these points:
 
-1. **The navigation:**
+1. **The menu tree:** At the very top is the name **Vitafolio**. Below it come:
    - **Overview:** the start page.
    - **Master profile:** your data and your CV (Chapter 8).
    - **Cover letters:** your application letters (Chapter 9).
    - **Applications:** tracker, dossiers and attachments (Chapter 10).
    - **Export:** the finished PDF files in one place (Chapter 24).
-   - **Guide:** a few questions, then an application plan for your situation (Chapter 23).
-   - **App administration:** for administrators of the Docker version only (Chapter 14).
-   - Below it, the field **Update available** appears when needed (Chapter 16).
-2. **Your area:** It shows your name and your role (in the Windows program "Local account"). Below it are:
-   - **AI Settings** (Chapter 11),
-   - **Manual**, which opens this manual in a window (Section 17.1),
-   - **Help for this page**, which shows short hints right at the controls of the open page (Section 17.4),
-   - **Settings** with your personal settings (Chapters 12, 13, 15 and 17).
-3. **The colour scheme switch:** It changes between "Light" and "Dark" (Chapter 13). Below it, in the Docker
-   version, is the small button **Sign out**.
-4. **The footer:** It shows "Made with ♥" and the version number. A click on the version number opens the "About" page
+   - After a dividing line: **Guide**, a few questions, then an application plan for your situation (Chapter 23).
+   - **AI Settings** (Chapter 11).
+   - **Manual**, which opens this manual in a window (Section 17.1).
+   - **Help for this page**, which shows short hints right at the controls of the open page (Section 17.4).
+   - When needed, a row **Update available** with the new version number (Chapter 16).
+2. **Your area:** At the very bottom, what applies to everything stays in view: **App administration** (for administrators of the Docker version only, Chapter 14) and
+   **Settings** with your personal settings (Chapters 12, 13, 15 and 17). Below them are your name and your role (in the Windows program "Local account").
+3. **The colour scheme switch:** It changes between "Light" and "Dark" (Chapter 13). Below it, in the Docker version, is the small button **Sign out**.
+4. **The button to collapse and expand:** It is at the top, next to the name (see below).
+5. **The info icon:** It is at the bottom right of the area with your name. Point at it and a small text names the version number. A click opens the "About" page
    (Section 17.2).
 
+The sidebar has no footer. The line "Made with ♥" and the version number are on the "About" page.
+
 On the right is the workspace with the current page.
+
+**Making the sidebar narrow.** If a page needs more room, collapse the sidebar:
+
+1. At the top of the sidebar, click the button **Collapse sidebar**.
+2. The sidebar shrinks to a slim strip that shows only the icons. The page next to it becomes wider.
+3. Point at an icon with the mouse, or select it with the Tab key. Its name then appears beside it.
+4. Click **Expand sidebar** to bring the full sidebar back.
+
+Vitafolio remembers your choice in this browser (in the Windows program, in the program window). In the slim strip the master profile does not show its nine sections
+under its icon. Expand the sidebar when you want to change the section.
+
+> [!NOTE]
+> Vitafolio deliberately looks plain and light: cards have no shadow, only a thin line. The active menu item, the selected tab and highlighted notes carry
+> a thin straight line. Tabs and choice buttons form one connected bar. If there is not enough room for that, they stand one below the other as a list. The scrollbars are slim and lie over the
+> page: they appear only while you scroll or near the edge and take up no width.
 
 > [!TIP]
 > At the first start Vitafolio shows a short **introduction**, and later once on every page small **hints**. How they work and how to
@@ -464,10 +480,9 @@ Open the master profile with **Master profile** in the sidebar.
 ## 8.1 How the master profile is organised
 
 The master profile has nine sections. Each section is one building block of the CV. You choose the section in the
-**sidebar** on the left: as long as the master profile is open, the sidebar shows the nine sections instead of the usual
-items. The one that is open is highlighted. At the very top of the sidebar is **Back**. It takes you back to the page you
-were on before. If there was none, **Back** leads to the overview. Below the sections, your area, the colour scheme switch
-and the footer stay as they are.
+**sidebar** on the left: as long as the master profile is open, the nine sections unfold under the item **Master profile**, indented along a thin
+guide line. The one that is open is highlighted. The other items of the sidebar stay where they are. A click on another item, for example **Overview**,
+leaves the master profile.
 
 | Section | What you enter there | Required fields (marked with *) |
 |---|---|---|
@@ -1388,7 +1403,7 @@ and restart the container. At start Vitafolio puts the code into the file `emerg
 Open **Settings** and the tab **Appearance** (see Figure 25).
 
 - **Colour scheme:** "Light" or "Dark". At the very first start the setting of your computer decides once, after that your choice applies. You also find the switch
-  at the bottom of the sidebar.
+  at the bottom of the sidebar, in the area with your name.
 - **Language:** "Deutsch" or "English".
 - **Date format:** This is how you type dates and how Vitafolio shows them (see below).
 
@@ -1719,8 +1734,7 @@ The page shows the **installed version** and when it was last checked. The resul
   GitHub** opens the detailed page in the browser.
 - An **error message** if GitHub could not be reached. It is shown in full and can be copied.
 
-If there is an update, a blue field **Update available** with the version number also appears in the sidebar below the
-navigation, and the tab "Updates" carries the mark "New". Only people who may look after updates see this field: in the
+If there is an update, a row **Update available** with the version number also appears in the sidebar below the menu items. It has a blue line at its left edge. The tab "Updates" carries the mark "New". Only people who may look after updates see this row: in the
 Windows program that is you, in the Docker version the administrators.
 
 Checking by button is limited to once every 30 seconds. If you click more often, Vitafolio shows the last result again and
@@ -1732,7 +1746,7 @@ says so. A development version never checks for updates.
 
 The Windows program **never installs an update by itself**. It waits for your click. Here is how:
 
-1. Click the blue field **Update available** in the sidebar, or **Install update** on the update page.
+1. Click the row **Update available** in the sidebar, or **Install update** on the update page.
 2. Read the question "Install update …?". It explains what is about to happen.
 3. If you have input that is not saved yet, Vitafolio warns you explicitly. Input in an open window is lost when the program restarts.
    Input marked "Not saved" (Section 8.2) stays as a copy on this computer and is back after the restart. To be on the safe side, cancel
@@ -1833,8 +1847,8 @@ If the manual is missing in your installation, Vitafolio says so and points to t
 
 ## 17.2 About Vitafolio: version, licence and source code
 
-You find the page **About** in **Settings**, tab **About**. A click on the version number at the bottom of the sidebar leads
-there too. The page shows (see Figure 36):
+You find the page **About** in **Settings**, tab **About**. The info icon at the bottom of the sidebar leads
+there too. Point at it and a small text names the version number. The page shows (see Figure 36):
 
 - **Version:** for example `v2026.11.12.13.557`. That is year, month and the running number, followed by two counters. A **β** behind
   it means a beta, an **α** a nightly. A finished version has no mark. A development state carries `</>`.
@@ -1842,6 +1856,7 @@ there too. The page shows (see Figure 36):
   offers a changed version as a service has to offer its source code as well.
 - **Source code:** a link to the project's public page on GitHub.
 - Buttons for **What is new in this version** (Section 16.5) and **Open the manual** (Section 17.1).
+- Below them the line "Made with ♥".
 
 ![The "About" page with version, licence and source code](bilder/ueber.png)
 
@@ -1866,7 +1881,7 @@ close them all. The card also offers **Show the introduction** and **Open the ma
 work experience, Preview & Export), for the cover letters, in the applications overview and in the settings. A control that is not on the page at the moment (for example a
 list without entries) is skipped. There are no hints in the wizards, because there you are in the middle of a task.
 
-**Help for this page.** At the bottom of the sidebar, under **Manual**, is the button **Help for this page**. It shows the hints of the open page again. On a page
+**Help for this page.** In the sidebar, under **Manual**, is the button **Help for this page**. It shows the hints of the open page again. On a page
 without hints it starts the introduction.
 
 **Moving.** If a card covers something you want to see, move it away. Take it by its head with the mouse and drag. Without a mouse use the **arrow keys** on the grip in

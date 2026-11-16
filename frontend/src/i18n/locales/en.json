@@ -79,8 +79,7 @@
         "text": "Status, interviews and the exact version you sent, at a glance."
       }
     },
-    "ai": "AI help is optional: with your own key, a local model, or by copy and paste.",
-    "copyright": "© {{year}} SushiFlux Development"
+    "ai": "AI help is optional: with your own key, a local model, or by copy and paste."
   },
   "fields": {
     "username": "Username",
@@ -241,7 +240,8 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "handbook": "Manual",
-    "backTo": "Back to: {{page}}"
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "shell": {
     "theme": "Change appearance",
@@ -2115,7 +2115,7 @@
         },
         "help": {
           "title": "Help when you need it",
-          "text": "On every page, \"Help for this page\" at the bottom of the sidebar shows short hints right at the controls.",
+          "text": "On every page, \"Help for this page\" in the sidebar shows short hints right at the controls.",
           "point1": "The manual explains everything in detail and can be downloaded as a PDF.",
           "point2": "In the settings you restart this introduction and all hints at any time.",
           "point3": "You set up the AI under \"AI Settings\": your own key, a local model, or copy and paste."
@@ -2176,6 +2176,10 @@
       "shellHelp": {
         "title": "Help for this page",
         "text": "Shows the hints of the page you are on. On pages without hints, the introduction starts."
+      },
+      "shellCollapse": {
+        "title": "Collapse and expand the sidebar",
+        "text": "Folds the sidebar into a slim bar of icons so the page gets more room. Point at an icon to see its name. A second click expands it again; this browser remembers the choice."
       },
       "profileSections": {
         "title": "The sections of the master profile",

@@ -35,6 +35,8 @@ import infoCircle from '@iconify-icons/tabler/info-circle'
 import key from '@iconify-icons/tabler/key'
 import language from '@iconify-icons/tabler/language'
 import layoutBoard from '@iconify-icons/tabler/layout-board'
+import layoutSidebarLeftCollapse from '@iconify-icons/tabler/layout-sidebar-left-collapse'
+import layoutSidebarLeftExpand from '@iconify-icons/tabler/layout-sidebar-left-expand'
 import lock from '@iconify-icons/tabler/lock'
 import logout from '@iconify-icons/tabler/logout'
 import moon from '@iconify-icons/tabler/moon'
@@ -117,6 +119,8 @@ const ICONS = {
   key,
   language,
   layoutBoard,
+  layoutSidebarLeftCollapse,
+  layoutSidebarLeftExpand,
   loader,
   lock,
   logout,

@@ -94,7 +94,7 @@ export function DesignGallery({ designs, value, onChange }: DesignGalleryProps) 
             <div key={group}>
               {hasGroups && (
                 <div className="mb-2">
-                  <p className="text-xs font-bold tracking-wider text-ink uppercase">{t(`profile.preview.designGroups.${group}`, { defaultValue: group })}</p>
+                  <p className="text-xs font-semibold tracking-wider text-ink uppercase">{t(`profile.preview.designGroups.${group}`, { defaultValue: group })}</p>
                   {group === 'expressive' && <p className="mt-0.5 text-xs leading-snug text-ink-muted">{t('profile.preview.designGroups.expressiveHint')}</p>}
                 </div>
               )}
@@ -113,12 +113,12 @@ export function DesignGallery({ designs, value, onChange }: DesignGalleryProps) 
                       tabIndex={selected ? 0 : -1}
                       onClick={() => onChange(design.id)}
                       className={`relative flex flex-col rounded-sm border p-1.5 text-left transition-colors ${
-                        selected ? 'border-transparent bg-select text-select-ink shadow-[inset_0_0_0_2px_var(--indicator)]' : 'border-line bg-surface hover:bg-surface-2'
+                        selected ? 'accent-bottom border-indicator bg-select text-select-ink [--accent-inset:0.5rem]' : 'border-line bg-surface hover:bg-surface-2'
                       }`}
                     >
                       <img src={previewOf(design.id)} alt="" loading="lazy" className="aspect-[210/297] w-full rounded-xs border border-line object-cover object-top" />
                       {selected && (
-                        <span className="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-xs bg-select text-select-ink shadow-[inset_0_0_0_1px_var(--indicator)]">
+                        <span className="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-xs border border-indicator bg-select text-select-ink">
                           <Icon name="check" size={14} />
                         </span>
                       )}

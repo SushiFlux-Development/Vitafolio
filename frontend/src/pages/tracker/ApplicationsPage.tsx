@@ -262,7 +262,7 @@ function MetricCard({ label, count, tone, detail }: { label: string; count: numb
   return (
     <div className="card flex flex-col p-3">
       <span className="text-xs font-semibold tracking-wider text-ink-muted uppercase">{label}</span>
-      <span className={`mt-1 text-2xl font-bold tracking-tight ${METRIC_TEXT[tone]}`}>{count}</span>
+      <span className={`mt-1 text-2xl font-semibold tracking-tight ${METRIC_TEXT[tone]}`}>{count}</span>
       {detail && <span className="mt-0.5 text-xs text-ink-muted">{detail}</span>}
     </div>
   )

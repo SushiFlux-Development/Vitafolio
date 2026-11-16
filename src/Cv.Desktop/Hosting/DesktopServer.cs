@@ -24,6 +24,7 @@ internal sealed class DesktopServer : IAsyncDisposable
     {
         _app = app;
         Port = port;
+        BaseUri = new Uri($"http://127.0.0.1:{port}/");
         Token = token;
         // A stop the window did not ask for (e.g. a background service failed): the window must say so instead of showing a dead UI
         app.Lifetime.ApplicationStopping.Register(() =>
@@ -42,7 +43,8 @@ internal sealed class DesktopServer : IAsyncDisposable
     /// <summary>The per-run secret the server expects in cookie <c>cv_desktop</c>.</summary>
     public string Token { get; }
 
-    public Uri BaseUri => new($"http://127.0.0.1:{Port}/");
+    /// <summary>The server's root address; built once, because the port never changes for this instance.</summary>
+    public Uri BaseUri { get; }
 
     /// <summary>The Host header the server accepts in desktop mode.</summary>
     public string Host => $"127.0.0.1:{Port}";

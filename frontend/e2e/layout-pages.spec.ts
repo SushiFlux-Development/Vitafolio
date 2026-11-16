@@ -81,7 +81,7 @@ for (const size of WINDOWS) {
       }
     })
 
-    test('the profile sections are all reachable in the sidebar: only the list scrolls, the user area stays in view', async ({ page }) => {
+    test('the profile sections are all reachable in the sidebar tree: only the list scrolls, the user area stays in view', async ({ page }) => {
       await openApp(page, '/profile?tab=personal')
       const list = page.getByRole('navigation', { name: t('profile.sections') })
       const last = list.getByRole('link', { name: t('profile.tabs.preview'), exact: true })
@@ -95,8 +95,8 @@ for (const size of WINDOWS) {
       await last.click()
       await expect(page).toHaveURL(/tab=preview/)
       await expect(last).toHaveAttribute('aria-current', 'page')
-      // "Zurück" is pinned above the list
-      await expect(page.getByTestId('sidebar-back')).toBeInViewport({ ratio: 1 })
+      // The sections are sub-pages of the profile's row in the one tree: the main navigation stays around them
+      await expect(page.getByRole('navigation', { name: t('nav.label') }).getByRole('link', { name: t('nav.profile'), exact: true })).toHaveAttribute('aria-expanded', 'true')
     })
   })
 }

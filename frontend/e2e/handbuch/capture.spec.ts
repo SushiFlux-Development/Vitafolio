@@ -18,7 +18,7 @@ import { field, HELPER_SEEN, settledLayout, totp } from '../support'
  *   PLAYWRIGHT_BASE_URL           (set by the runner)
  *   PLAYWRIGHT_WS_ENDPOINT        (set by the runner, optional)
  *   E2E_SETUP_CODE                (optional: the one-time setup code of the fresh server, if the server asks for one)
- * The server should run with APP_CHANNEL=release, so the footer shows a release version and not "-dev".
+ * The server should run with APP_CHANNEL=release, so the version (sign-in page, About page) is a release version and not "-dev".
  *
  * What it does: one serial run. 1. Photographs the setup page of the still empty server in both languages. 2. Creates made-up
  * demo data through the API (three accounts, backups, a backup schedule, some activity). 3. For German and then English: signs in
@@ -753,13 +753,15 @@ for (const lang of LANGS) {
     await seedDemoContent(api, lang)
     const text = TEXT[lang]
 
-    // The main window with numbered parts: menu, own area, colour scheme switch, footer
+    // The main window with numbered parts: the tree of the sidebar, own area, colour scheme switch, collapse button, About
+    // (there is no page footer next to the sidebar)
     await open('/')
-    await expect(page.locator('aside footer')).toBeVisible()
-    await mark(page.locator('aside nav'), 1)
+    await expect(page.getByTestId('open-about')).toBeVisible()
+    await mark(page.locator('aside nav').first(), 1)
     await mark(page.getByTestId('current-user').locator('xpath=../..'), 2)
     await mark(page.locator('aside').getByRole('radiogroup'), 3)
-    await mark(page.locator('aside footer'), 4)
+    await mark(page.getByTestId('sidebar-collapse'), 4)
+    await mark(page.getByTestId('open-about'), 5)
     await shotWindow(page, lang, 'hauptfenster')
     await clearMarks(page)
 

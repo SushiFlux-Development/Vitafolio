@@ -22,7 +22,7 @@ function RowAction({ icon, label, onClick, disabled, danger = false, testId }: {
   return (
     <button
       type="button"
-      className={`btn btn-ghost btn-sm !px-2 ${danger ? 'text-danger' : ''}`}
+      className={`btn ${danger ? 'btn-danger-text' : 'btn-ghost'} btn-sm btn-icon`}
       aria-label={label}
       title={label}
       disabled={disabled}

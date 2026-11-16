@@ -367,7 +367,8 @@ Dieses Kapitel gilt für die Docker-Version.
 ## 6.1 Anmelden
 
 1. Öffnen Sie die Adresse von Vitafolio im Browser. Wenn Sie nicht angemeldet sind, sehen Sie die Anmeldeseite (siehe
-   Abbildung 2). Links ist das Formular, rechts stehen die Merkmale der App.
+   Abbildung 2). Links, auf einem Drittel der Breite, ist das Formular. Rechts, auf den übrigen zwei Dritteln, stehen der Name der
+   App mit einem kurzen Leitsatz und die fünf Merkmale der App als schlichte Liste. Ganz unten steht die Versionsnummer.
 2. Geben Sie Ihren **Benutzernamen** und Ihr **Passwort** ein.
 3. Klicken Sie auf **Anmelden**.
 
@@ -404,7 +405,7 @@ Neue Konten sind normale Benutzer, keine Administratoren.
 
 ## 6.4 Abmelden
 
-Klicken Sie links unten in der Seitenleiste auf **Abmelden**.
+Klicken Sie unten in der Seitenleiste auf **Abmelden**. Der Knopf steht im Bereich mit Ihrem Namen.
 
 Vitafolio schickt vorher noch ab, was auf dem Weg zum Speichern ist (Abschnitt 8.2). Gelingt das nicht, zum Beispiel weil
 der Server gerade nicht erreichbar ist, fragt es nach: „Ihre letzten Eingaben konnten nicht gespeichert werden. Beim Abmelden wird
@@ -434,28 +435,47 @@ Es zeigt die **Übersicht**:
 
 ![Das Hauptfenster von Vitafolio](bilder/hauptfenster.png)
 
-Links steht die **Seitenleiste**. Die Zahlen in der Abbildung gehören zu diesen Punkten:
+Links steht die **Seitenleiste**. Sie ist ein Menübaum: Jeder Punkt hat ein Symbol und einen Namen, der Punkt der offenen Seite trägt
+eine dünne Linie am Rand. Die Zahlen in der Abbildung gehören zu diesen Punkten:
 
-1. **Die Navigation:**
+1. **Der Menübaum:** Ganz oben steht der Name **Vitafolio**. Darunter folgen:
    - **Übersicht:** die Startseite.
    - **Stammprofil:** Ihre Daten und Ihr Lebenslauf (Kapitel 8).
    - **Anschreiben:** Ihre Bewerbungsschreiben (Kapitel 9).
    - **Bewerbungen:** Tracker, Mappen und Anlagen (Kapitel 10).
    - **Export:** die fertigen PDF-Dateien an einem Ort (Kapitel 24).
-   - **Ratgeber:** wenige Fragen, dann ein Bewerbungsplan für Ihre Lage (Kapitel 23).
-   - **App-Administration:** nur für Administratoren der Docker-Version (Kapitel 14).
-   - Darunter erscheint bei Bedarf das Feld **Update verfügbar** (Kapitel 16).
-2. **Ihr Bereich:** Er zeigt Ihren Namen und Ihre Rolle (im Windows-Programm „Lokales Konto“). Darunter stehen:
-   - **KI-Einstellungen** (Kapitel 11),
-   - **Handbuch**, das dieses Handbuch in einem Fenster öffnet (Abschnitt 17.1),
-   - **Hilfe zu dieser Seite**, das kurze Hinweise direkt an den Bedienelementen der offenen Seite zeigt (Abschnitt 17.4),
-   - **Einstellungen** mit den persönlichen Einstellungen (Kapitel 12, 13, 15 und 17).
-3. **Der Schalter fürs Farbschema:** Er wechselt zwischen „Hell“ und „Dunkel“ (Kapitel 13). Darunter steht in der
-   Docker-Version der kleine Knopf **Abmelden**.
-4. **Die Fußzeile:** Sie zeigt „Mit ♥ gemacht“ und die Versionsnummer. Ein Klick auf die Versionsnummer öffnet die Seite „Über“
-   (Abschnitt 17.2).
+   - Nach einer Trennlinie: **Ratgeber**, wenige Fragen, dann ein Bewerbungsplan für Ihre Lage (Kapitel 23).
+   - **KI-Einstellungen** (Kapitel 11).
+   - **Handbuch**, das dieses Handbuch in einem Fenster öffnet (Abschnitt 17.1).
+   - **Hilfe zu dieser Seite**, das kurze Hinweise direkt an den Bedienelementen der offenen Seite zeigt (Abschnitt 17.4).
+   - Bei Bedarf eine Zeile **Update verfügbar** mit der neuen Versionsnummer (Kapitel 16).
+2. **Ihr Bereich:** Ganz unten bleibt immer sichtbar, was für alles gilt: **App-Administration** (nur für Administratoren der
+   Docker-Version, Kapitel 14) und **Einstellungen** mit den persönlichen Einstellungen (Kapitel 12, 13, 15 und 17). Darunter stehen Ihr Name
+   und Ihre Rolle (im Windows-Programm „Lokales Konto“).
+3. **Der Schalter fürs Farbschema:** Er wechselt zwischen „Hell“ und „Dunkel“ (Kapitel 13). Darunter steht in der Docker-Version der kleine Knopf
+   **Abmelden**.
+4. **Der Knopf zum Ein- und Ausklappen:** Er steht oben neben dem Namen (siehe unten).
+5. **Das Info-Symbol:** Es steht unten rechts im Bereich mit Ihrem Namen. Zeigen Sie darauf, nennt ein kleiner Text die Versionsnummer. Ein Klick öffnet die Seite
+   „Über“ (Abschnitt 17.2).
+
+Die Seitenleiste hat keine Fußzeile. Die Zeile „Mit ♥ gemacht“ und die Versionsnummer stehen auf der Seite „Über“.
 
 Rechts sehen Sie den Arbeitsbereich mit der aktuellen Seite.
+
+**Die Seitenleiste schmal stellen.** Brauchen Sie auf einer Seite mehr Platz, klappen Sie die Seitenleiste ein:
+
+1. Klicken Sie oben in der Seitenleiste auf den Knopf **Seitenleiste einklappen**.
+2. Die Leiste schrumpft zu einem schmalen Streifen, in dem nur noch die Symbole stehen. Die Seite daneben wird breiter.
+3. Zeigen Sie mit der Maus auf ein Symbol, oder wählen Sie es mit der Tabulatortaste an. Dann steht sein Name daneben.
+4. Mit einem Klick auf **Seitenleiste ausklappen** holen Sie die Leiste zurück.
+
+Vitafolio merkt sich Ihre Wahl in diesem Browser (im Windows-Programm im Programmfenster). In der schmalen Leiste zeigt das Stammprofil seine neun Bereiche nicht
+unter seinem Symbol. Klappen Sie die Leiste aus, wenn Sie den Bereich wechseln wollen.
+
+> [!HINWEIS]
+> Vitafolio sieht bewusst schlicht und leicht aus: Karten haben keinen Schatten, nur eine dünne Linie. Der aktive Menüpunkt, der gewählte Reiter und
+> hervorgehobene Hinweise tragen eine dünne gerade Linie. Reiter und Auswahlknöpfe bilden eine zusammenhängende Leiste. Reicht dafür der Platz nicht,
+> stehen sie untereinander als Liste. Die Rollbalken sind schmal und liegen über der Seite: Sie erscheinen nur beim Rollen oder nahe am Rand und nehmen keine Breite weg.
 
 > [!TIPP]
 > Beim ersten Start zeigt Vitafolio eine kurze **Einführung**, später auf jeder Seite einmal kleine **Hinweise**. Wie sie arbeiten und wie
@@ -475,10 +495,9 @@ Sie können es jederzeit mit einem Klick wechseln, ohne etwas neu zu tippen.
 ## 8.1 Der Aufbau des Stammprofils
 
 Das Stammprofil hat neun Bereiche. Jeder Bereich ist ein Baustein des Lebenslaufs. Sie wählen den Bereich in der
-**Seitenleiste** links: Solange das Stammprofil offen ist, zeigt sie statt der üblichen Punkte die neun Bereiche. Der gerade
-geöffnete ist hervorgehoben. Ganz oben in der Seitenleiste steht **Zurück**. Damit kehren Sie zu der Seite zurück, auf der
-Sie vorher waren. Gab es keine, führt **Zurück** zur Übersicht. Darunter bleiben Ihr Bereich, der Schalter fürs Farbschema und
-die Fußzeile wie gewohnt stehen.
+**Seitenleiste** links: Solange das Stammprofil offen ist, klappen die neun Bereiche unter dem Punkt **Stammprofil** auf, eingerückt an einer
+dünnen Führungslinie. Der gerade geöffnete ist hervorgehoben. Die übrigen Punkte der Seitenleiste bleiben stehen. Ein Klick auf einen anderen Punkt,
+zum Beispiel **Übersicht**, verlässt das Stammprofil.
 
 | Bereich | Was Sie dort eintragen | Pflichtfelder (mit * markiert) |
 |---|---|---|
@@ -1424,7 +1443,7 @@ Sie können den Code auch erzeugen lassen, ohne die Anmeldeseite zu benutzen: Le
 Öffnen Sie **Einstellungen** und den Reiter **Darstellung** (siehe Abbildung 25).
 
 - **Farbschema:** „Hell“ oder „Dunkel“. Beim allerersten Start entscheidet die Einstellung Ihres Computers einmal, danach gilt Ihre Wahl. Den Schalter finden Sie
-  auch unten in der Seitenleiste.
+  auch unten in der Seitenleiste, im Bereich mit Ihrem Namen.
 - **Sprache:** „Deutsch“ oder „English“.
 - **Datumsformat:** So tippen Sie Datumsangaben ein und so zeigt Vitafolio sie an (siehe unten).
 
@@ -1764,8 +1783,8 @@ Die Seite zeigt die **installierte Version** und, wann zuletzt geprüft wurde. D
   auf GitHub ansehen** öffnen Sie die ausführliche Seite im Browser.
 - Eine **Fehlermeldung**, wenn GitHub nicht erreichbar war. Sie steht vollständig da und lässt sich kopieren.
 
-Gibt es ein Update, erscheint zusätzlich in der Seitenleiste unter der Navigation ein blaues Feld **Update verfügbar** mit der Versionsnummer, und der
-Reiter „Updates“ trägt die Markierung „Neu“. Dieses Feld sehen nur Personen, die Updates verwalten dürfen: im Windows-Programm
+Gibt es ein Update, erscheint zusätzlich in der Seitenleiste unter den Menüpunkten eine Zeile **Update verfügbar** mit der Versionsnummer. Sie hat eine blaue Linie am linken Rand. Der
+Reiter „Updates“ trägt die Markierung „Neu“. Diese Zeile sehen nur Personen, die Updates verwalten dürfen: im Windows-Programm
 Sie selbst, in der Docker-Version die Administratoren.
 
 Das Suchen per Knopf ist auf einmal alle 30 Sekunden begrenzt. Klicken Sie öfter, zeigt Vitafolio das letzte Ergebnis noch einmal
@@ -1777,7 +1796,7 @@ und sagt das dazu. Eine Entwicklungsversion sucht nie nach Updates.
 
 Das Windows-Programm installiert ein Update **nie von allein**. Es wartet auf Ihren Klick. So gehen Sie vor:
 
-1. Klicken Sie auf das blaue Feld **Update verfügbar** in der Seitenleiste oder auf der Update-Seite auf **Update installieren**.
+1. Klicken Sie auf die Zeile **Update verfügbar** in der Seitenleiste oder auf der Update-Seite auf **Update installieren**.
 2. Lesen Sie die Frage „Update auf … installieren?“. Sie erklärt, was gleich passiert.
 3. Haben Sie noch Eingaben, die nicht gespeichert sind, warnt Vitafolio ausdrücklich. Eingaben in einem offenen Fenster gehen beim Neustart
    verloren. Eingaben, bei denen „Nicht gespeichert“ steht (Abschnitt 8.2), bleiben als Kopie auf diesem Rechner und sind nach dem Neustart
@@ -1878,8 +1897,8 @@ Sie es als Datei.
 
 ## 17.2 Über Vitafolio: Version, Lizenz und Quellcode
 
-Die Seite **Über** finden Sie in den **Einstellungen**, Reiter **Über**. Ein Klick auf die Versionsnummer unten in der Seitenleiste
-führt ebenfalls dorthin. Die Seite nennt (siehe Abbildung 36):
+Die Seite **Über** finden Sie in den **Einstellungen**, Reiter **Über**. Auch das Info-Symbol unten in der Seitenleiste führt dorthin. Zeigen Sie darauf, nennt
+ein kleiner Text die Versionsnummer. Die Seite nennt (siehe Abbildung 36):
 
 - **Version:** zum Beispiel `v2026.11.12.13.557`. Das sind Jahr, Monat und die laufende Nummer, danach zwei Zähler. Steht dahinter ein **β**,
   ist es eine Beta, bei einem **α** ein Nightly. Eine fertige Version hat kein Zeichen. Ein Entwicklungsstand trägt `</>`.
@@ -1887,6 +1906,7 @@ führt ebenfalls dorthin. Die Seite nennt (siehe Abbildung 36):
   jemand eine geänderte Fassung als Dienst weiter, muss er auch deren Quellcode anbieten.
 - **Quellcode:** ein Link zur öffentlichen Seite des Projekts auf GitHub.
 - Knöpfe für **Neuerungen dieser Version** (Abschnitt 16.5) und **Handbuch öffnen** (Abschnitt 17.1).
+- Darunter die Zeile „Mit ♥ gemacht“.
 
 ![Die Seite „Über“ mit Version, Lizenz und Quellcode](bilder/ueber.png)
 
@@ -1912,7 +1932,7 @@ gehen Sie zum nächsten, mit **Ausblenden** schließen Sie alle. Auf der Karte s
 Bedienelement, das gerade nicht auf der Seite steht (zum Beispiel eine Liste ohne Einträge), wird übersprungen. In den Assistenten gibt es keine Hinweise, weil Sie dort
 mitten in einer Aufgabe sind.
 
-**Hilfe zu dieser Seite.** Unten in der Seitenleiste, unter **Handbuch**, steht der Knopf **Hilfe zu dieser Seite**. Er zeigt die Hinweise der offenen Seite noch einmal.
+**Hilfe zu dieser Seite.** In der Seitenleiste, unter **Handbuch**, steht der Knopf **Hilfe zu dieser Seite**. Er zeigt die Hinweise der offenen Seite noch einmal.
 Auf einer Seite ohne Hinweise startet er die Einführung.
 
 **Verschieben.** Verdeckt eine Karte etwas, das Sie sehen wollen, schieben Sie sie weg. Fassen Sie sie mit der Maus am Kopf und ziehen Sie. Ohne Maus

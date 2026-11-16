@@ -1,12 +1,20 @@
-import { useRef } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { FocusEventHandler, KeyboardEvent, PointerEventHandler } from 'react'
 import { Icon } from './Icon'
 import type { IconName } from './Icon'
+import { useFitInRow } from './useFitInRow'
 
 interface Option<T extends string> {
   value: T
   label: string
   icon?: IconName
+}
+
+/** Handlers that show an own tooltip for an icon-only option (the sidebar's rail); without them the label is the browser's title. */
+export interface TipHandlers {
+  onPointerEnter?: PointerEventHandler<HTMLElement>
+  onPointerLeave?: PointerEventHandler<HTMLElement>
+  onFocus?: FocusEventHandler<HTMLElement>
+  onBlur?: FocusEventHandler<HTMLElement>
 }
 
 interface SegmentedProps<T extends string> {
@@ -17,15 +25,18 @@ interface SegmentedProps<T extends string> {
   /** Icons only (the label stays as the accessible name and tooltip), segments share the full width. */
   compact?: boolean
   disabled?: boolean
+  /** Own tooltip for the icon-only options of a compact bar. */
+  tip?: (label: string) => TipHandlers
 }
 
 /**
- * A short single-choice control (theme, language); the chosen segment is the "selection" category, like the tabs. It behaves
- * like a native radio group: Tab reaches only the chosen segment, the arrow keys move the choice (and the focus) to the
+ * A short single-choice control (theme, language): one connected thin bar in one row, the chosen segment tinted with a straight
+ * line under its label. When the options do not fit at full length it becomes a connected vertical list (useFitInRow). It
+ * behaves like a native radio group: Tab reaches only the chosen segment, the arrow keys move the choice (and the focus) to the
  * neighbour, wrapping around.
  */
-export function Segmented<T extends string>({ options, value, onChange, label, compact = false, disabled = false }: SegmentedProps<T>) {
-  const group = useRef<HTMLDivElement>(null)
+export function Segmented<T extends string>({ options, value, onChange, label, compact = false, disabled = false, tip }: SegmentedProps<T>) {
+  const group = useFitInRow<HTMLDivElement>(options.map((option) => option.label).join('|'))
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0
@@ -46,7 +57,9 @@ export function Segmented<T extends string>({ options, value, onChange, label, c
       role="radiogroup"
       aria-label={label}
       onKeyDown={handleKeyDown}
-      className={`rounded-sm border border-line-strong bg-surface p-0.5 ${compact ? 'flex' : 'inline-flex'}`}
+      className="choice-bar"
+      data-inline={compact ? undefined : 'true'}
+      data-compact={compact ? 'true' : undefined}
     >
       {options.map((option) => {
         const selected = option.value === value
@@ -58,12 +71,11 @@ export function Segmented<T extends string>({ options, value, onChange, label, c
             tabIndex={selected ? 0 : -1}
             aria-checked={selected}
             aria-label={compact ? option.label : undefined}
-            title={compact ? option.label : undefined}
+            title={compact && !tip ? option.label : undefined}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className={`flex min-h-8 items-center justify-center gap-2 rounded-xs px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${compact ? 'flex-1' : ''} ${
-              selected ? 'bg-select text-select-ink shadow-[inset_0_-2px_0_var(--indicator)]' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
-            }`}
+            className="choice"
+            {...(compact && tip ? tip(option.label) : {})}
           >
             {option.icon && <Icon name={option.icon} size={16} />}
             {!compact && option.label}

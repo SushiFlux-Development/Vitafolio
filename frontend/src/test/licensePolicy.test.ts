@@ -90,7 +90,7 @@ describe('licence expressions', () => {
 
   it('has an allowed list that is exactly the one the owner released', () => {
     expect([...policy.allowed].sort()).toEqual(
-      ['0BSD', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'CC-BY-3.0', 'CC-BY-4.0', 'CC0-1.0', 'ISC', 'MIT', 'OFL-1.1', 'PSF-2.0', 'Unlicense', 'Zlib', 'Unicode-3.0', 'MPL-2.0', 'GUST-FONT-LICENSE', 'GPL-3.0-or-later WITH Font-exception-2.0', 'Bitstream-Vera', 'W3C-20150513'].sort(),
+      ['0BSD', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'CC-BY-3.0', 'CC-BY-4.0', 'CC0-1.0', 'ISC', 'MIT', 'OFL-1.1', 'PSF-2.0', 'Unlicense', 'Zlib', 'Unicode-3.0', 'MPL-2.0', 'GUST-FONT-LICENSE', 'GPL-3.0-or-later WITH Font-exception-2.0', 'Bitstream-Vera', 'W3C-20150513', 'blessing'].sort(),
     )
   })
 
@@ -134,7 +134,7 @@ describe('the committed licence list of the product', () => {
     ['PdfPig', 'Apache License'],
     ['typstsharp', 'MIT License'],
     ['SQLitePCLRaw.core', 'Apache License'],
-    ['SQLitePCLRaw.lib.e_sqlite3', 'Apache License'],
+    ['SQLitePCLRaw.config.e_sqlite3', 'Apache License'],
     ['Velopack', 'Permission is hereby granted'],
     ['qrcode-generator', 'MIT License'],
     ['Microsoft.EntityFrameworkCore', 'MIT License'],

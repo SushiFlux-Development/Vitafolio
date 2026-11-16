@@ -5,7 +5,7 @@ import { apiOk, openAs } from './support'
 
 // The dashboard: the state of the applications at a glance. Below the welcome it shows
 // the tracker board itself (the same component as on the applications page), a strip for follow-ups that are due, the first steps
-// while there is no application, and the sidebar's theme switch and footer.
+// while there is no application, and the sidebar's theme switch, its foot (no page footer) and the rail it collapses to.
 // Every test has an account of its own.
 test.use({ viewport: { width: 1024, height: 768 } })
 
@@ -121,21 +121,49 @@ test.describe('the sidebar', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   })
 
-  test('the footer is centred and shows the credit line and the whole version; "sign out" is a button of its own size', async ({ member }) => {
+  test('no page footer next to the sidebar: the info icon leads to the About page; "sign out" is a button of its own size', async ({ member }) => {
     const { page } = member
     await open(member)
     const aside = page.locator('aside')
-    const footer = aside.locator('footer')
+    await expect(page.locator('footer')).toHaveCount(0)
     const asideBox = (await aside.boundingBox())!
-    const version = footer.getByTestId('version')
-    await expect(version).toBeVisible()
-    const versionBox = (await version.boundingBox())!
-    expect(Math.abs(versionBox.x + versionBox.width / 2 - (asideBox.x + asideBox.width / 2)), 'the version is centred in the sidebar').toBeLessThanOrEqual(3)
-    const credit = (await footer.locator('span.whitespace-nowrap').first().boundingBox())!
-    expect(Math.abs(credit.x + credit.width / 2 - (asideBox.x + asideBox.width / 2)), 'the credit line is centred in the sidebar').toBeLessThanOrEqual(3)
 
     const signOut = (await page.getByTestId('sign-out').boundingBox())!
     expect(signOut.width, 'sign out is no box across the sidebar').toBeLessThan(asideBox.width * 0.7)
+    expect(signOut.height, 'sign out keeps the 48 px target through its hit area, the box itself stays compact').toBeLessThan(48)
+
+    await page.getByTestId('open-about').click()
+    await expect(page).toHaveURL(/\/settings\?tab=about$/)
+    await expect(page.getByTestId('about-version')).toBeVisible()
+    await expect(page.getByTestId('about-credit')).toContainText('♥')
+  })
+
+  test('the sidebar collapses to a slim rail with own tooltips, the page takes the room, and the choice survives a reload', async ({ member }) => {
+    const { page, t } = member
+    await open(member)
+    const aside = page.locator('aside')
+    const main = page.locator('main')
+    const wide = (await aside.boundingBox())!.width
+    const mainBefore = (await main.boundingBox())!
+
+    await page.getByTestId('sidebar-collapse').click()
+    await expect(aside).toHaveAttribute('data-rail', 'true')
+    const narrow = (await aside.boundingBox())!.width
+    expect(narrow).toBeLessThan(wide / 2)
+    const mainAfter = (await main.boundingBox())!
+    expect(mainAfter.x + mainAfter.width, 'the page still ends at the window edge').toBeCloseTo(mainBefore.x + mainBefore.width, 0)
+    expect(mainAfter.width, 'the page takes the freed width').toBeGreaterThan(mainBefore.width + (wide - narrow) - 2)
+
+    // The name of an entry is an own tooltip (no browser title) on hover
+    const profile = aside.getByRole('link', { name: t('nav.profile') })
+    await expect(profile).not.toHaveAttribute('title')
+    await profile.hover()
+    await expect(page.getByTestId('sidebar-tip')).toHaveText(t('nav.profile'))
+
+    await page.reload()
+    await expect(page.locator('aside')).toHaveAttribute('data-rail', 'true')
+    await page.getByTestId('sidebar-collapse').click()
+    await expect(page.locator('aside')).not.toHaveAttribute('data-rail', 'true')
   })
 })
 

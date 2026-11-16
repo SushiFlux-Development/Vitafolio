@@ -12,6 +12,9 @@
  * use the sunken surface. A status is never told by colour alone - it always carries its label.
  * Toggles have their own pair (on = green, off = red) because their meaning is unrelated to the categories above.
  *
+ * Look "clean and light": cards and panels are a 1px line and at most a slight surface step, never a shadow (only what floats
+ * above the page - dialogs, popovers, tooltips - keeps --elev-pop). Accents are thin straight lines in --indicator (index.css).
+ *
  * Contrast (WCAG 2.x) of the text/background pairs and of the UI parts is pinned by src/styles/tokens.test.ts for both
  * themes; change a value here and that test tells whether it still passes.
  */
@@ -67,7 +70,6 @@
   --heart: #1e7a3c;
 
   --overlay: rgb(10 15 28 / 0.55);
-  --elev-card: 0 1px 2px rgb(20 33 61 / 0.06), 0 4px 14px rgb(20 33 61 / 0.05);
   --elev-pop: 0 18px 50px rgb(10 15 28 / 0.28);
 }
 
@@ -122,6 +124,5 @@
   --heart: #4ade80;
 
   --overlay: rgb(3 6 14 / 0.7);
-  --elev-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
   --elev-pop: 0 18px 50px rgb(0 0 0 / 0.55);
 }
